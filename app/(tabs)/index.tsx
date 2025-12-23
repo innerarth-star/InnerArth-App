@@ -31,14 +31,15 @@ export default function MainApp() {
         const emailLimpio = usuario.email?.toLowerCase().trim();
         const coachLimpio = CORREO_COACH.toLowerCase().trim();
 
-        console.log("INTENTO DE LOGIN:", emailLimpio);
+        // ESTA ALERTA TE MOSTRARÁ EN EL CELULAR QUÉ ESTÁ PASANDO
+        Alert.alert(
+          "Debug Acceso", 
+          `Detectado: [${emailLimpio}]\nObjetivo: [${coachLimpio}]`
+        );
 
-        // Verificación exacta ignorando espacios y mayúsculas
         if (emailLimpio === coachLimpio) {
-          console.log("ACCESO CONCEDIDO: COACH");
           setRole('coach');
         } else {
-          console.log("ACCESO: ALUMNO");
           setRole('alumno');
         }
       } else {
