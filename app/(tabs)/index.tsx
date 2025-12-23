@@ -28,10 +28,17 @@ export default function MainApp() {
     const unsub = onAuthStateChanged(auth, async (usuario) => {
       if (usuario) {
         setUser(usuario);
+        const emailLimpio = usuario.email?.toLowerCase().trim();
+        const coachLimpio = CORREO_COACH.toLowerCase().trim();
+
+        console.log("INTENTO DE LOGIN:", emailLimpio);
+
         // Verificación exacta ignorando espacios y mayúsculas
-        if (usuario.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase()) {
+        if (emailLimpio === coachLimpio) {
+          console.log("ACCESO CONCEDIDO: COACH");
           setRole('coach');
         } else {
+          console.log("ACCESO: ALUMNO");
           setRole('alumno');
         }
       } else {
@@ -53,11 +60,16 @@ export default function MainApp() {
 
   if (!user) return <AuthScreen />;
 
-  if (role === 'coach') return <CoachPanel />;
+  // Muestra el Panel de Control si eres tú
+  if (role === 'coach') {
+    return <CoachPanel />;
+  }
 
+  // Muestra el Formulario si es un alumno
   return <ClienteScreen user={user} />;
 }
 
+// --- COMPONENTE DEL FORMULARIO (CLIENTES) ---
 function ClienteScreen({ user }: { user: any }) {
   const [paso, setPaso] = useState<'formulario' | 'espera'>('formulario');
   const [seccionActiva, setSeccionActiva] = useState<number | null>(1);
@@ -106,10 +118,6 @@ function ClienteScreen({ user }: { user: any }) {
     else setSeccionActiva(actual + 1);
   };
 
-  const toggleChip = (lista: string[], setLista: Function, valor: string) => {
-    lista.includes(valor) ? setLista(lista.filter(item => item !== valor)) : setLista([...lista, valor]);
-  };
-
   const enviarAlCoach = async () => {
     if (!nombre || !firma || !aceptarTerminos || !genero) {
       Alert.alert("Atención", "Es obligatorio completar nombre, género, aceptar términos y firmar.");
@@ -155,7 +163,6 @@ function ClienteScreen({ user }: { user: any }) {
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.header}>Check-in FitTech</Text>
         
-        {/* BLOQUE 1 */}
         <View style={styles.card}>
           <SectionHeader num={1} title="Datos Personales" color="#3b82f6" icon="user-alt" activa={seccionActiva} setActiva={setSeccionActiva} />
           {seccionActiva === 1 && (
@@ -175,7 +182,6 @@ function ClienteScreen({ user }: { user: any }) {
           )}
         </View>
 
-        {/* BLOQUE 2 AL 7 (SIMPLIFICADO PARA ESTE EJEMPLO, RELLENA CON TUS INPUTS) */}
         <View style={styles.card}>
           <SectionHeader num={2} title="Medidas y Salud" color="#10b981" icon="ruler-combined" activa={seccionActiva} setActiva={setSeccionActiva} />
           {seccionActiva === 2 && (
@@ -186,7 +192,6 @@ function ClienteScreen({ user }: { user: any }) {
           )}
         </View>
 
-        {/* BLOQUE 8: FIRMA */}
         <View style={styles.card}>
           <SectionHeader num={8} title="Consentimiento y Firma" color="#1e293b" icon="file-signature" activa={seccionActiva} setActiva={setSeccionActiva} />
           {seccionActiva === 8 && (
@@ -214,7 +219,7 @@ function ClienteScreen({ user }: { user: any }) {
   );
 }
 
-const SectionHeader = ({ num, title, color, icon, lib = "FontAwesome5", activa, setActiva }: any) => (
+const SectionHeader = ({ num, title, color, icon, activa, setActiva }: any) => (
   <TouchableOpacity style={styles.headerToggle} onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setActiva(activa === num ? null : num); }}>
     <View style={styles.titleRow}>
       <View style={[styles.numCircle, {backgroundColor: color}]}><Text style={styles.numText}>{num}</Text></View>
