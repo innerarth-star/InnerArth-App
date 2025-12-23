@@ -24,11 +24,7 @@ export default function MainApp() {
     const unsub = onAuthStateChanged(auth, async (usuario) => {
       if (usuario) {
         setUser(usuario);
-        if (usuario.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim()) {
-          setRole('coach');
-        } else {
-          setRole('alumno');
-        }
+        setRole(usuario.email?.toLowerCase().trim() === CORREO_COACH ? 'coach' : 'alumno');
       } else {
         setUser(null);
         setRole(null);
@@ -61,32 +57,37 @@ function ClienteScreen({ user }: { user: any }) {
   const [ciclo, setCiclo] = useState({ tipo: '', anticonceptivo: '' });
   const [salud, setSalud] = useState({ enfFam: [] as string[], otrosFam: '', enfPers: [] as string[], otrosPers: '', medicamento: '', lesion: '', detalleLesion: '', operacion: '', detalleOperacion: '' });
   const [ipaq, setIpaq] = useState({ vDias: '', vMin: '', mDias: '', mMin: '', cDias: '', cMin: '', sentado: '' });
-  const [nutricion, setNutricion] = useState({ comidasDeseadas: '', comidasActuales: '', descripcionDia: '', entrenos: '', alcohol: '', alcoholFreq: '', sustancias: '', sustanciasFreq: '' });
+  const [nutricion, setNutricion] = useState({ comidasActuales: '', descripcionDia: '', alcohol: '', alcoholFreq: '', sustancias: '', sustanciasFreq: '', comidasDeseadas: '', entrenos: '', objetivo: '' });
   const [frecuenciaAlimentos, setFrecuenciaAlimentos] = useState<any>({});
-  const [objetivo, setObjetivo] = useState('');
 
   const siguiente = (num: number) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setSeccionActiva(num + 1);
   };
 
-  const toggleChip = (lista: string[], valor: string, campo: string) => {
-    const nuevaLista = lista.includes(valor) ? lista.filter(i => i !== valor) : [...lista, valor];
-    setSalud({ ...salud, [campo]: nuevaLista });
-  };
-
   const enviarAlCoach = async () => {
     if (!nombre || !firma || !aceptarTerminos || !aceptarPrivacidad) {
-      Alert.alert("Atención", "Por favor completa nombre, firma y acepta términos/privacidad.");
+      Alert.alert("Atención", "Por favor completa nombre, firma y acepta el aviso de privacidad.");
       return;
     }
     try {
       await addDoc(collection(db, "revisiones_pendientes"), {
-        uid: user.uid, nombre, telefono, email: user.email, datosFisicos, medidas, ciclo, salud, ipaq, nutricion, frecuenciaAlimentos, objetivo, firma, fechaEnvio: new Date().toLocaleDateString(), timestamp: serverTimestamp()
+        uid: user.uid, nombre, telefono, email: user.email, datosFisicos, medidas, ciclo, salud, ipaq, nutricion, frecuenciaAlimentos, firma, fechaEnvio: new Date().toLocaleDateString(), timestamp: serverTimestamp()
       });
       setPaso('espera');
     } catch (e) { Alert.alert("Error", "Error al enviar."); }
   };
+
+  if (paso === 'espera') {
+    return (
+      <View style={styles.esperaContainer}>
+        <FontAwesome5 name="check-circle" size={80} color="#10b981" />
+        <Text style={styles.esperaTitle}>¡Enviado!</Text>
+        <Text style={styles.esperaSub}>Tu Coach Arturo ya tiene tu información.</Text>
+        <TouchableOpacity onPress={() => signOut(auth)} style={{marginTop:20}}><Text style={{color:'#ef4444'}}>Cerrar Sesión</Text></TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -101,12 +102,11 @@ function ClienteScreen({ user }: { user: any }) {
         {/* 1. DATOS PERSONALES */}
         <Section num={1} title="Datos Personales" color="#3b82f6" icon="user" activa={seccionActiva} setActiva={setSeccionActiva}>
           <TextInput style={styles.input} placeholder="Nombre Completo" value={nombre} onChangeText={setNombre} />
-          <TextInput style={styles.input} placeholder="Teléfono" value={telefono} onChangeText={(v)=>setTelefono(v.replace(/\s/g, ''))} keyboardType="phone-pad" />
+          <TextInput style={styles.input} placeholder="Teléfono (sin espacios)" value={telefono} onChangeText={(v)=>setTelefono(v.replace(/\s/g, ''))} keyboardType="phone-pad" />
           <View style={styles.row}>
             <TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Peso (kg)" keyboardType="numeric" onChangeText={v=>setDatosFisicos({...datosFisicos, peso:v})} />
             <TextInput style={[styles.input, {flex:1, marginLeft:5}]} placeholder="Altura (cm)" keyboardType="numeric" onChangeText={v=>setDatosFisicos({...datosFisicos, altura:v})} />
           </View>
-          <TextInput style={styles.input} placeholder="Edad" keyboardType="numeric" onChangeText={v=>setDatosFisicos({...datosFisicos, edad:v})} />
           <View style={styles.row}>
             <TouchableOpacity style={[styles.btnG, datosFisicos.genero === 'hombre' && styles.btnActive]} onPress={() => setDatosFisicos({...datosFisicos, genero:'hombre'})}><Text style={datosFisicos.genero === 'hombre' ? styles.txtW : styles.txtB}>HOMBRE</Text></TouchableOpacity>
             <TouchableOpacity style={[styles.btnG, datosFisicos.genero === 'mujer' && styles.btnActive]} onPress={() => setDatosFisicos({...datosFisicos, genero:'mujer'})}><Text style={datosFisicos.genero === 'mujer' ? styles.txtW : styles.txtB}>MUJER</Text></TouchableOpacity>
@@ -116,26 +116,14 @@ function ClienteScreen({ user }: { user: any }) {
 
         {/* 2. MEDIDAS */}
         <Section num={2} title="Medidas Corporales (CM)" color="#10b981" icon="ruler-horizontal" activa={seccionActiva} setActiva={setSeccionActiva}>
-          <View style={styles.row}>
-            <TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Cuello" keyboardType="numeric" onChangeText={v=>setMedidas({...medidas, cuello:v})} />
-            <TextInput style={[styles.input, {flex:1, marginLeft:5}]} placeholder="Pecho" keyboardType="numeric" onChangeText={v=>setMedidas({...medidas, pecho:v})} />
-          </View>
-          <View style={styles.row}>
-            <TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Brazo R" keyboardType="numeric" onChangeText={v=>setMedidas({...medidas, brazoR:v})} />
-            <TextInput style={[styles.input, {flex:1, marginLeft:5}]} placeholder="Brazo F" keyboardType="numeric" onChangeText={v=>setMedidas({...medidas, brazoF:v})} />
-          </View>
-          <View style={styles.row}>
-            <TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Cintura" keyboardType="numeric" onChangeText={v=>setMedidas({...medidas, cintura:v})} />
-            <TextInput style={[styles.input, {flex:1, marginLeft:5}]} placeholder="Cadera" keyboardType="numeric" onChangeText={v=>setMedidas({...medidas, cadera:v})} />
-          </View>
-          <View style={styles.row}>
-            <TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Muslo" keyboardType="numeric" onChangeText={v=>setMedidas({...medidas, muslo:v})} />
-            <TextInput style={[styles.input, {flex:1, marginLeft:5}]} placeholder="Pierna" keyboardType="numeric" onChangeText={v=>setMedidas({...medidas, pierna:v})} />
-          </View>
+          <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Cuello" keyboardType="numeric" onChangeText={v=>setMedidas({...medidas, cuello:v})} /><TextInput style={[styles.input, {flex:1, marginLeft:5}]} placeholder="Pecho" keyboardType="numeric" onChangeText={v=>setMedidas({...medidas, pecho:v})} /></View>
+          <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Brazo R" keyboardType="numeric" onChangeText={v=>setMedidas({...medidas, brazoR:v})} /><TextInput style={[styles.input, {flex:1, marginLeft:5}]} placeholder="Brazo F" keyboardType="numeric" onChangeText={v=>setMedidas({...medidas, brazoF:v})} /></View>
+          <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Cintura" keyboardType="numeric" onChangeText={v=>setMedidas({...medidas, cintura:v})} /><TextInput style={[styles.input, {flex:1, marginLeft:5}]} placeholder="Cadera" keyboardType="numeric" onChangeText={v=>setMedidas({...medidas, cadera:v})} /></View>
+          <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Muslo" keyboardType="numeric" onChangeText={v=>setMedidas({...medidas, muslo:v})} /><TextInput style={[styles.input, {flex:1, marginLeft:5}]} placeholder="Pierna" keyboardType="numeric" onChangeText={v=>setMedidas({...medidas, pierna:v})} /></View>
           <TouchableOpacity style={styles.btnNext} onPress={() => siguiente(2)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
         </Section>
 
-        {/* 3. CICLO (SOLO MUJER) */}
+        {/* 3. CICLO (MUJER) */}
         {datosFisicos.genero === 'mujer' && (
           <Section num={3} title="Ciclo Menstrual" color="#ec4899" icon="venus" activa={seccionActiva} setActiva={setSeccionActiva}>
             <Text style={styles.labelSub}>Tipo de Ciclo:</Text>
@@ -149,54 +137,54 @@ function ClienteScreen({ user }: { user: any }) {
         {/* 4. SALUD */}
         <Section num={4} title="Historial Salud" color="#ef4444" icon="heartbeat" activa={seccionActiva} setActiva={setSeccionActiva}>
           <Text style={styles.labelSub}>Enfermedades Familiares:</Text>
-          <View style={styles.rowWrap}>{ENFERMEDADES_BASE.map(e => <TouchableOpacity key={e} style={[styles.chip, salud.enfFam.includes(e) && styles.chipActive]} onPress={()=>toggleChip(salud.enfFam, e, 'enfFam')}><Text style={salud.enfFam.includes(e) ? styles.txtW : styles.txtB}>{e}</Text></TouchableOpacity>)}</View>
+          <View style={styles.rowWrap}>{ENFERMEDADES_BASE.map(e => <TouchableOpacity key={e} style={[styles.chip, salud.enfFam.includes(e) && styles.chipActive]} onPress={()=>{let n = salud.enfFam.includes(e)?salud.enfFam.filter(x=>x!==e):[...salud.enfFam, e]; setSalud({...salud, enfFam:n})}}><Text style={salud.enfFam.includes(e)?styles.txtW:styles.txtB}>{e}</Text></TouchableOpacity>)}</View>
           <Text style={[styles.labelSub, {marginTop:10}]}>Enfermedades Propias:</Text>
-          <View style={styles.rowWrap}>{ENFERMEDADES_BASE.map(e => <TouchableOpacity key={e} style={[styles.chip, salud.enfPers.includes(e) && styles.chipActive]} onPress={()=>toggleChip(salud.enfPers, e, 'enfPers')}><Text style={salud.enfPers.includes(e) ? styles.txtW : styles.txtB}>{e}</Text></TouchableOpacity>)}</View>
+          <View style={styles.rowWrap}>{ENFERMEDADES_BASE.map(e => <TouchableOpacity key={e} style={[styles.chip, salud.enfPers.includes(e) && styles.chipActive]} onPress={()=>{let n = salud.enfPers.includes(e)?salud.enfPers.filter(x=>x!==e):[...salud.enfPers, e]; setSalud({...salud, enfPers:n})}}><Text style={salud.enfPers.includes(e)?styles.txtW:styles.txtB}>{e}</Text></TouchableOpacity>)}</View>
           <Text style={[styles.labelSub, {marginTop:10}]}>¿Tienes alguna lesión?</Text>
-          <View style={styles.row}><TouchableOpacity style={[styles.btnG, salud.lesion==='si' && styles.btnActive]} onPress={()=>setSalud({...salud, lesion:'si'})}><Text style={salud.lesion==='si' ? styles.txtW : styles.txtB}>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, salud.lesion==='no' && styles.btnActive]} onPress={()=>setSalud({...salud, lesion:'no'})}><Text style={salud.lesion==='no' ? styles.txtW : styles.txtB}>NO</Text></TouchableOpacity></View>
+          <View style={styles.row}><TouchableOpacity style={[styles.btnG, salud.lesion==='si' && styles.btnActive]} onPress={()=>setSalud({...salud, lesion:'si'})}><Text style={salud.lesion==='si'?styles.txtW:styles.txtB}>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, salud.lesion==='no' && styles.btnActive]} onPress={()=>setSalud({...salud, lesion:'no'})}><Text style={salud.lesion==='no'?styles.txtW:styles.txtB}>NO</Text></TouchableOpacity></View>
           {salud.lesion==='si' && <TextInput style={styles.input} placeholder="¿Cuál?" onChangeText={v=>setSalud({...salud, detalleLesion:v})} />}
           <Text style={[styles.labelSub, {marginTop:10}]}>¿Has tenido operaciones?</Text>
-          <View style={styles.row}><TouchableOpacity style={[styles.btnG, salud.operacion==='si' && styles.btnActive]} onPress={()=>setSalud({...salud, operacion:'si'})}><Text style={salud.operacion==='si' ? styles.txtW : styles.txtB}>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, salud.operacion==='no' && styles.btnActive]} onPress={()=>setSalud({...salud, operacion:'no'})}><Text style={salud.operacion==='no' ? styles.txtW : styles.txtB}>NO</Text></TouchableOpacity></View>
+          <View style={styles.row}><TouchableOpacity style={[styles.btnG, salud.operacion==='si' && styles.btnActive]} onPress={()=>setSalud({...salud, operacion:'si'})}><Text style={salud.operacion==='si'?styles.txtW:styles.txtB}>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, salud.operacion==='no' && styles.btnActive]} onPress={()=>setSalud({...salud, operacion:'no'})}><Text style={salud.operacion==='no'?styles.txtW:styles.txtB}>NO</Text></TouchableOpacity></View>
           {salud.operacion==='si' && <TextInput style={styles.input} placeholder="¿Cuál?" onChangeText={v=>setSalud({...salud, detalleOperacion:v})} />}
           <TouchableOpacity style={styles.btnNext} onPress={() => siguiente(4)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
         </Section>
 
         {/* 5. IPAQ */}
         <Section num={5} title="Estilo Vida (IPAQ)" color="#f59e0b" icon="walking" activa={seccionActiva} setActiva={setSeccionActiva}>
-          <Text style={styles.labelIpaq}>Actividad Vigorosa (Días/Min):</Text>
-          <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Días" keyboardType="numeric" onChangeText={v=>setIpaq({...ipaq, vDias:v})}/><TextInput style={[styles.input, {flex:1}]} placeholder="Minutos" keyboardType="numeric" onChangeText={v=>setIpaq({...ipaq, vMin:v})}/></View>
-          <Text style={styles.labelIpaq}>Actividad Moderada (Días/Min):</Text>
-          <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Días" keyboardType="numeric" onChangeText={v=>setIpaq({...ipaq, mDias:v})}/><TextInput style={[styles.input, {flex:1}]} placeholder="Minutos" keyboardType="numeric" onChangeText={v=>setIpaq({...ipaq, mMin:v})}/></View>
-          <Text style={styles.labelIpaq}>Caminata (Días/Min):</Text>
-          <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Días" keyboardType="numeric" onChangeText={v=>setIpaq({...ipaq, cDias:v})}/><TextInput style={[styles.input, {flex:1}]} placeholder="Minutos" keyboardType="numeric" onChangeText={v=>setIpaq({...ipaq, cMin:v})}/></View>
+          <Text style={styles.labelIpaq}>Actividad Vigorosa:</Text>
+          <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Días" keyboardType="numeric" onChangeText={v=>setIpaq({...ipaq, vDias:v})}/><TextInput style={[styles.input, {flex:1}]} placeholder="Min" keyboardType="numeric" onChangeText={v=>setIpaq({...ipaq, vMin:v})}/></View>
+          <Text style={styles.labelIpaq}>Actividad Moderada:</Text>
+          <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Días" keyboardType="numeric" onChangeText={v=>setIpaq({...ipaq, mDias:v})}/><TextInput style={[styles.input, {flex:1}]} placeholder="Min" keyboardType="numeric" onChangeText={v=>setIpaq({...ipaq, mMin:v})}/></View>
+          <Text style={styles.labelIpaq}>Caminata:</Text>
+          <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Días" keyboardType="numeric" onChangeText={v=>setIpaq({...ipaq, cDias:v})}/><TextInput style={[styles.input, {flex:1}]} placeholder="Min" keyboardType="numeric" onChangeText={v=>setIpaq({...ipaq, cMin:v})}/></View>
           <TextInput style={styles.input} placeholder="¿Cuántas horas pasas sentado al día?" keyboardType="numeric" onChangeText={v=>setIpaq({...ipaq, sentado:v})} />
           <TouchableOpacity style={styles.btnNext} onPress={() => siguiente(5)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
         </Section>
 
-        {/* 6. NUTRICIÓN Y HÁBITOS */}
+        {/* 6. NUTRICIÓN (DIAGRAMA EXACTO) */}
         <Section num={6} title="Nutrición y Hábitos" color="#8b5cf6" icon="utensils" activa={seccionActiva} setActiva={setSeccionActiva}>
           <Text style={styles.labelSub}>¿Cuántas comidas haces al día actualmente?</Text>
           <View style={styles.rowWrap}>{["3", "4", "5", "6"].map(n => <TouchableOpacity key={n} style={[styles.chip, nutricion.comidasActuales === n && styles.chipActive]} onPress={()=>setNutricion({...nutricion, comidasActuales:n})}><Text style={nutricion.comidasActuales === n ? styles.txtW : styles.txtB}>{n}</Text></TouchableOpacity>)}</View>
           
           <Text style={styles.labelSub}>Describe brevemente un día de tus comidas:</Text>
-          <TextInput style={[styles.input, {height:60}]} multiline onChangeText={v=>setNutricion({...nutricion, descripcionDia:v})} placeholder="Ej: Desayuno huevos, comida pollo..." />
+          <TextInput style={[styles.input, {height:60}]} multiline onChangeText={v=>setNutricion({...nutricion, descripcionDia:v})} />
+
+          <Text style={styles.labelSub}>¿Consumes alcohol?</Text>
+          <View style={styles.row}><TouchableOpacity style={[styles.btnG, nutricion.alcohol==='si' && styles.btnActive]} onPress={()=>setNutricion({...nutricion, alcohol:'si'})}><Text style={nutricion.alcohol==='si'?styles.txtW:styles.txtB}>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, nutricion.alcohol==='no' && styles.btnActive]} onPress={()=>setNutricion({...nutricion, alcohol:'no'})}><Text style={nutricion.alcohol==='no'?styles.txtW:styles.txtB}>NO</Text></TouchableOpacity></View>
+          {nutricion.alcohol === 'si' && <View style={styles.rowWrap}>{["Diario", "Semanal", "Mensual", "Social"].map(f => <TouchableOpacity key={f} style={[styles.chip, nutricion.alcoholFreq === f && styles.chipActive]} onPress={()=>setNutricion({...nutricion, alcoholFreq:f})}><Text style={nutricion.alcoholFreq === f ? styles.txtW : styles.txtB}>{f}</Text></TouchableOpacity>)}</View>}
+
+          <Text style={[styles.labelSub, {marginTop:10}]}>¿Consumes sustancias o fumas?</Text>
+          <View style={styles.row}><TouchableOpacity style={[styles.btnG, nutricion.sustancias==='si' && styles.btnActive]} onPress={()=>setNutricion({...nutricion, sustancias:'si'})}><Text style={nutricion.sustancias==='si'?styles.txtW:styles.txtB}>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, nutricion.sustancias==='no' && styles.btnActive]} onPress={()=>setNutricion({...nutricion, sustancias:'no'})}><Text style={nutricion.sustancias==='no'?styles.txtW:styles.txtB}>NO</Text></TouchableOpacity></View>
+          {nutricion.sustancias === 'si' && <View style={styles.rowWrap}>{["Diario", "Semanal", "Mensual", "Social"].map(f => <TouchableOpacity key={f} style={[styles.chip, nutricion.sustanciasFreq === f && styles.chipActive]} onPress={()=>setNutricion({...nutricion, sustanciasFreq:f})}><Text style={nutricion.sustanciasFreq === f ? styles.txtW : styles.txtB}>{f}</Text></TouchableOpacity>)}</View>}
+
+          <Text style={[styles.labelSub, {marginTop:10}]}>¿Cuántas comidas deseas en tu plan?</Text>
+          <View style={styles.rowWrap}>{["3", "4", "5", "6"].map(n => <TouchableOpacity key={n} style={[styles.chip, nutricion.comidasDeseadas === n && styles.chipActive]} onPress={()=>setNutricion({...nutricion, comidasDeseadas:n})}><Text style={nutricion.comidasDeseadas === n ? styles.txtW : styles.txtB}>{n}</Text></TouchableOpacity>)}</View>
 
           <Text style={styles.labelSub}>Días de entrenamiento:</Text>
           <View style={styles.rowWrap}>{["3", "4", "5", "6"].map(d => <TouchableOpacity key={d} style={[styles.chip, nutricion.entrenos === d && styles.chipActive]} onPress={()=>setNutricion({...nutricion, entrenos:d})}><Text style={nutricion.entrenos === d ? styles.txtW : styles.txtB}>{d}</Text></TouchableOpacity>)}</View>
-          
+
           <Text style={styles.labelSub}>Describe brevemente tus objetivos deseados:</Text>
-          <TextInput style={[styles.input, {height:60}]} multiline onChangeText={setObjetivo} />
-
-          <Text style={styles.labelSub}>¿Cuántas comidas deseas en tu plan?</Text>
-          <View style={styles.rowWrap}>{["3", "4", "5", "6"].map(n => <TouchableOpacity key={n} style={[styles.chip, nutricion.comidasDeseadas === n && styles.chipActive]} onPress={()=>setNutricion({...nutricion, comidasDeseadas:n})}><Text style={nutricion.comidasDeseadas === n ? styles.txtW : styles.txtB}>{n}</Text></TouchableOpacity>)}</View>
-
-          <Text style={styles.labelSub}>¿Consumo de alcohol?</Text>
-          <View style={styles.row}><TouchableOpacity style={[styles.btnG, nutricion.alcohol==='si' && styles.btnActive]} onPress={()=>setNutricion({...nutricion, alcohol:'si'})}><Text style={nutricion.alcohol==='si' ? styles.txtW : styles.txtB}>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, nutricion.alcohol==='no' && styles.btnActive]} onPress={()=>setNutricion({...nutricion, alcohol:'no'})}><Text style={nutricion.alcohol==='no' ? styles.txtW : styles.txtB}>NO</Text></TouchableOpacity></View>
-          {nutricion.alcohol === 'si' && <View style={styles.rowWrap}>{["Diario", "Semanal", "Mensual", "Social"].map(f => <TouchableOpacity key={f} style={[styles.chip, nutricion.alcoholFreq === f && styles.chipActive]} onPress={()=>setNutricion({...nutricion, alcoholFreq:f})}><Text style={nutricion.alcoholFreq === f ? styles.txtW : styles.txtB}>{f}</Text></TouchableOpacity>)}</View>}
-
-          <Text style={[styles.labelSub, {marginTop:10}]}>¿Consumo de sustancias / fuma?</Text>
-          <View style={styles.row}><TouchableOpacity style={[styles.btnG, nutricion.sustancias==='si' && styles.btnActive]} onPress={()=>setNutricion({...nutricion, sustancias:'si'})}><Text style={nutricion.sustancias==='si' ? styles.txtW : styles.txtB}>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, nutricion.sustancias==='no' && styles.btnActive]} onPress={()=>setNutricion({...nutricion, sustancias:'no'})}><Text style={nutricion.sustancias==='no' ? styles.txtW : styles.txtB}>NO</Text></TouchableOpacity></View>
-          {nutricion.sustancias === 'si' && <View style={styles.rowWrap}>{["Diario", "Semanal", "Mensual", "Social"].map(f => <TouchableOpacity key={f} style={[styles.chip, nutricion.sustanciasFreq === f && styles.chipActive]} onPress={()=>setNutricion({...nutricion, sustanciasFreq:f})}><Text style={nutricion.sustanciasFreq === f ? styles.txtW : styles.txtB}>{f}</Text></TouchableOpacity>)}</View>}
+          <TextInput style={[styles.input, {height:60}]} multiline onChangeText={v=>setNutricion({...nutricion, objetivo:v})} />
           <TouchableOpacity style={styles.btnNext} onPress={() => siguiente(6)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
         </Section>
 
@@ -215,29 +203,36 @@ function ClienteScreen({ user }: { user: any }) {
           <TouchableOpacity style={styles.btnNext} onPress={() => siguiente(7)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
         </Section>
 
-        {/* 8. CONSENTIMIENTO */}
+        {/* 8. CONSENTIMIENTO (TEXTO COMPLETO) */}
         <Section num={8} title="Consentimiento" color="#1e293b" icon="file-signature" activa={seccionActiva} setActiva={setSeccionActiva}>
           <View style={styles.consentBox}>
-            <Text style={styles.consentHeader}>CONSENTIMIENTO INFORMADO PARA LA PARTICIPACIÓN EN UN PROGRAMA DE ENTRENAMIENTO PERSONAL DE ACONDICIONAMIENTO FÍSICO DE ADULTOS APARENTEMENTE SANOS</Text>
+            <Text style={styles.consentHeader}>CONSENTIMIENTO INFORMADO PARA LA PARTICIPACIÓN EN UN PROGRAMA DE ENTRENAMIENTO PERSONAL DE ACONDICIONAMIENTO FÍSICO DE ADULTOS APARENTEMENTE SANOS (SIN CONOCIMIENTO O SOSPECHA DE ENFERMEDADES CARDÍACAS)</Text>
             <Text style={styles.miniTxt}>Nombre: {nombre || '________'} | Fecha: {new Date().toLocaleDateString()}</Text>
             <Text style={styles.consentTxt}>
-              1. Propósito y explicación de los procedimientos: Mediante este documento acepto voluntariamente participar en un plan de entrenamiento personal de acondicionamiento físico. También acepto tomar parte en las actividades del programa que se me recomienden para la mejora de mi salud... Soy consciente de que se me puede requerir la realización de una prueba graduada de esfuerzo... Me comprometo a realizar 3 veces por semana las sesiones formales...{"\n\n"}
-              2. Riesgos: Manifiesto que se me ha informado de que existe la posibilidad, aunque remota, de efectos negativos durante el ejercicio, como alteración de la presión arterial, mareos, trastornos del ritmo cardíaco y casos excepcionales de infarto, derrames o incluso riesgo de muerte...{"\n\n"}
-              3. Beneficios: Soy consciente de que este programa puede o no reportar beneficios a mi condición física... Comprendo que la participación me permitirá aprender cómo realizar adecuadamente ejercicios...{"\n\n"}
-              4. Confidencialidad: Se me ha informado de que la información obtenida se tratará con máxima confidencialidad... Acepto que se utilice cualquier información con propósito de investigación o estadístico siempre que no pueda llevar a la identificación de mi persona.
+              1. Propósito y explicación: Mediante este documento acepto voluntariamente participar en un plan de entrenamiento personal de acondicionamiento físico. También acepto tomar parte en las actividades del programa de entrenamiento personal que se me recomienden para la mejora de mi salud y bienestar general. Estas pueden incluir asesoramiento dietético, gestión del estrés y actividades formativas sobre salud y acondicionamiento físico. Los niveles de intensidad del ejercicio que se realizará se basarán en mi capacidad cardiorrespiratoria (corazón y pulmones) y muscular... Me comprometo a realizar 3 veces por semana las sesiones formales del programa.{"\n\n"}
+              2. Riesgos: Manifiesto que se me ha informado de que existe la posibilidad, aunque remota, de efectos negativos durante el ejercicio, como por ejemplo alteración de la presión arterial, mareos, trastornos del ritmo cardíaco y casos excepcionales de infarto, derrames o incluso riesgo de muerte. Asimismo, se me ha explicado que existe el riesgo de lesiones corporales... Conozco perfectamente los riesgos asociados con el ejercicio... y aun conociendo estos riesgos, deseo tomar parte como ya he manifestado.{"\n\n"}
+              3. Beneficios: Soy consciente de que este programa puede o no reportar beneficios a mi condición física o salud general. Comprendo que la participación en sesiones de ejercicio y entrenamiento personal me permitirá aprender cómo realizar adecuadamente ejercicios...{"\n\n"}
+              4. Confidencialidad: Se me ha informado de que la información obtenida durante este programa se tratará con máxima confidencialidad y, en consecuencia, no se proporcionará o revelará a nadie sin mi consentimiento expreso por escrito. Acepto que se utilice cualquier información con propósito de investigación o estadístico siempre que no pueda llevar a la identificación de mi persona.
             </Text>
           </View>
-
           <TouchableOpacity style={styles.rowCheck} onPress={()=>setAceptarTerminos(!aceptarTerminos)}><MaterialCommunityIcons name={aceptarTerminos?"checkbox-marked":"checkbox-blank-outline"} size={22} color="#10b981"/><Text style={styles.miniTxt}>Doy mi autorización expresa a que se lleven a cabo todos los servicios y procedimientos.</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.btnFirma} onPress={() => setModalFirma(true)}><Text style={styles.btnFirmaText}>{firma ? "✓ Firma Registrada" : "Firma aquí"}</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.btnFirma} onPress={() => setModalFirma(true)}><Text style={styles.btnFirmaText}>{firma ? "✓ Firma Registrada" : "Firma digital aquí"}</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.btnNext} onPress={() => siguiente(8)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
+        </Section>
 
-          <View style={[styles.consentBox, {marginTop:20}]}>
+        {/* 9. AVISO DE PRIVACIDAD (NUEVO BLOQUE FINAL) */}
+        <Section num={9} title="Aviso de Privacidad" color="#64748b" icon="shield-alt" activa={seccionActiva} setActiva={setSeccionActiva}>
+          <View style={styles.consentBox}>
             <Text style={styles.consentHeader}>AVISO DE PRIVACIDAD</Text>
-            <Text style={styles.consentTxt}>Tus datos personales, de salud y medidas corporales serán tratados bajo estricta confidencialidad por el Coach Arturo para la creación y seguimiento de tu plan de asesoría.</Text>
-            <TouchableOpacity style={styles.rowCheck} onPress={()=>setAceptarPrivacidad(!aceptarPrivacidad)}><MaterialCommunityIcons name={aceptarPrivacidad?"checkbox-marked":"checkbox-blank-outline"} size={22} color="#10b981"/><Text style={styles.miniTxt}>He leído y acepto el aviso de privacidad.</Text></TouchableOpacity>
+            <Text style={styles.consentTxt}>Tus datos personales y de salud serán utilizados exclusivamente para el seguimiento de tu programa por parte del Coach Arturo. Al hacer clic en enviar, confirmas que has leído y aceptado nuestra política de manejo de datos sensibles.</Text>
           </View>
-
-          {firma && aceptarTerminos && aceptarPrivacidad && <TouchableOpacity style={styles.btnEnviar} onPress={enviarAlCoach}><Text style={styles.txtW}>ENVIAR A MI COACH</Text></TouchableOpacity>}
+          <TouchableOpacity style={styles.rowCheck} onPress={()=>setAceptarPrivacidad(!aceptarPrivacidad)}><MaterialCommunityIcons name={aceptarPrivacidad?"checkbox-marked":"checkbox-blank-outline"} size={22} color="#10b981"/><Text style={styles.miniTxt}>He leído el aviso de privacidad completo.</Text></TouchableOpacity>
+          
+          {firma && aceptarTerminos && aceptarPrivacidad && (
+            <TouchableOpacity style={styles.btnEnviar} onPress={enviarAlCoach}>
+              <Text style={styles.txtW}>ENVIAR A MI COACH ARTURO</Text>
+            </TouchableOpacity>
+          )}
         </Section>
       </ScrollView>
 
@@ -274,7 +269,7 @@ const styles = StyleSheet.create({
   input: { backgroundColor: '#f8fafc', padding: 10, borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 12, fontSize: 14 },
   row: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
   rowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginVertical: 8 },
-  chip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 15, borderWidth: 1, borderColor: '#3b82f6', marginBottom: 5 },
+  chip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 15, borderWidth: 1, borderColor: '#3b82f6' },
   chipActive: { backgroundColor: '#3b82f6' },
   btnG: { flex: 1, padding: 10, borderRadius: 8, borderWidth: 1, borderColor: '#3b82f6', alignItems: 'center', marginHorizontal: 4 },
   btnActive: { backgroundColor: '#3b82f6' },
