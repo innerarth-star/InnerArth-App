@@ -28,8 +28,8 @@ export default function MainApp() {
         const userActualizado = auth.currentUser;
 
         if (userActualizado?.emailVerified || userActualizado?.email?.toLowerCase().trim() === CORREO_COACH) {
-          setUser(usuario);
-          setRole(usuario.email?.toLowerCase().trim() === CORREO_COACH ? 'coach' : 'alumno');
+          setUser(userActualizado);
+          setRole(userActualizado.email?.toLowerCase().trim() === CORREO_COACH ? 'coach' : 'alumno');
         } else {
           // Si no está verificado, lo tratamos como si no estuviera logueado
           // para que regrese a la AuthScreen y vea el aviso
