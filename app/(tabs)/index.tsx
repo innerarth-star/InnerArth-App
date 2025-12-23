@@ -31,12 +31,6 @@ export default function MainApp() {
         const emailLimpio = usuario.email?.toLowerCase().trim();
         const coachLimpio = CORREO_COACH.toLowerCase().trim();
 
-        // ESTA ALERTA TE MOSTRARÁ EN EL CELULAR QUÉ ESTÁ PASANDO
-        Alert.alert(
-          "Debug Acceso", 
-          `Detectado: [${emailLimpio}]\nObjetivo: [${coachLimpio}]`
-        );
-
         if (emailLimpio === coachLimpio) {
           setRole('coach');
         } else {
