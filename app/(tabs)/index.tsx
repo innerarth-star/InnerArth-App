@@ -117,6 +117,17 @@ function ClienteScreen({ user }: { user: any }) {
     } catch (e) { Alert.alert("Error", "No se pudo enviar."); }
   };
 
+  if (paso === 'espera') {
+    return (
+      <View style={styles.esperaContainer}>
+        <FontAwesome5 name="check-circle" size={80} color="#10b981" />
+        <Text style={styles.esperaTitle}>¡Enviado!</Text>
+        <Text style={styles.esperaSub}>Tu Coach ya tiene tu información.</Text>
+        <TouchableOpacity onPress={() => signOut(auth)} style={{marginTop:20}}><Text style={{color:'#ef4444'}}>Cerrar Sesión</Text></TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
@@ -126,7 +137,10 @@ function ClienteScreen({ user }: { user: any }) {
         <Section num={1} title="Datos Personales" color="#3b82f6" icon="user" activa={seccionActiva} setActiva={setSeccionActiva}>
           <TextInput style={styles.input} placeholder="Nombre Completo" value={nombre} onChangeText={setNombre} />
           <TextInput style={styles.input} placeholder="Teléfono" value={telefono} onChangeText={setTelefono} keyboardType="numeric" />
-          <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Peso (kg)" value={peso} keyboardType="numeric" onChangeText={setPeso} /><TextInput style={[styles.input, {flex:1, marginLeft:5}]} placeholder="Altura (cm)" value={altura} keyboardType="numeric" onChangeText={setAltura} /></View>
+          <View style={styles.row}>
+            <TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Peso (kg)" value={peso} keyboardType="numeric" onChangeText={setPeso} />
+            <TextInput style={[styles.input, {flex:1, marginLeft:5}]} placeholder="Altura (cm)" value={altura} keyboardType="numeric" onChangeText={setAltura} />
+          </View>
           <TextInput style={styles.input} placeholder="Edad" value={edad} keyboardType="numeric" onChangeText={setEdad} />
           <View style={styles.row}>
             <TouchableOpacity style={[styles.btnG, genero === 'hombre' && styles.btnActive]} onPress={() => setGenero('hombre')}><Text style={genero === 'hombre' ? styles.txtW : styles.txtB}>HOMBRE</Text></TouchableOpacity>
@@ -156,13 +170,13 @@ function ClienteScreen({ user }: { user: any }) {
           <Text style={styles.labelSub}>Enfermedades Familiares:</Text>
           <View style={styles.rowWrap}>{ENFERMEDADES_BASE.map(e => <TouchableOpacity key={e} style={[styles.chip, enfFam.includes(e) && styles.chipActive]} onPress={()=>toggleChip(enfFam, e, 'enfFam')}><Text style={enfFam.includes(e)?styles.txtW:styles.txtB}>{e}</Text></TouchableOpacity>)}</View>
           {enfFam.includes('Otra') && <TextInput style={styles.input} placeholder="Escriba enfermedades familiares" value={otrosFam} onChangeText={setOtrosFam} />}
-          <Text style={styles.labelSub}>Enfermedades Propias:</Text>
+          <Text style={[styles.labelSub, {marginTop:10}]}>Enfermedades Propias:</Text>
           <View style={styles.rowWrap}>{ENFERMEDADES_BASE.map(e => <TouchableOpacity key={e} style={[styles.chip, enfPers.includes(e) && styles.chipActive]} onPress={()=>toggleChip(enfPers, e, 'enfPers')}><Text style={enfPers.includes(e)?styles.txtW:styles.txtB}>{e}</Text></TouchableOpacity>)}</View>
           {enfPers.includes('Otra') && <TextInput style={styles.input} placeholder="Escriba sus enfermedades" value={otrosPers} onChangeText={setOtrosPers} />}
           <Text style={styles.labelSub}>¿Lesión?</Text>
           <View style={styles.row}><TouchableOpacity style={[styles.btnG, lesion==='si' && styles.btnActive]} onPress={()=>setLesion('si')}><Text style={lesion==='si'?styles.txtW:styles.txtB}>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, lesion==='no' && styles.btnActive]} onPress={()=>setLesion('no')}><Text style={lesion==='no'?styles.txtW:styles.txtB}>NO</Text></TouchableOpacity></View>
           {lesion==='si' && <TextInput style={styles.input} placeholder="¿Cuál?" value={detalleLesion} onChangeText={setDetalleLesion} />}
-          <Text style={styles.labelSub}>¿Operaciones?</Text>
+          <Text style={styles.labelSub}>¿Operación?</Text>
           <View style={styles.row}><TouchableOpacity style={[styles.btnG, operacion==='si' && styles.btnActive]} onPress={()=>setOperacion('si')}><Text style={operacion==='si'?styles.txtW:styles.txtB}>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, operacion==='no' && styles.btnActive]} onPress={()=>setOperacion('no')}><Text style={operacion==='no'?styles.txtW:styles.txtB}>NO</Text></TouchableOpacity></View>
           {operacion==='si' && <TextInput style={styles.input} placeholder="¿Cuál?" value={detalleOperacion} onChangeText={setDetalleOperacion} />}
           <TouchableOpacity style={styles.btnNext} onPress={() => setSeccionActiva(5)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
@@ -175,7 +189,7 @@ function ClienteScreen({ user }: { user: any }) {
           <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Días" value={mDias} keyboardType="numeric" onChangeText={setMDias}/><TextInput style={[styles.input, {flex:1}]} placeholder="Min" value={mMin} keyboardType="numeric" onChangeText={setMMin}/></View>
           <Text style={styles.labelIpaq}>Caminata:</Text>
           <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Días" value={cDias} keyboardType="numeric" onChangeText={setCDias}/><TextInput style={[styles.input, {flex:1}]} placeholder="Min" value={cMin} keyboardType="numeric" onChangeText={setCMin}/></View>
-          <TextInput style={styles.input} placeholder="Horas sentado al día" value={sentado} keyboardType="numeric" onChangeText={setSentado} />
+          <TextInput style={styles.input} placeholder="Horas sentado" value={sentado} keyboardType="numeric" onChangeText={setSentado} />
           <TouchableOpacity style={styles.btnNext} onPress={() => setSeccionActiva(6)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
         </Section>
 
@@ -187,7 +201,7 @@ function ClienteScreen({ user }: { user: any }) {
           <View style={styles.row}><TouchableOpacity style={[styles.btnG, alcohol==='si' && styles.btnActive]} onPress={()=>setAlcohol('si')}><Text style={alcohol==='si'?styles.txtW:styles.txtB}>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, alcohol==='no' && styles.btnActive]} onPress={()=>setAlcohol('no')}><Text style={alcohol==='no'?styles.txtW:styles.txtB}>NO</Text></TouchableOpacity></View>
           {alcohol === 'si' && <View style={styles.rowWrap}>{["Diario", "Semanal", "Mensual", "Social"].map(f => <TouchableOpacity key={f} style={[styles.chip, alcoholFreq === f && styles.chipActive]} onPress={()=>setAlcoholFreq(f)}><Text style={alcoholFreq === f ? styles.txtW : styles.txtB}>{f}</Text></TouchableOpacity>)}</View>}
           <Text style={styles.labelSub}>¿Sustancias / Fuma?</Text>
-          <View style={styles.row}><TouchableOpacity style={[styles.btnG, sust==='si' && styles.btnActive]} onPress={()=>setSust('si')}><Text style={sust==='si'?styles.txtW:styles.txtB}>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, sust==='no' && styles.btnActive]} onPress={()=>setSust('no'})}><Text style={sust==='no'?styles.txtW:styles.txtB}>NO</Text></TouchableOpacity></View>
+          <View style={styles.row}><TouchableOpacity style={[styles.btnG, sust==='si' && styles.btnActive]} onPress={()=>setSust('si')}><Text style={sust==='si'?styles.txtW:styles.txtB}>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, sust==='no' && styles.btnActive]} onPress={()=>setSust('no')}><Text style={sust==='no'?styles.txtW:styles.txtB}>NO</Text></TouchableOpacity></View>
           {sust === 'si' && <View style={styles.rowWrap}>{["Diario", "Semanal", "Mensual", "Social"].map(f => <TouchableOpacity key={f} style={[styles.chip, sustFreq === f && styles.chipActive]} onPress={()=>setSustFreq(f)}><Text style={sustFreq === f ? styles.txtW : styles.txtB}>{f}</Text></TouchableOpacity>)}</View>}
           <Text style={styles.labelSub}>¿Cuantas comidas quieres en tu plan?</Text>
           <View style={styles.rowWrap}>{["3", "4", "5", "6"].map(n => <TouchableOpacity key={n} style={[styles.chip, comidasDes === n && styles.chipActive]} onPress={()=>setComidasDes(n)}><Text style={comidasDes === n ? styles.txtW : styles.txtB}>{n}</Text></TouchableOpacity>)}</View>
@@ -224,10 +238,7 @@ function ClienteScreen({ user }: { user: any }) {
         </Section>
 
         <Section num={9} title="Aviso de Privacidad" color="#64748b" icon="shield-alt" activa={seccionActiva} setActiva={setSeccionActiva}>
-          <View style={styles.consentBox}>
-            <Text style={styles.consentHeader}>AVISO DE PRIVACIDAD</Text>
-            <Text style={styles.consentTxt}>Los datos personales recabados en este formulario (Nombre, Edad, Medidas, Estado de Salud) tienen como única finalidad la elaboración de un plan de entrenamiento y nutrición personalizado. Sus datos no serán compartidos con terceros sin su consentimiento previo. Usted tiene derecho a solicitar el acceso, rectificación o eliminación de sus datos en cualquier momento a través de los canales de contacto autorizados de FitTech.</Text>
-          </View>
+          <View style={styles.consentBox}><Text style={styles.consentTxt}>FitTech, es el responsable del uso y protección de sus datos personales. Sus datos serán utilizados para: Proveer los servicios de asesoría deportiva y nutricional contratados; Integrar su expediente clínico y deportivo; Contactarle para dar seguimiento a su plan. Usted tiene derecho a ejercer sus derechos ARCO (Acceso, Rectificación, Cancelación y Oposición) a través de los canales de contacto autorizados.</Text></View>
           <TouchableOpacity style={styles.rowCheck} onPress={()=>setAceptarPrivacidad(!aceptarPrivacidad)}><MaterialCommunityIcons name={aceptarPrivacidad?"checkbox-marked":"checkbox-blank-outline"} size={22} color="#10b981"/><Text style={styles.miniTxt}>He leído y acepto el aviso de privacidad completo.</Text></TouchableOpacity>
           {firma && aceptarTerminos && aceptarPrivacidad && (
             <TouchableOpacity style={styles.btnEnviar} onPress={enviarAlCoach}><Text style={styles.txtW}>ENVIAR A MI COACH</Text></TouchableOpacity>
