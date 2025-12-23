@@ -25,8 +25,9 @@ export default function MainApp() {
       if (usuario) {
         // ACTUALIZAR EL ESTADO DEL USUARIO PARA VER SI YA VERIFICÓ
         await usuario.reload(); 
-        
-        if (usuario.emailVerified || usuario.email?.toLowerCase().trim() === CORREO_COACH) {
+        const userActualizado = auth.currentUser;
+
+        if (userActualizado?.emailVerified || userActualizado?.email?.toLowerCase().trim() === CORREO_COACH) {
           setUser(usuario);
           setRole(usuario.email?.toLowerCase().trim() === CORREO_COACH ? 'coach' : 'alumno');
         } else {
