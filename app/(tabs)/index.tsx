@@ -8,7 +8,7 @@ import SignatureScreen from 'react-native-signature-canvas';
 import AuthScreen from '../AuthScreen'; 
 
 // IMPORTANTE: Asegúrate de que este archivo exista en app/coach.tsx
-import CoachPanel from '../coach'; 
+import CoachPanel from './coach'; 
 
 const ENFERMEDADES_BASE = ["Diabetes", "Hipertensión", "Obesidad", "Hipotiroidismo", "Cáncer", "Cardiopatías", "Asma", "Ninguna", "Otra"];
 const ANTICONCEPTIVOS = ["Pastillas", "Inyección", "DIU", "Implante", "Parche", "Ninguno"];
