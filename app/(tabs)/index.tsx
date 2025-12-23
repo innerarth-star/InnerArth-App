@@ -21,10 +21,20 @@ export default function MainApp() {
   const CORREO_COACH = "inner.arth@gmail.com"; 
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (usuario) => {
+    const unsub = onAuthStateChanged(auth, async (usuario) => {
       if (usuario) {
-        setUser(usuario);
-        setRole(usuario.email?.toLowerCase().trim() === CORREO_COACH ? 'coach' : 'alumno');
+        // ACTUALIZAR EL ESTADO DEL USUARIO PARA VER SI YA VERIFICÓ
+        await usuario.reload(); 
+        
+        if (usuario.emailVerified || usuario.email?.toLowerCase().trim() === CORREO_COACH) {
+          setUser(usuario);
+          setRole(usuario.email?.toLowerCase().trim() === CORREO_COACH ? 'coach' : 'alumno');
+        } else {
+          // Si no está verificado, lo tratamos como si no estuviera logueado
+          // para que regrese a la AuthScreen y vea el aviso
+          setUser(null);
+          setRole(null);
+        }
       } else {
         setUser(null);
         setRole(null);
@@ -35,7 +45,10 @@ export default function MainApp() {
   }, []);
 
   if (cargandoAuth) return <View style={styles.esperaContainer}><ActivityIndicator size="large" color="#3b82f6" /></View>;
+  
+  // Si no hay usuario (o no está verificado), va a la pantalla de entrada
   if (!user) return <AuthScreen />;
+  
   if (role === 'coach') return <CoachPanel />;
 
   return <ClienteScreen user={user} />;
