@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { db, auth } from '../firebaseConfig';
+import { db, auth } from '../../firebaseConfig';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { FontAwesome5 } from '@expo/vector-icons';
