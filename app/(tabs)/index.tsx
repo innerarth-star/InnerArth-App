@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Alert, Modal, ActivityIndicator, StatusBar } from 'react-native';
 import { db, auth } from '../../firebaseConfig'; 
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'; 
@@ -49,14 +49,13 @@ function ClienteScreen({ user }: { user: any }) {
   const [aceptarTerminos, setAceptarTerminos] = useState(false);
   const [aceptarPrivacidad, setAceptarPrivacidad] = useState(false);
 
-  // ESTADOS INDIVIDUALES PARA EVITAR PÉRDIDA DE DATOS
+  // ESTADOS PERSISTENTES
   const [nombre, setNombre] = useState('');
   const [telefono, setTelefono] = useState('');
   const [peso, setPeso] = useState('');
   const [altura, setAltura] = useState('');
   const [edad, setEdad] = useState('');
   const [genero, setGenero] = useState('');
-  
   const [cuello, setCuello] = useState('');
   const [pecho, setPecho] = useState('');
   const [brazoR, setBrazoR] = useState('');
@@ -65,10 +64,8 @@ function ClienteScreen({ user }: { user: any }) {
   const [cadera, setCadera] = useState('');
   const [muslo, setMuslo] = useState('');
   const [pierna, setPierna] = useState('');
-
   const [tipoCiclo, setTipoCiclo] = useState('');
   const [anticonceptivo, setAnticonceptivo] = useState('');
-  
   const [enfFam, setEnfFam] = useState<string[]>([]);
   const [otrosFam, setOtrosFam] = useState('');
   const [enfPers, setEnfPers] = useState<string[]>([]);
@@ -77,7 +74,6 @@ function ClienteScreen({ user }: { user: any }) {
   const [detalleLesion, setDetalleLesion] = useState('');
   const [operacion, setOperacion] = useState('');
   const [detalleOperacion, setDetalleOperacion] = useState('');
-
   const [vDias, setVDias] = useState('');
   const [vMin, setVMin] = useState('');
   const [mDias, setMDias] = useState('');
@@ -85,7 +81,6 @@ function ClienteScreen({ user }: { user: any }) {
   const [cDias, setCDias] = useState('');
   const [cMin, setCMin] = useState('');
   const [sentado, setSentado] = useState('');
-
   const [comidasAct, setComidasAct] = useState('');
   const [descAct, setDescAct] = useState('');
   const [alcohol, setAlcohol] = useState('');
@@ -95,12 +90,11 @@ function ClienteScreen({ user }: { user: any }) {
   const [comidasDes, setComidasDes] = useState('');
   const [entrenos, setEntrenos] = useState('');
   const [objetivo, setObjetivo] = useState('');
-
   const [frecuenciaAlimentos, setFrecuenciaAlimentos] = useState<any>({});
 
   const enviarAlCoach = async () => {
     if (!nombre || !firma || !aceptarTerminos || !aceptarPrivacidad || !edad) {
-      Alert.alert("Atención", "Por favor completa Nombre, Edad, Firma y Avisos legales.");
+      Alert.alert("Atención", "Por favor completa Nombre, Edad, Firma y acepta los avisos legales.");
       return;
     }
     try {
@@ -118,6 +112,17 @@ function ClienteScreen({ user }: { user: any }) {
     } catch (e) { Alert.alert("Error", "No se pudo enviar."); }
   };
 
+  if (paso === 'espera') {
+    return (
+      <View style={styles.esperaContainer}>
+        <FontAwesome5 name="check-circle" size={80} color="#10b981" />
+        <Text style={styles.esperaTitle}>¡Enviado!</Text>
+        <Text style={styles.esperaSub}>Tu Coach ya tiene tu información.</Text>
+        <TouchableOpacity onPress={() => signOut(auth)} style={{marginTop:20}}><Text style={{color:'#ef4444'}}>Cerrar Sesión</Text></TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
@@ -127,10 +132,7 @@ function ClienteScreen({ user }: { user: any }) {
         <Section num={1} title="Datos Personales" color="#3b82f6" icon="user" activa={seccionActiva} setActiva={setSeccionActiva}>
           <TextInput style={styles.input} placeholder="Nombre Completo" value={nombre} onChangeText={setNombre} />
           <TextInput style={styles.input} placeholder="Teléfono" value={telefono} onChangeText={setTelefono} keyboardType="numeric" />
-          <View style={styles.row}>
-            <TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Peso (kg)" value={peso} keyboardType="numeric" onChangeText={setPeso} />
-            <TextInput style={[styles.input, {flex:1, marginLeft:5}]} placeholder="Altura (cm)" value={altura} keyboardType="numeric" onChangeText={setAltura} />
-          </View>
+          <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Peso (kg)" value={peso} keyboardType="numeric" onChangeText={setPeso} /><TextInput style={[styles.input, {flex:1, marginLeft:5}]} placeholder="Altura (cm)" value={altura} keyboardType="numeric" onChangeText={setAltura} /></View>
           <TextInput style={styles.input} placeholder="Edad" value={edad} keyboardType="numeric" onChangeText={setEdad} />
           <View style={styles.row}>
             <TouchableOpacity style={[styles.btnG, genero === 'hombre' && styles.btnActive]} onPress={() => setGenero('hombre')}><Text style={genero === 'hombre' ? styles.txtW : styles.txtB}>HOMBRE</Text></TouchableOpacity>
@@ -205,11 +207,7 @@ function ClienteScreen({ user }: { user: any }) {
           {LISTA_ALIMENTOS_FRECUENCIA.map(ali => (
             <View key={ali} style={{marginBottom:10}}>
               <Text style={{fontSize:12, fontWeight:'bold', marginBottom:5}}>{ali}:</Text>
-              <ScrollView horizontal>
-                {OPCIONES_FRECUENCIA.map(op => (
-                  <TouchableOpacity key={op} style={[styles.chip, frecuenciaAlimentos[ali] === op && styles.chipActive]} onPress={()=>setFrecuenciaAlimentos({...frecuenciaAlimentos, [ali]:op})}><Text style={{fontSize:10, color: frecuenciaAlimentos[ali]===op ? '#fff' : '#3b82f6'}}>{op}</Text></TouchableOpacity>
-                ))}
-              </ScrollView>
+              <ScrollView horizontal>{OPCIONES_FRECUENCIA.map(op => (<TouchableOpacity key={op} style={[styles.chip, frecuenciaAlimentos[ali] === op && styles.chipActive]} onPress={()=>setFrecuenciaAlimentos({...frecuenciaAlimentos, [ali]:op})}><Text style={{fontSize:10, color: frecuenciaAlimentos[ali]===op ? '#fff' : '#3b82f6'}}>{op}</Text></TouchableOpacity>))}</ScrollView>
             </View>
           ))}
           <TouchableOpacity style={styles.btnNext} onPress={() => setSeccionActiva(8)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
@@ -217,9 +215,14 @@ function ClienteScreen({ user }: { user: any }) {
 
         <Section num={8} title="Consentimiento" color="#1e293b" icon="file-signature" activa={seccionActiva} setActiva={setSeccionActiva}>
           <View style={styles.consentBox}>
-            <Text style={styles.consentHeader}>CONSENTIMIENTO INFORMADO PARA LA PARTICIPACIÓN EN UN PROGRAMA DE ENTRENAMIENTO PERSONAL...</Text>
+            <Text style={styles.consentHeader}>CONSENTIMIENTO INFORMADO PARA LA PARTICIPACIÓN EN UN PROGRAMA DE ENTRENAMIENTO PERSONAL DE ACONDICIONAMIENTO FÍSICO DE ADULTOS APARENTEMENTE SANOS (SIN CONOCIMIENTO O SOSPECHA DE ENFERMEDADES CARDÍACAS)</Text>
             <Text style={styles.miniTxt}>Nombre: {nombre || '________'} | Fecha: {new Date().toLocaleDateString()}</Text>
-            <Text style={styles.consentTxt}>1. Propósito... 2. Riesgos... 3. Beneficios... 4. Confidencialidad... (Texto completo restaurado)</Text>
+            <Text style={styles.consentTxt}>
+              1. Propósito y explicación de los procedimientos: Mediante este documento acepto voluntariamente participar en un plan de entrenamiento personal de acondicionamiento físico. También acepto tomar parte en las actividades del programa de entrenamiento personal que se me recomienden para la mejora de mi salud y bienestar general. Estas pueden incluir asesoramiento dietético, gestión del estrés y actividades formativas sobre salud y acondicionamiento físico. Los niveles de intensidad del ejercicio que se realizará se basarán en mi capacidad cardiorrespiratoria (corazón y pulmones) y muscular. Soy consciente de que se me puede requerir la realización de una prueba graduada de esfuerzo, así como otras pruebas físicas antes del comienzo del programa de entrenamiento personal para poder valorar y evaluar mi estado físico actual. Se me darán las instrucciones concretas en cuanto al tipo y volumen de ejercicio que debería realizar. Me comprometo a realizar 3 veces por semana las sesiones formales del programa. Entrenadores capacitados para ello dirigirán mis actividades, controlarán mi rendimiento y evaluarán mi esfuerzo. Según mi estado de salud, se me podrá requerir durante las sesiones un control de la presión arterial y la frecuencia cardíaca para mantener la intensidad dentro de unos límites deseables. Soy consciente de que se espera mi asistencia a todas las sesiones y que siga las instrucciones del personal relativas al ejercicio, la dieta, la gestión del estrés y otros programas relacionados (salud / acondicionamiento físico). En caso de estar tomando medicamentos, ya he informado de ello al personal del programa y me comprometo a comunicarles de inmediato cualquier cambio al respecto tanto por mi parte como por parte del médico. En caso de que sea conveniente, se me valorará y evaluará periódicamente a intervalos regulares tras el inicio del programa. Se me ha informado de que durante mi participación en este programa de entrenamiento personal se me pedirá que complete las actividades físicas salvo en caso de síntomas como fatiga, falta de aire, molestias en la zona pectoral o similares. Llegados a ese punto, se me ha informado de que tengo el derecho de disminuir la intensidad o poner fin al ejercicio y de que estoy obligado a informar al personal del programa de entrenamiento personal de mis síntomas. Así, declaro que se me ha informado de ello y me comprometo a informar al personal encargado de mi entrenamiento de mis síntomas, si se llegaran a producir. Soy consciente de que, durante el ejercicio, un entrenador personal supervisará periódicamente mi rendimiento con la posibilidad de que controle mi pulso y mi presión arterial o de que valore mi percepción del esfuerzo para así controlar mi progreso. Asimismo, soy consciente de que el entrenador personal puede reducir la intensidad o poner fin al programa de ejercicios para mi seguridad y beneficio según los parámetros anteriormente mencionados. También se me ha comunicado que durante el transcurso de mi programa de entrenamiento personal puede ser necesario el contacto físico y una colocación corporal adecuada de mi cuerpo para evaluar las reacciones musculares y corporales a ejercicios concretos, además de para asegurar que utilizo la técnica y postura adecuadas. Por ello doy mi autorización expresa para que se produzca el contacto físico por estos motivos.{"\n\n"}
+              2. Riesgos: Manifiesto que se me ha informado de que existe la posibilidad, aunque remota, de efectos negativos durante el ejercicio, como por ejemplo (y sin excluir otros) alteración de la presión arterial, mareos, trastornos del ritmo cardíaco y casos excepcionales de infarto, derrames o incluso riesgo de muerte. Asimismo, se me ha explicado que existe el riesgo de lesiones corporales, como por ejemplo (sin excluir otras) lesiones musculares, de ligamentos, tendones y articulaciones. Se me ha comunicado que se pondrán todos los medios disponibles para minimizar que estas incidencias se produzcan mediante controles adecuados de mi estado antes de cada sesión de entrenamiento y supervisión del personal durante el ejercicio, así como de mi prudencia frente al esfuerzo. Conozco perfectamente los riesgos asociados con el ejercicio, como lesiones corporales, infartos, derrames e incluso la muerte, y aun conociendo estos riesgos, deseo tomar parte como ya he manifestado.{"\n\n"}
+              3. Beneficios que cabe esperar y alternativas disponibles a la prueba de esfuerzo: Soy consciente de que este programa puede o no reportar beneficios a mi condición física o salud general. Comprendo que la participación en sesiones de ejercicio y entrenamiento personal me permitirá aprender cómo realizar adecuadamente ejercicios de acondicionamiento físico, usar los diversos aparatos y regular el esfuerzo físico. Por tanto, debería sacar provecho de estas experiencias, ya que indicarían la manera en que mis limitaciones físicas pueden afectar mi capacidad de realizar las diversas actividades físicas. Soy asimismo consciente de que si sigo cuidadosamente las instrucciones del programa mejoraré con toda probabilidad mi capacidad para el ejercicio físico y mi forma física tras un período de 3 a 6 meses.{"\n\n"}
+              4. Confidencialidad y uso de la información: Se me ha informado de que la información obtenida durante este programa de entrenamiento personal se tratará con máxima confidencialidad y, en consecuencia, no se proporcionará o revelará a nadie sin mi consentimiento expreso por escrito. Acepto, en cambio, que se utilice cualquier información con propósito de investigación o estadístico siempre que no pueda llevar a la identificación de mi persona. También apruebo el uso de cualquier información con el propósito de consulta con otros profesionales de la salud o del fitness, incluido mi médico. En cambio, cualquier otra información obtenida se utilizará por parte del personal del programa únicamente por razones de prescripción de ejercicio y evaluación de mi progreso en el programa. Confirmo que he leído este documento en su totalidad o que se me ha leído en caso de no ser capaz de leerlo personalmente. Doy mi autorización expresa a que se lleven a cabo todos los servicios y procedimientos tal y como me ha comunicado el personal del programa.
+            </Text>
           </View>
           <TouchableOpacity style={styles.rowCheck} onPress={()=>setAceptarTerminos(!aceptarTerminos)}><MaterialCommunityIcons name={aceptarTerminos?"checkbox-marked":"checkbox-blank-outline"} size={22} color="#10b981"/><Text style={styles.miniTxt}>Acepto términos y condiciones del consentimiento.</Text></TouchableOpacity>
           <TouchableOpacity style={styles.btnFirma} onPress={() => setModalFirma(true)}><Text style={styles.btnFirmaText}>{firma ? "✓ Firma Registrada" : "Firma digital aquí"}</Text></TouchableOpacity>
@@ -227,11 +230,9 @@ function ClienteScreen({ user }: { user: any }) {
         </Section>
 
         <Section num={9} title="Aviso de Privacidad" color="#64748b" icon="shield-alt" activa={seccionActiva} setActiva={setSeccionActiva}>
-          <View style={styles.consentBox}><Text style={styles.consentTxt}>Los datos personales recabados... derecho al acceso, rectificación o eliminación...</Text></View>
-          <TouchableOpacity style={styles.rowCheck} onPress={()=>setAceptarPrivacidad(!aceptarPrivacidad)}><MaterialCommunityIcons name={aceptarPrivacidad?"checkbox-marked":"checkbox-blank-outline"} size={22} color="#10b981"/><Text style={styles.miniTxt}>He leído y acepto el aviso de privacidad completo.</Text></TouchableOpacity>
-          {firma && aceptarTerminos && aceptarPrivacidad && (
-            <TouchableOpacity style={styles.btnEnviar} onPress={enviarAlCoach}><Text style={styles.txtW}>ENVIAR A MI COACH</Text></TouchableOpacity>
-          )}
+          <View style={styles.consentBox}><Text style={styles.consentTxt}>Sus datos personales y sensibles serán utilizados exclusivamente para la elaboración de su plan de entrenamiento y nutrición...</Text></View>
+          <TouchableOpacity style={styles.rowCheck} onPress={()=>setAceptarPrivacidad(!aceptarPrivacidad)}><MaterialCommunityIcons name={aceptarPrivacidad?"checkbox-marked":"checkbox-blank-outline"} size={22} color="#10b981"/><Text style={styles.miniTxt}>He leído y acepto el aviso de privacidad.</Text></TouchableOpacity>
+          {firma && aceptarTerminos && aceptarPrivacidad && (<TouchableOpacity style={styles.btnEnviar} onPress={enviarAlCoach}><Text style={styles.txtW}>ENVIAR A MI COACH</Text></TouchableOpacity>)}
         </Section>
       </ScrollView>
 
