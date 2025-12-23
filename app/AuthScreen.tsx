@@ -1,95 +1,129 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
-import { auth, db } from '../firebaseConfig';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
-import { FontAwesome5 } from '@expo/vector-icons';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { auth } from '../firebaseConfig';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  sendPasswordResetEmail, 
+  sendEmailVerification 
+} from 'firebase/auth';
 
 export default function AuthScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isRegister, setIsRegister] = useState(false);
 
+  // FUNCIÓN PARA LOGIN
   const handleAuth = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Por favor rellena todos los campos.");
+      Alert.alert("Error", "Por favor llena todos los campos.");
       return;
     }
     setLoading(true);
     try {
-      if (isRegister) {
-        // Crear Usuario
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        // Crear perfil base en Firestore
-        await setDoc(doc(db, "usuarios", userCredential.user.uid), {
-          email: email,
-          rol: 'cliente',
-          createdAt: new Date()
-        });
+      if (isRegistering) {
+        // REGISTRO
+        const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+        // ENVIAR VERIFICACIÓN DE EMAIL AL REGISTRARSE
+        await sendEmailVerification(userCredential.user);
+        Alert.alert(
+          "Verifica tu correo", 
+          "Hemos enviado un enlace a tu email. Por favor verifícalo para poder entrar."
+        );
+        setIsRegistering(false);
       } else {
-        // Iniciar Sesión
-        await signInWithEmailAndPassword(auth, email, password);
+        // LOGIN
+        const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
+        
+        // VALIDAR SI EL CORREO EXISTE Y ESTÁ VERIFICADO
+        if (!userCredential.user.emailVerified) {
+          Alert.alert(
+            "Correo no verificado", 
+            "Por favor revisa tu bandeja de entrada y verifica tu cuenta antes de entrar."
+          );
+          // Opcional: reenviar correo si no lo ha verificado
+          // await sendEmailVerification(userCredential.user);
+        }
       }
     } catch (error: any) {
       let mensaje = "Ocurrió un error.";
-      if (error.code === 'auth/email-already-in-use') mensaje = "El correo ya está registrado.";
+      if (error.code === 'auth/user-not-found') mensaje = "El correo no está registrado.";
       if (error.code === 'auth/wrong-password') mensaje = "Contraseña incorrecta.";
-      if (error.code === 'auth/user-not-found') mensaje = "No existe cuenta con este correo.";
-      Alert.alert("Atención", mensaje);
-    } finally {
-      setLoading(false);
+      if (error.code === 'auth/email-already-in-use') mensaje = "Este correo ya está en uso.";
+      Alert.alert("Error", mensaje);
+    }
+    setLoading(false);
+  };
+
+  // FUNCIÓN PARA RESTABLECER CONTRASEÑA
+  const handleResetPassword = async () => {
+    if (!email) {
+      Alert.alert("Atención", "Escribe tu correo en el campo de arriba para enviarte el enlace de recuperación.");
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+      Alert.alert("Enviado", "Revisa tu correo para restablecer tu contraseña.");
+    } catch (error: any) {
+      Alert.alert("Error", "Asegúrate de que el correo sea válido.");
     }
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-      <View style={styles.card}>
-        <View style={styles.iconCircle}>
-          <FontAwesome5 name="fire-alt" size={40} color="#3b82f6" />
-        </View>
-        <Text style={styles.title}>FitTech</Text>
-        <Text style={styles.subtitle}>{isRegister ? 'Crea tu cuenta de atleta' : 'Bienvenido de nuevo'}</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>{isRegistering ? 'Crear Cuenta' : 'Iniciar Sesión'}</Text>
+      
+      <TextInput 
+        style={styles.input} 
+        placeholder="Correo electrónico" 
+        value={email} 
+        onChangeText={setEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
+      />
+      
+      <TextInput 
+        style={styles.input} 
+        placeholder="Contraseña" 
+        value={password} 
+        onChangeText={setPassword}
+        secureTextEntry
+      />
 
-        <TextInput 
-          style={styles.input} 
-          placeholder="Correo electrónico" 
-          value={email} 
-          onChangeText={setEmail} 
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
-        <TextInput 
-          style={styles.input} 
-          placeholder="Contraseña" 
-          value={password} 
-          onChangeText={setPassword} 
-          secureTextEntry 
-        />
+      {loading ? (
+        <ActivityIndicator size="large" color="#3b82f6" />
+      ) : (
+        <>
+          <TouchableOpacity style={styles.button} onPress={handleAuth}>
+            <Text style={styles.buttonText}>{isRegistering ? 'Registrarse' : 'Entrar'}</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.btnPrimary} onPress={handleAuth} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{isRegister ? 'REGISTRARME' : 'ENTRAR'}</Text>}
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.secondaryBtn} onPress={() => setIsRegistering(!isRegistering)}>
+            <Text style={styles.secondaryText}>
+              {isRegistering ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate'}
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => setIsRegister(!isRegister)} style={styles.switchBtn}>
-          <Text style={styles.switchTxt}>
-            {isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿Eres nuevo? Crea una cuenta aquí'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+          {!isRegistering && (
+            <TouchableOpacity style={styles.forgotBtn} onPress={handleResetPassword}>
+              <Text style={styles.forgotText}>Olvidé mi contraseña</Text>
+            </TouchableOpacity>
+          )}
+        </>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f1f5f9', justifyContent: 'center', padding: 20 },
-  card: { backgroundColor: '#fff', borderRadius: 25, padding: 30, alignItems: 'center', elevation: 5 },
-  iconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#eff6ff', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#1e293b' },
-  subtitle: { fontSize: 16, color: '#64748b', marginBottom: 30 },
-  input: { width: '100%', backgroundColor: '#f8fafc', padding: 15, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 15 },
-  btnPrimary: { width: '100%', backgroundColor: '#3b82f6', padding: 18, borderRadius: 12, alignItems: 'center', marginTop: 10 },
-  btnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  switchBtn: { marginTop: 25 },
-  switchTxt: { color: '#3b82f6', fontWeight: 'bold', fontSize: 14 }
+  container: { flex: 1, justifyContent: 'center', padding: 20, backgroundColor: '#f1f5f9' },
+  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 30, textAlign: 'center', color: '#1e293b' },
+  input: { backgroundColor: '#fff', padding: 15, borderRadius: 10, marginBottom: 15, borderWidth: 1, borderColor: '#e2e8f0' },
+  button: { backgroundColor: '#3b82f6', padding: 15, borderRadius: 10, alignItems: 'center', marginTop: 10 },
+  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  secondaryBtn: { marginTop: 20, alignItems: 'center' },
+  secondaryText: { color: '#3b82f6', fontWeight: '500' },
+  forgotBtn: { marginTop: 15, alignItems: 'center' },
+  forgotText: { color: '#64748b', fontSize: 14, textDecorationLine: 'underline' }
 });
