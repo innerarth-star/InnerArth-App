@@ -29,7 +29,7 @@ export default function MainApp() {
       if (usuario) {
         setUser(usuario);
         // Verificamos si el que entró eres tú
-        if (usuario.email?.toLowerCase() === CORREO_COACH.toLowerCase()) {
+        if (usuario.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase()) {
           setRole('coach');
         } else {
           setRole('alumno');
