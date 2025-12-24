@@ -29,11 +29,13 @@ export default function CoachPanel() {
   };
 
   const formatearActividad = (dias: any, min: any) => {
-    if (!dias || dias === '0' || !min || min === '0') return "NO";
-    return `${dias} días / ${min} min`;
+    const d = validarValor(dias);
+    const m = validarValor(min);
+    if (d === "NO" || m === "NO") return "NO";
+    return `${d} días / ${m} min`;
   };
 
-  const consentimientoCompleto = `1. Propósito y explicación de los procedimientos: Mediante este documento acepto voluntariamente participar en un plan de entrenamiento personal de acondicionamiento físico. También acepto tomar parte en las actividades del programa de entrenamiento personal que se me recomienden para la mejora de mi salud y bienestar general. Estas pueden incluir asesoramiento dietético, gestión del estrés y actividades formativas sobre salud y acondicionamiento físico. Los niveles de intensidad del ejercicio que se realizará se basarán en mi capacidad cardiorrespiratoria (corazón y pulmones) y muscular. Soy consciente de que se me puede requerir la realización de una prueba graduada de esfuerzo, así como otras pruebas físicas antes del comienzo del programa de entrenamiento personal para poder valorar y evaluar mi estado físico actual. Se me darán las instrucciones concretas en cuanto al tipo y volumen de ejercicio que debería realizar. Me comprometo a realizar 3 veces por semana las sesiones formales del programa. Entrenadores capacitados para ello dirigirán mis actividades, controlarán mi rendimiento y evaluarán mi esfuerzo. Según mi estado de salud, se me podrá requerir durante las sesiones un control de la presión arterial y la frecuencia cardíaca para mantener la intensidad dentro de unos límites deseables. Soy consciente de que se espera mi asistencia a todas las sesiones y que siga las instrucciones del personal relativas al ejercicio, la dieta, la gestión del estrés y otros programas relacionados (salud / acondicionamiento físico). En caso de estar tomando medicamentos, ya he informado de ello al personal del programa y me comprometo a comunicarles de inmediato cualquier cambio al respecto tanto por mi parte como por parte del médico. En caso de que sea conveniente, se me valorará y evaluará periódicamente a intervalos regulares tras el inicio del programa. Se me ha informado de que durante mi participación en este programa de entrenamiento personal se me pedirá que complete las actividades físicas salvo en caso de síntomas como fatiga, falta de aire, molestias en la zona pectoral o similares. Llegados a ese punto, se me ha informado de que tengo el derecho de disminuir la intensidad o poner fin al ejercicio y de que estoy obligado a informar al personal del programa de entrenamiento personal de mis síntomas. Así, declaro que se me ha informado de ello y me comprometo a informar al personal encargado de mi entrenamiento de mis síntomas, si se llegaran a producir. Soy consciente de que, durante el ejercicio, un entrenador personal supervisará periódicamente mi rendimiento con la posibilidad de que controle mi pulso y mi presión arterial o de que valore mi percepción del esfuerzo para así controlar mi progreso. Asimismo, soy consciente de que el entrenador personal puede reducir la intensidad o poner fin al programa de ejercicios para mi seguridad y beneficio según los parámetros anteriormente mencionados. También se me ha comunicado que durante el transcurso de mi programa de entrenamiento personal puede ser necesario el contacto físico y una colocación corporal adecuada de mi cuerpo para evaluar las reacciones musculares y corporales a ejercicios concretos, además de para asegurar que utilizo la técnica y postura adecuadas. Por ello doy mi autorización expresa para que se produzca el contacto físico por estos motivos.\n\n2. Riesgos: Manifiesto que se me ha informado de que existe la posibilidad, aunque remota, de efectos negativos durante el ejercicio, como por ejemplo (y sin excluir otros) alteración de la presión arterial, mareos, trastornos del ritmo cardíaco y casos excepcionales de infarto, derrames o incluso riesgo de muerte. Asimismo, se me ha explicado que existe el riesgo de lesiones corporales, como por ejemplo (sin excluir otras) lesiones musculares, de ligamentos, tendones y articulaciones. Se me ha comunicado que se pondrán todos los medios disponibles para minimizar que estas incidencias se produzcan mediante controles adecuados de mi estado antes de cada sesión de entrenamiento y supervisión del personal durante el ejercicio, así como de mi prudencia frente al esfuerzo. Conozco perfectamente los riesgos asociados con el ejercicio, como lesiones corporales, infartos, derrames e incluso la muerte, y aun conociendo estos riesgos, deseo tomar parte como ya he manifestado.\n\n3. Beneficios que cabe esperar y alternativas disponibles a la prueba de esfuerzo: Soy consciente de que este programa puede o no reportar beneficios a mi condición física o salud general. Comprendo que la participación en sesiones de ejercicio y entrenamiento personal me permitirá aprender cómo realizar adecuadamente ejercicios de acondicionamiento físico, usar los diversos aparatos y regular el esfuerzo físico. Por tanto, debería sacar provecho de estas experiencias, ya que indicarían la manera en que mis limitaciones físicas pueden afectar mi capacidad de realizar las diversas actividades físicas. Soy asimismo consciente de que si sigo cuidadosamente las instrucciones del programa mejoraré con toda probabilidad mi capacidad para el ejercicio físico y mi forma física tras un período de 3 a 6 meses.\n\n4. Confidencialidad y uso de la información: Se me ha informado de que la información obtenida durante este programa de entrenamiento personal se tratará con máxima confidencialidad y, en consecuencia, no se proporcionará o revelará a nadie sin mi consentimiento expreso por escrito. Acepto, en cambio, que se utilice cualquier información con propósito de investigación o estadístico siempre que no pueda llevar a la identificación de mi persona. También apruebo el uso de cualquier información con el propósito de consulta con otros profesionales de la salud o del fitness, incluido mi médico. En cambio, cualquier otra información obtenida se utilizará por parte del personal del programa únicamente por razones de prescripción de ejercicio y evaluación de mi progreso en el programa. Confirmo que he leído este documento en su totalidad o que se me ha leído en caso de no ser capaz de leerlo personalmente. Doy mi autorización expresa a que se lleven a cabo todos los servicios y procedimientos tal y como me ha comunicado el personal del programa.`;
+  const consentimientoCompleto = `1. Propósito y explicación de los procedimientos: Mediante este documento acepto voluntariamente participar en un plan de entrenamiento personal de acondicionamiento físico. También acepto tomar parte en las actividades del programa de entrenamiento personal que se me recomienden para la mejora de mi salud y bienestar general. Estas pueden incluir asesoramiento dietético, gestión del estrés y actividades formativas sobre salud y acondicionamiento físico. Los niveles de intensidad del ejercicio que se realizará se basarán en mi capacidad cardiorrespiratoria (corazón y pulmones) y muscular. Soy consciente de que se me puede requerir la realización de una prueba graduada de esfuerzo, así como otras pruebas físicas antes del comienzo del programa de entrenamiento personal para poder valorar y evaluar mi estado físico actual. Se me darán las instrucciones concretas en cuanto al tipo y volumen de ejercicio que debería realizar. Me comprometo a realizar 3 veces por semana las sesiones formales del programa. Entrenadores capacitados para ello dirigirán mis actividades, controlarán mi rendimiento y evaluarán mi esfuerzo. Según mi estado de salud, se me podrá requerir durante las sesiones un control de la presión arterial y la frecuencia cardíaca para mantener la intensidad dentro de unos límites deseables. Soy consciente de que se espera mi asistencia a todas las sesiones y que siga las instrucciones del personal relativas al ejercicio, la dieta, la gestión del estrés y otros programas relacionados (salud / acondicionamiento físico). En caso de estar tomando medicamentos, ya he informado de ello al personal del programa y me comprometo a comunicarles de inmediato cualquier cambio al respecto tanto por mi parte como por parte del médico. En caso de que sea conveniente, se me valorará y evaluará periódicamente a intervalos regulares tras el inicio del programa. Se me ha informado de que durante mi participación en este programa de entrenamiento personal se me pedirá que complete las actividades físicas salvo en caso de síntomas como fatiga, falta de aire, molestias en la zona pectoral o similares. Llegados a ese punto, se me ha informado de que tengo el derecho de disminuir la intensidad o poner fin al ejercicio y de que estoy obligado a informar al personal del programa de entrenamiento personal de mis síntomas. Así, declaro que se me ha informado de ello y me comprometo a informar al personal encargado de mi entrenamiento de mis síntomas, si se llegaran a producir. Soy consciente de que, durante el ejercicio, un entrenador personal supervisará periódicamente mi rendimiento con la posibilidad de que controle mi pulso y mi presión arterial o de que valore mi percepción del esfuerzo para así controlar mi progreso. Asimismo, soy consciente de que el entrenador personal puede reducir la intensidad o poner fin al programa de ejercicios para mi seguridad y beneficio según los parámetros anteriormente mencionados. También se me ha comunicado que durante el transcurso de mi programa de entrenamiento personal puede ser necesario el contacto físico y una colocación corporal adecuada de mi cuerpo para evaluar las reacciones musculares y corporales a ejercicios concretos, además de para asegurar que utilizo la técnica y postura adecuadas. Por ello doy mi autorización expresa para que se produzca el contacto físico por estos motivos.\n\n2. Riesgos: Manifiesto que se me ha informado de que existe la posibilidad, aunque remota, de efectos negativos durante el ejercicio, como por ejemplo (y sin excluir otros) alteración de la presión arterial, mareos, trastornos del ritmo cardíaco y casos excepcionales de infarto, derrames o incluso riesgo de muerte. Asimismo, se me ha explicado que existe el riesgo de lesiones corporales, como por ejemplo (sin excluir otras) lesiones musculares, de ligamentos, tendones y articulaciones. Se me ha comunicado que se pondrán todos los medios disponibles para minimizar que estas incidencias se produzcan mediante controles adecuados de mi estado antes de cada sesión de entrenamiento y supervisión del personal durante el ejercicio, así como de mi prudencia frente al esfuerzo. Conozco perfectamente los riesgos asociados con el ejercicio, como lesiones corporales, infartos, derrames e incluso la muerte, y aun conociendo estos riesgos, deseo tomar parte como ya he manifestado.\n\n3. Beneficios que cabe esperar y alternativas disponibles a la prueba de esfuerzo: Soy consciente de que este programa puede o no reportar beneficios a mi condición física o salud general. Comprendo que la participación en sesiones de ejercicio y entrenamiento personal me permitirá aprender cómo realizar adecuadamente ejercicios de acondicionamiento físico, usar los diversos aparatos y regular el esfuerzo físico. Por tanto, debería sacar provecho de estas experiencias, ya que indicarían la manera en que mis limitaciones físicas pueden afectar mi capacidad de realizar las diversas actividades físicas. Soy asimismo consciente de que si sigo cuidadosamente las instrucciones del programa mejoré con toda probabilidad mi capacidad para el ejercicio físico y mi forma física tras un período de 3 a 6 meses.\n\n4. Confidencialidad y uso de la información: Se me ha informado de que la información obtenida durante este programa de entrenamiento personal se tratará con máxima confidencialidad y, en consecuencia, no se proporcionará o revelará a nadie sin mi consentimiento expreso por escrito. Acepto, en cambio, que se utilice cualquier información con propósito de investigación o estadístico siempre que no pueda llevar a la identificación de mi persona. También apruebo el uso de cualquier información con el propósito de consulta con otros profesionales de la salud o del fitness, incluido mi médico. En cambio, cualquier otra información obtenida se utilizará por parte del personal del programa únicamente por razones de prescripción de ejercicio y evaluación de mi progreso en el programa. Confirmo que he leído este documento en su totalidad o que se me ha leído en caso de no ser capaz de leerlo personalmente. Doy mi autorización expresa a que se lleven a cabo todos los servicios y procedimientos tal y como me ha comunicado el personal del programa.`;
 
   const exportarPDF = async (a: any) => {
     const htmlContent = `
@@ -41,39 +43,38 @@ export default function CoachPanel() {
       <html>
       <head>
         <style>
-          @page { size: A4; margin: 15mm; }
-          body { font-family: 'Helvetica', sans-serif; color: #334155; line-height: 1.3; }
-          .header { text-align: center; border-bottom: 3px solid #3b82f6; padding-bottom: 10px; margin-bottom: 20px; }
-          h1 { color: #1e3a8a; font-size: 22px; margin: 0; }
-          .section-title { background: #3b82f6; color: white; padding: 8px 12px; border-radius: 6px; font-size: 13px; margin-top: 20px; font-weight: bold; }
-          .grid { display: flex; flex-wrap: wrap; margin-top: 8px; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; }
+          @page { size: A4; margin: 10mm; }
+          body { font-family: 'Helvetica', sans-serif; color: #334155; line-height: 1.2; margin: 0; padding: 0; }
+          .header { text-align: center; border-bottom: 4px solid #3b82f6; padding-bottom: 10px; margin-bottom: 20px; }
+          .section-title { background: #3b82f6; color: white; padding: 8px 12px; border-radius: 20px; font-size: 13px; margin-top: 15px; font-weight: bold; width: fit-content; }
+          .grid { display: flex; flex-wrap: wrap; margin-top: 8px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
           .item { width: 50%; padding: 8px; border: 0.5px solid #f1f5f9; box-sizing: border-box; }
-          .label { font-size: 9px; color: #64748b; font-weight: bold; text-transform: uppercase; }
-          .value { font-size: 12px; color: #0f172a; font-weight: 600; display: block; }
-          .no-val { color: #ef4444; }
+          .label { font-size: 9px; color: #64748b; font-weight: bold; text-transform: uppercase; display: block; }
+          .value { font-size: 11px; color: #0f172a; font-weight: 600; }
+          .no-val { color: #ef4444 !important; }
           .page-break { page-break-before: always; }
-          .legal-text { font-size: 10px; line-height: 1.5; text-align: justify; color: #475569; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
-          .signature-box { margin-top: 30px; text-align: center; }
-          .signature-img { width: 250px; border-bottom: 2px solid #1e293b; }
+          .legal-text { font-size: 8.5px; line-height: 1.4; text-align: justify; color: #475569; margin-top: 10px; }
+          .signature-box { margin-top: 20px; text-align: right; }
+          .signature-img { width: 150px; height: auto; display: block; margin-left: auto; }
         </style>
       </head>
       <body>
-        <div class="header"><h1>EXPEDIENTE TÉCNICO FITTECH</h1><p>Alumno: ${a.nombre} | Fecha: ${new Date().toLocaleDateString()}</p></div>
+        <div class="header"><h1>EXPEDIENTE TÉCNICO FITTECH</h1><p>Alumno: ${a.nombre} | ID: ${a.uid}</p></div>
 
         <div class="section-title">1. Datos e Identificación</div>
         <div class="grid">
-          <div class="item"><span class="label">Teléfono</span><span class="value">${a.telefono}</span></div>
-          <div class="item"><span class="label">Género</span><span class="value">${a.datosFisicos?.genero}</span></div>
-          <div class="item"><span class="label">Peso</span><span class="value">${a.datosFisicos?.peso} kg</span></div>
-          <div class="item"><span class="label">Estatura</span><span class="value">${a.datosFisicos?.altura} cm</span></div>
+          <div class="item"><span class="label">Teléfono</span><span class="value">${validarValor(a.telefono)}</span></div>
+          <div class="item"><span class="label">Género</span><span class="value">${validarValor(a.datosFisicos?.genero)}</span></div>
+          <div class="item"><span class="label">Peso</span><span class="value">${validarValor(a.datosFisicos?.peso)} kg</span></div>
+          <div class="item"><span class="label">Estatura</span><span class="value">${validarValor(a.datosFisicos?.altura)} cm</span></div>
         </div>
 
         <div class="section-title">2. Medidas Corporales</div>
         <div class="grid">
-          <div class="item"><span class="label">Cuello / Pecho</span><span class="value">${a.medidas?.cuello} / ${a.medidas?.pecho}</span></div>
-          <div class="item"><span class="label">Brazo R / F</span><span class="value">${a.medidas?.brazoR} / ${a.medidas?.brazoF}</span></div>
-          <div class="item"><span class="label">Cintura / Cadera</span><span class="value">${a.medidas?.cintura} / ${a.medidas?.cadera}</span></div>
-          <div class="item"><span class="label">Muslo / Pierna</span><span class="value">${a.medidas?.muslo} / ${a.medidas?.pierna}</span></div>
+          <div class="item"><span class="label">Cuello / Pecho</span><span class="value">${validarValor(a.medidas?.cuello)} / ${validarValor(a.medidas?.pecho)}</span></div>
+          <div class="item"><span class="label">Brazo R / F</span><span class="value">${validarValor(a.medidas?.brazoR)} / ${validarValor(a.medidas?.brazoF)}</span></div>
+          <div class="item"><span class="label">Cintura / Cadera</span><span class="value">${validarValor(a.medidas?.cintura)} / ${validarValor(a.medidas?.cadera)}</span></div>
+          <div class="item"><span class="label">Muslo / Pierna</span><span class="value">${validarValor(a.medidas?.muslo)} / ${validarValor(a.medidas?.pierna)}</span></div>
         </div>
 
         <div class="section-title">4. Historial de Salud</div>
@@ -96,10 +97,10 @@ export default function CoachPanel() {
 
         <div class="section-title">6. Nutrición y Planificación</div>
         <div class="grid">
-          <div class="item" style="width:100%"><span class="label">Comidas Actuales / Diario</span><span class="value">${a.nutricion?.comidasAct} (${a.nutricion?.descAct})</span></div>
+          <div class="item" style="width:100%"><span class="label">Comidas Actuales</span><span class="value">${validarValor(a.nutricion?.comidasAct)} (${validarValor(a.nutricion?.descAct)})</span></div>
           <div class="item"><span class="label">Días Entreno</span><span class="value">${validarValor(a.nutricion?.entrenos)}</span></div>
           <div class="item"><span class="label">Comidas en Plan</span><span class="value">${validarValor(a.nutricion?.comidasDes)}</span></div>
-          <div class="item" style="width:100%; background:#f0f9ff;"><span class="label">Objetivo</span><span class="value" style="color:#2563eb">${a.nutricion?.objetivo}</span></div>
+          <div class="item" style="width:100%; background:#f0f9ff;"><span class="label">Objetivo</span><span class="value" style="color:#2563eb">${validarValor(a.nutricion?.objetivo)}</span></div>
         </div>
 
         <div class="section-title">7. Frecuencia Alimentaria</div>
@@ -109,12 +110,15 @@ export default function CoachPanel() {
 
         <div class="page-break"></div>
 
-        <div class="section-title">8 y 9. Consentimiento Informado Legal</div>
-        <div class="legal-text">${consentimientoCompleto.replace(/\n/g, '<br/>')}</div>
+        <div class="section-title">8. Consentimiento Informado Legal</div>
+        <div class="legal-text">
+          ${consentimientoCompleto.replace(/\n\n/g, '<br/><br/>')}
+        </div>
 
         <div class="signature-box">
           <img src="${a.firma}" class="signature-img" />
-          <p><b>FIRMA: ${a.nombre}</b><br/>ID: ${a.uid}</p>
+          <p style="font-size:10px; margin:0;"><b>Firma del Alumno</b></p>
+          <p style="font-size:8px; color:#64748b; margin:0;">ID: ${a.uid}</p>
         </div>
       </body>
       </html>
@@ -232,11 +236,12 @@ const Section = ({ num, title, color, icon, activa, setActiva, children }: any) 
 );
 
 const Dato = ({ label, value }: any) => {
-  const isNo = value === "NO" || !value;
+  const valFinal = validarValor(value);
+  const isNo = valFinal === "NO";
   return (
     <View style={styles.datoBox}>
       <Text style={styles.datoLabel}>{label}</Text>
-      <Text style={[styles.datoValue, isNo && {color: '#ef4444'}]}>{value || 'NO'}</Text>
+      <Text style={[styles.datoValue, isNo && {color: '#ef4444'}]}>{valFinal}</Text>
     </View>
   );
 };
