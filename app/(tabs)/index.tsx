@@ -227,7 +227,7 @@ function ClienteScreen({ user }: { user: any }) {
         <Section num={6} title="Nutrición y Hábitos" color="#8b5cf6" icon="utensils" activa={seccionActiva} setActiva={setSeccionActiva}>
           <Text style={styles.labelSub}>Comidas actuales:</Text>
           <View style={styles.rowWrap}>{["3", "4", "5", "6"].map(n => <TouchableOpacity key={n} style={[styles.chip, comidasAct === n && styles.chipActive]} onPress={()=>setComidasAct(n)}><Text style={comidasAct === n ? styles.txtW : styles.txtB}>{n}</Text></TouchableOpacity>)}</View>
-          <TextInput style={styles.input} placeholder="Describe tus comidas" value={descAct} onChangeText={setDescAct} />
+          <TextInput style={styles.input} placeholder="Describe lo que comes en un dia" value={descAct} onChangeText={setDescAct} />
           <Text style={styles.labelSub}>¿Alcohol?</Text>
           <View style={styles.row}><TouchableOpacity style={[styles.btnG, alcohol==='si' && styles.btnActive]} onPress={()=>setAlcohol('si')}><Text style={alcohol==='si'?styles.txtW:styles.txtB}>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, alcohol==='no' && styles.btnActive]} onPress={()=>setAlcohol('no')}><Text style={alcohol==='no'?styles.txtW:styles.txtB}>NO</Text></TouchableOpacity></View>
           {alcohol === 'si' && <View style={styles.rowWrap}>{["Diario", "Semanal", "Mensual", "Social"].map(f => <TouchableOpacity key={f} style={[styles.chip, alcoholFreq === f && styles.chipActive]} onPress={()=>setAlcoholFreq(f)}><Text style={alcoholFreq === f ? styles.txtW : styles.txtB}>{f}</Text></TouchableOpacity>)}</View>}
@@ -238,7 +238,7 @@ function ClienteScreen({ user }: { user: any }) {
           <View style={styles.rowWrap}>{["3", "4", "5", "6"].map(n => <TouchableOpacity key={n} style={[styles.chip, comidasDes === n && styles.chipActive]} onPress={()=>setComidasDes(n)}><Text style={comidasDes === n ? styles.txtW : styles.txtB}>{n}</Text></TouchableOpacity>)}</View>
           <Text style={styles.labelSub}>Días entrenamiento:</Text>
           <View style={styles.rowWrap}>{["3", "4", "5", "6"].map(d => <TouchableOpacity key={d} style={[styles.chip, entrenos === d && styles.chipActive]} onPress={()=>setEntrenos(d)}><Text style={entrenos === d ? styles.txtW : styles.txtB}>{d}</Text></TouchableOpacity>)}</View>
-          <TextInput style={styles.input} placeholder="Objetivos" value={objetivo} onChangeText={setObjetivo} />
+          <TextInput style={styles.input} placeholder="Cueles son tus Objetivos" value={objetivo} onChangeText={setObjetivo} />
           <TouchableOpacity style={styles.btnNext} onPress={() => setSeccionActiva(7)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
         </Section>
 
