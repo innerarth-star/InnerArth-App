@@ -26,11 +26,9 @@ export default function CoachPanel() {
     return unsub;
   }, []);
 
-  // Función blindada para evitar que React rompa la pantalla
   const validarValor = (val: any) => {
     if (val === undefined || val === null || val === '' || val === 'no' || val === 0 || val === '0') return "NO";
     if (Array.isArray(val)) return val.length > 0 ? val.join(', ') : "NO";
-    if (typeof val === 'object') return "Ver en PDF"; // Para objetos complejos o timestamps
     return String(val);
   };
 
@@ -58,9 +56,9 @@ export default function CoachPanel() {
           .label { font-size: 8px; color: #64748b; font-weight: bold; text-transform: uppercase; display: block; }
           .value { font-size: 11px; color: #0f172a; font-weight: 600; }
           .page-break { page-break-before: always; }
-          .legal-text { font-size: 8px; line-height: 1.3; text-align: justify; color: #475569; margin-top: 10px; }
+          .legal-text { font-size: 8.2px; line-height: 1.3; text-align: justify; color: #475569; margin-top: 10px; }
           .signature-box { margin-top: 15px; text-align: right; border-top: 1px solid #eee; padding-top: 10px; }
-          .signature-img { width: 140px; height: auto; margin-left: auto; }
+          .signature-img { width: 130px; height: auto; margin-left: auto; }
         </style>
       </head>
       <body>
@@ -77,7 +75,7 @@ export default function CoachPanel() {
         <div class="section-title">2. Medidas Corporales</div>
         <div class="grid">
           <div class="item"><span class="label">Cuello / Pecho</span><span class="value">${validarValor(a.medidas?.cuello)} / ${validarValor(a.medidas?.pecho)}</span></div>
-          <div class="item"><span class="label">Brazo R / F</span><span class="value">${validarValor(a.medidas?.brazoR)} / ${validarValor(a.medidas?.brazoF}</span></div>
+          <div class="item"><span class="label">Brazo R / F</span><span class="value">${validarValor(a.medidas?.brazoR)} / ${validarValor(a.medidas?.brazoF)}</span></div>
           <div class="item"><span class="label">Cintura / Cadera</span><span class="value">${validarValor(a.medidas?.cintura)} / ${validarValor(a.medidas?.cadera)}</span></div>
           <div class="item"><span class="label">Muslo / Pierna</span><span class="value">${validarValor(a.medidas?.muslo)} / ${validarValor(a.medidas?.pierna)}</span></div>
         </div>
