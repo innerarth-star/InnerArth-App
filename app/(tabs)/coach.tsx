@@ -82,16 +82,26 @@ export default function CoachPanel() {
       <html>
       <head>
         <style>
-          @page { size: A4; margin: 20mm; }
+          @page { 
+            size: A4; 
+            margin: 25mm 20mm 20mm 20mm; /* Aumentamos el margen superior a 25mm */
+          }
+          
           body { 
             font-family: 'Helvetica', sans-serif; 
             color: #334155; 
             line-height: 1.3; 
             margin: 0; 
-            padding-top: 20px; 
+            padding: 0;
           }
-          
-          .block-container { page-break-inside: avoid; margin-bottom: 25px; width: 100%; }
+
+          /* Este contenedor asegura que si un bloque queda cerca del final, se pase completo a la siguiente hoja */
+          .block-container { 
+            page-break-inside: avoid; 
+            margin-bottom: 20px; 
+            width: 100%; 
+            display: block;
+          }
           
           .header { 
             text-align: center; 
@@ -130,19 +140,14 @@ export default function CoachPanel() {
             background: #f8fafc; 
             border-radius: 10px; 
             border: 1px solid #e2e8f0; 
-            page-break-inside: avoid; 
           }
           
           .signature-box { margin-top: 30px; text-align: center; page-break-inside: avoid; }
           .signature-img { width: 80px; height: auto; margin: 0 auto; display: block; border-bottom: 2px solid #1e293b; }
           .signature-label { font-size: 10px; font-weight: bold; margin-top: 10px; color: #1e293b; }
 
-          /* AJUSTE PARA MÁRGENES EN PÁGINAS 2 Y 3 */
-          .page-break-before { 
+          .page-break { 
             page-break-before: always; 
-            display: block;
-            content: "";
-            height: 40px; /* Esto empuja el contenido de la nueva hoja hacia abajo */
           }
         </style>
       </head>
@@ -221,11 +226,13 @@ export default function CoachPanel() {
           </div>
         </div>
 
-        <div class="page-break-before"></div>
+        <div class="page-break"></div>
 
-        <div class="section-title">8. Consentimiento Informado Legal</div>
-        <div class="legal-text">
-          ${consentimientoCompleto.replace(/\n\n/g, '<br/><br/>')}
+        <div class="block-container">
+          <div class="section-title">8. Consentimiento Informado Legal</div>
+          <div class="legal-text">
+            ${consentimientoCompleto.replace(/\n\n/g, '<br/><br/>')}
+          </div>
         </div>
 
         <div class="signature-box">
