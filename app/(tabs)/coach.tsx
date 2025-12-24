@@ -62,9 +62,9 @@ export default function CoachPanel() {
           .value { font-size: 12px; color: #0f172a; font-weight: 600; }
           .page-break { page-break-before: always; }
           .legal-text { font-size: 8.5px; line-height: 1.5; text-align: justify; color: #475569; margin-top: 15px; padding: 15px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; }
-          .signature-box { margin-top: 30px; text-align: right; }
-          .signature-img { width: 160px; height: auto; margin-left: auto; border-bottom: 2px solid #1e293b; }
-          .signature-label { font-size: 10px; font-weight: bold; margin-top: 5px; color: #1e293b; }
+          .signature-box { margin-top: 30px; text-align: center; }
+          .signature-img { width: 80px; height: auto; margin: 0 auto; display: block; border-bottom: 2px solid #1e293b; }
+          .signature-label { font-size: 10px; font-weight: bold; margin-top: 10px; color: #1e293b; }
         </style>
       </head>
       <body>
