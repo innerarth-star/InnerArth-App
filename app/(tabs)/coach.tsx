@@ -20,23 +20,26 @@ export default function CoachPanel() {
       setAlumnos(lista);
       setCargando(false);
     }, (error) => {
-      console.error("Error en snapshot:", error);
       setCargando(false);
     });
     return unsub;
   }, []);
 
-  // FUNCIÓN CRÍTICA: Convierte cualquier dato (Arreglos, Objetos) en String para evitar pantalla blanca
-  const validarValor = (val: any) => {
-    if (val === undefined || val === null || val === '' || val === 'no' || val === 0 || val === '0') return "NO";
+  // BLINDAJE TOTAL: Esta función asegura que NUNCA se pase un objeto al componente Text
+  const procesarTexto = (val: any) => {
+    if (val === undefined || val === null || val === '' || val === 'no' || val === 0) return "NO";
     if (Array.isArray(val)) return val.length > 0 ? val.join(', ') : "NO";
-    if (typeof val === 'object') return "Dato Protegido"; 
+    if (typeof val === 'object') {
+        // Si es un timestamp de Firebase lo convertimos a fecha, si no, a texto simple
+        if (val.seconds) return new Date(val.seconds * 1000).toLocaleDateString();
+        return JSON.stringify(val); 
+    }
     return String(val);
   };
 
   const formatearActividad = (dias: any, min: any) => {
-    const d = validarValor(dias);
-    const m = validarValor(min);
+    const d = procesarTexto(dias);
+    const m = procesarTexto(min);
     if (d === "NO" || m === "NO") return "NO";
     return `${d} días / ${m} min`;
   };
@@ -50,79 +53,67 @@ export default function CoachPanel() {
       <head>
         <style>
           @page { size: A4; margin: 10mm; }
-          body { font-family: 'Helvetica', sans-serif; color: #334155; line-height: 1.1; margin: 0; padding: 0; }
-          .header { text-align: center; border-bottom: 4px solid #3b82f6; padding-bottom: 5px; margin-bottom: 10px; }
+          body { font-family: 'Helvetica', sans-serif; color: #334155; line-height: 1.2; margin: 0; padding: 0; }
+          .header { text-align: center; border-bottom: 4px solid #3b82f6; padding-bottom: 10px; margin-bottom: 15px; }
           .section-title { background: #3b82f6; color: white; padding: 6px 15px; border-radius: 20px; font-size: 11px; margin-top: 10px; font-weight: bold; width: fit-content; }
-          .grid { display: flex; flex-wrap: wrap; margin-top: 5px; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; }
-          .item { width: 50%; padding: 6px; border: 0.5px solid #f1f5f9; box-sizing: border-box; }
+          .grid { display: flex; flex-wrap: wrap; margin-top: 8px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+          .item { width: 50%; padding: 8px; border: 0.5px solid #f1f5f9; box-sizing: border-box; }
           .label { font-size: 8px; color: #64748b; font-weight: bold; text-transform: uppercase; display: block; }
           .value { font-size: 10px; color: #0f172a; font-weight: 600; }
           .page-break { page-break-before: always; }
-          .legal-text { font-size: 8px; line-height: 1.2; text-align: justify; color: #475569; margin-top: 5px; }
-          .signature-box { margin-top: 10px; text-align: right; }
-          .signature-img { width: 130px; height: auto; margin-left: auto; border-bottom: 1px solid #000; }
+          .legal-text { font-size: 8px; line-height: 1.3; text-align: justify; color: #475569; margin-top: 10px; }
+          .signature-box { margin-top: 15px; text-align: right; }
+          .signature-img { width: 130px; height: auto; margin-left: auto; }
         </style>
       </head>
       <body>
         <div class="header"><h1>EXPEDIENTE TÉCNICO FITTECH</h1><p>Alumno: ${a.nombre}</p></div>
-
         <div class="section-title">1. Datos e Identificación</div>
         <div class="grid">
-          <div class="item"><span class="label">Teléfono</span><span class="value">${validarValor(a.telefono)}</span></div>
-          <div class="item"><span class="label">Género</span><span class="value">${validarValor(a.datosFisicos?.genero)}</span></div>
-          <div class="item"><span class="label">Peso</span><span class="value">${validarValor(a.datosFisicos?.peso)} kg</span></div>
-          <div class="item"><span class="label">Estatura</span><span class="value">${validarValor(a.datosFisicos?.altura)} cm</span></div>
+          <div class="item"><span class="label">Teléfono</span><span class="value">${procesarTexto(a.telefono)}</span></div>
+          <div class="item"><span class="label">Género</span><span class="value">${procesarTexto(a.datosFisicos?.genero)}</span></div>
+          <div class="item"><span class="label">Peso</span><span class="value">${procesarTexto(a.datosFisicos?.peso)} kg</span></div>
+          <div class="item"><span class="label">Estatura</span><span class="value">${procesarTexto(a.datosFisicos?.altura)} cm</span></div>
         </div>
-
         <div class="section-title">2. Medidas Corporales</div>
         <div class="grid">
-          <div class="item"><span class="label">Cuello / Pecho</span><span class="value">${validarValor(a.medidas?.cuello)} / ${validarValor(a.medidas?.pecho)}</span></div>
-          <div class="item"><span class="label">Brazo R / F</span><span class="value">${validarValor(a.medidas?.brazoR)} / ${validarValor(a.medidas?.brazoF)}</span></div>
-          <div class="item"><span class="label">Cintura / Cadera</span><span class="value">${validarValor(a.medidas?.cintura)} / ${validarValor(a.medidas?.cadera)}</span></div>
-          <div class="item"><span class="label">Muslo / Pierna</span><span class="value">${validarValor(a.medidas?.muslo)} / ${validarValor(a.medidas?.pierna)}</span></div>
+          <div class="item"><span class="label">Cuello / Pecho</span><span class="value">${procesarTexto(a.medidas?.cuello)} / ${procesarTexto(a.medidas?.pecho)}</span></div>
+          <div class="item"><span class="label">Brazo R / F</span><span class="value">${procesarTexto(a.medidas?.brazoR)} / ${procesarTexto(a.medidas?.brazoF)}</span></div>
+          <div class="item"><span class="label">Cintura / Cadera</span><span class="value">${procesarTexto(a.medidas?.cintura)} / ${procesarTexto(a.medidas?.cadera)}</span></div>
+          <div class="item"><span class="label">Muslo / Pierna</span><span class="value">${procesarTexto(a.medidas?.muslo)} / ${procesarTexto(a.medidas?.pierna)}</span></div>
         </div>
-
         <div class="section-title">4. Historial de Salud</div>
         <div class="grid">
-          <div class="item" style="width:100%"><span class="label">Enf. Familiares</span><span class="value">${validarValor(a.salud?.enfFam)}</span></div>
-          <div class="item" style="width:100%"><span class="label">Enf. Personales</span><span class="value">${validarValor(a.salud?.enfPers)}</span></div>
-          <div class="item"><span class="label">Lesiones</span><span class="value">${validarValor(a.salud?.detalleLesion)}</span></div>
-          <div class="item"><span class="label">Cirugías</span><span class="value">${validarValor(a.salud?.detalleOperacion)}</span></div>
+          <div class="item" style="width:100%"><span class="label">Enf. Familiares</span><span class="value">${procesarTexto(a.salud?.enfFam)}</span></div>
+          <div class="item" style="width:100%"><span class="label">Enf. Personales</span><span class="value">${procesarTexto(a.salud?.enfPers)}</span></div>
+          <div class="item"><span class="label">Lesiones</span><span class="value">${procesarTexto(a.salud?.detalleLesion)}</span></div>
+          <div class="item"><span class="label">Cirugías</span><span class="value">${procesarTexto(a.salud?.detalleOperacion)}</span></div>
         </div>
-
         <div class="page-break"></div>
-
         <div class="section-title">5. Estilo de Vida e IPAQ</div>
         <div class="grid">
           <div class="item"><span class="label">Vigorosa</span><span class="value">${formatearActividad(a.ipaq?.vDias, a.ipaq?.vMin)}</span></div>
           <div class="item"><span class="label">Moderada</span><span class="value">${formatearActividad(a.ipaq?.mDias, a.ipaq?.mMin)}</span></div>
           <div class="item"><span class="label">Caminata</span><span class="value">${formatearActividad(a.ipaq?.cDias, a.ipaq?.cMin)}</span></div>
-          <div class="item"><span class="label">Sentado</span><span class="value">${validarValor(a.ipaq?.sentado)} hrs/día</span></div>
+          <div class="item"><span class="label">Sentado</span><span class="value">${procesarTexto(a.ipaq?.sentado)} hrs/día</span></div>
         </div>
-
         <div class="section-title">6. Nutrición y Planificación</div>
         <div class="grid">
-          <div class="item" style="width:100%"><span class="label">Comidas Actuales</span><span class="value">${validarValor(a.nutricion?.comidasAct)} (${validarValor(a.nutricion?.descAct)})</span></div>
-          <div class="item"><span class="label">Días Entreno</span><span class="value">${validarValor(a.nutricion?.entrenos)}</span></div>
-          <div class="item"><span class="label">Comidas en Plan</span><span class="value">${validarValor(a.nutricion?.comidasDes)}</span></div>
-          <div class="item" style="width:100%; background:#f0f9ff;"><span class="label">Objetivo</span><span class="value" style="color:#2563eb">${validarValor(a.nutricion?.objetivo)}</span></div>
+          <div class="item" style="width:100%"><span class="label">Comidas Actuales</span><span class="value">${procesarTexto(a.nutricion?.comidasAct)} (${procesarTexto(a.nutricion?.descAct)})</span></div>
+          <div class="item"><span class="label">Días Entreno</span><span class="value">${procesarTexto(a.nutricion?.entrenos)}</span></div>
+          <div class="item"><span class="label">Comidas en Plan</span><span class="value">${procesarTexto(a.nutricion?.comidasDes)}</span></div>
+          <div class="item" style="width:100%; background:#f0f9ff;"><span class="label">Objetivo</span><span class="value" style="color:#2563eb">${procesarTexto(a.nutricion?.objetivo)}</span></div>
         </div>
-
         <div class="section-title">7. Frecuencia Alimentaria</div>
         <div class="grid">
-          ${Object.entries(a.frecuenciaAlimentos || {}).map(([k, v]) => `<div class="item"><span class="label">${k}</span><span class="value">${validarValor(v)}</span></div>`).join('')}
+          ${Object.entries(a.frecuenciaAlimentos || {}).map(([k, v]) => `<div class="item"><span class="label">${k}</span><span class="value">${procesarTexto(v)}</span></div>`).join('')}
         </div>
-
         <div class="page-break"></div>
-
         <div class="section-title">8. Consentimiento Informado Legal</div>
-        <div class="legal-text">
-          ${consentimientoCompleto.replace(/\n\n/g, '<br/><br/>')}
-        </div>
-
+        <div class="legal-text">${consentimientoCompleto.replace(/\n\n/g, '<br/><br/>')}</div>
         <div class="signature-box">
           <img src="${a.firma}" class="signature-img" />
-          <p style="font-size:10px; margin:0;"><b>Firma: ${a.nombre}</b></p>
+          <p style="font-size:10px; margin:0;"><b>Firma del Alumno: ${a.nombre}</b></p>
         </div>
       </body>
       </html>
@@ -146,8 +137,8 @@ export default function CoachPanel() {
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.cardAlumno} onPress={() => { setAlumnoSeleccionado(item); setSeccionActiva(null); }}>
             <View style={styles.infoRow}>
-              <View style={styles.avatar}><Text style={styles.avatarTxt}>{item.nombre?.charAt(0)}</Text></View>
-              <View style={{ flex: 1 }}><Text style={styles.nombreAlumno}>{item.nombre}</Text><Text style={styles.emailAlumno}>{item.email}</Text></View>
+              <View style={styles.avatar}><Text style={styles.avatarTxt}>{procesarTexto(item.nombre?.charAt(0))}</Text></View>
+              <View style={{ flex: 1 }}><Text style={styles.nombreAlumno}>{procesarTexto(item.nombre)}</Text><Text style={styles.emailAlumno}>{procesarTexto(item.email)}</Text></View>
               <MaterialCommunityIcons name="chevron-right" size={24} color="#3b82f6" />
             </View>
           </TouchableOpacity>
@@ -240,8 +231,9 @@ const Section = ({ num, title, color, icon, activa, setActiva, children }: any) 
 );
 
 const Dato = ({ label, value }: any) => {
-  const texto = validarValor(value);
+  const texto = (value !== undefined && value !== null) ? (Array.isArray(value) ? (value.length > 0 ? value.join(', ') : "NO") : (String(value) === '' || String(value) === 'no' || String(value) === '0' ? "NO" : String(value))) : "NO";
   const isNo = texto === "NO";
+  
   return (
     <View style={styles.datoBox}>
       <Text style={styles.datoLabel}>{label}</Text>
