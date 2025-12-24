@@ -11,7 +11,7 @@ export default function CoachPanel() {
   const [alumnos, setAlumnos] = useState<any[]>([]);
   const [cargando, setCargando] = useState(true);
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState<any>(null);
-  const [seccionActiva, setSeccionActiva] = useState<number | null>(null); // Inicia cerrado
+  const [seccionActiva, setSeccionActiva] = useState<number | null>(null);
 
   useEffect(() => {
     const q = query(collection(db, "revisiones_pendientes"), orderBy("timestamp", "desc"));
@@ -24,9 +24,16 @@ export default function CoachPanel() {
   }, []);
 
   const validarValor = (val: any) => {
-    if (!val || val === '' || val === 'no' || val === 'Ninguna' || (Array.isArray(val) && val.length === 0)) return "NO";
+    if (val === undefined || val === null || val === '' || val === 'no' || val === 0 || val === '0') return "NO";
     return val;
   };
+
+  const formatearActividad = (dias: any, min: any) => {
+    if (!dias || dias === '0' || !min || min === '0') return "NO";
+    return `${dias} días / ${min} min`;
+  };
+
+  const consentimientoCompleto = `1. Propósito y explicación de los procedimientos: Mediante este documento acepto voluntariamente participar en un plan de entrenamiento personal de acondicionamiento físico. También acepto tomar parte en las actividades del programa de entrenamiento personal que se me recomienden para la mejora de mi salud y bienestar general. Estas pueden incluir asesoramiento dietético, gestión del estrés y actividades formativas sobre salud y acondicionamiento físico. Los niveles de intensidad del ejercicio que se realizará se basarán en mi capacidad cardiorrespiratoria (corazón y pulmones) y muscular. Soy consciente de que se me puede requerir la realización de una prueba graduada de esfuerzo, así como otras pruebas físicas antes del comienzo del programa de entrenamiento personal para poder valorar y evaluar mi estado físico actual. Se me darán las instrucciones concretas en cuanto al tipo y volumen de ejercicio que debería realizar. Me comprometo a realizar 3 veces por semana las sesiones formales del programa. Entrenadores capacitados para ello dirigirán mis actividades, controlarán mi rendimiento y evaluarán mi esfuerzo. Según mi estado de salud, se me podrá requerir durante las sesiones un control de la presión arterial y la frecuencia cardíaca para mantener la intensidad dentro de unos límites deseables. Soy consciente de que se espera mi asistencia a todas las sesiones y que siga las instrucciones del personal relativas al ejercicio, la dieta, la gestión del estrés y otros programas relacionados (salud / acondicionamiento físico). En caso de estar tomando medicamentos, ya he informado de ello al personal del programa y me comprometo a comunicarles de inmediato cualquier cambio al respecto tanto por mi parte como por parte del médico. En caso de que sea conveniente, se me valorará y evaluará periódicamente a intervalos regulares tras el inicio del programa. Se me ha informado de que durante mi participación en este programa de entrenamiento personal se me pedirá que complete las actividades físicas salvo en caso de síntomas como fatiga, falta de aire, molestias en la zona pectoral o similares. Llegados a ese punto, se me ha informado de que tengo el derecho de disminuir la intensidad o poner fin al ejercicio y de que estoy obligado a informar al personal del programa de entrenamiento personal de mis síntomas. Así, declaro que se me ha informado de ello y me comprometo a informar al personal encargado de mi entrenamiento de mis síntomas, si se llegaran a producir. Soy consciente de que, durante el ejercicio, un entrenador personal supervisará periódicamente mi rendimiento con la posibilidad de que controle mi pulso y mi presión arterial o de que valore mi percepción del esfuerzo para así controlar mi progreso. Asimismo, soy consciente de que el entrenador personal puede reducir la intensidad o poner fin al programa de ejercicios para mi seguridad y beneficio según los parámetros anteriormente mencionados. También se me ha comunicado que durante el transcurso de mi programa de entrenamiento personal puede ser necesario el contacto físico y una colocación corporal adecuada de mi cuerpo para evaluar las reacciones musculares y corporales a ejercicios concretos, además de para asegurar que utilizo la técnica y postura adecuadas. Por ello doy mi autorización expresa para que se produzca el contacto físico por estos motivos.\n\n2. Riesgos: Manifiesto que se me ha informado de que existe la posibilidad, aunque remota, de efectos negativos durante el ejercicio, como por ejemplo (y sin excluir otros) alteración de la presión arterial, mareos, trastornos del ritmo cardíaco y casos excepcionales de infarto, derrames o incluso riesgo de muerte. Asimismo, se me ha explicado que existe el riesgo de lesiones corporales, como por ejemplo (sin excluir otras) lesiones musculares, de ligamentos, tendones y articulaciones. Se me ha comunicado que se pondrán todos los medios disponibles para minimizar que estas incidencias se produzcan mediante controles adecuados de mi estado antes de cada sesión de entrenamiento y supervisión del personal durante el ejercicio, así como de mi prudencia frente al esfuerzo. Conozco perfectamente los riesgos asociados con el ejercicio, como lesiones corporales, infartos, derrames e incluso la muerte, y aun conociendo estos riesgos, deseo tomar parte como ya he manifestado.\n\n3. Beneficios que cabe esperar y alternativas disponibles a la prueba de esfuerzo: Soy consciente de que este programa puede o no reportar beneficios a mi condición física o salud general. Comprendo que la participación en sesiones de ejercicio y entrenamiento personal me permitirá aprender cómo realizar adecuadamente ejercicios de acondicionamiento físico, usar los diversos aparatos y regular el esfuerzo físico. Por tanto, debería sacar provecho de estas experiencias, ya que indicarían la manera en que mis limitaciones físicas pueden afectar mi capacidad de realizar las diversas actividades físicas. Soy asimismo consciente de que si sigo cuidadosamente las instrucciones del programa mejoraré con toda probabilidad mi capacidad para el ejercicio físico y mi forma física tras un período de 3 a 6 meses.\n\n4. Confidencialidad y uso de la información: Se me ha informado de que la información obtenida durante este programa de entrenamiento personal se tratará con máxima confidencialidad y, en consecuencia, no se proporcionará o revelará a nadie sin mi consentimiento expreso por escrito. Acepto, en cambio, que se utilice cualquier información con propósito de investigación o estadístico siempre que no pueda llevar a la identificación de mi persona. También apruebo el uso de cualquier información con el propósito de consulta con otros profesionales de la salud o del fitness, incluido mi médico. En cambio, cualquier otra información obtenida se utilizará por parte del personal del programa únicamente por razones de prescripción de ejercicio y evaluación de mi progreso en el programa. Confirmo que he leído este documento en su totalidad o que se me ha leído en caso de no ser capaz de leerlo personalmente. Doy mi autorización expresa a que se lleven a cabo todos los servicios y procedimientos tal y como me ha comunicado el personal del programa.`;
 
   const exportarPDF = async (a: any) => {
     const htmlContent = `
@@ -35,107 +42,79 @@ export default function CoachPanel() {
       <head>
         <style>
           @page { size: A4; margin: 15mm; }
-          body { font-family: 'Helvetica', sans-serif; color: #334155; margin: 0; padding: 0; }
-          .container { padding: 20px; }
-          .header { text-align: center; margin-bottom: 30px; border-bottom: 4px solid #3b82f6; padding-bottom: 10px; }
-          .header h1 { color: #1e3a8a; font-size: 26px; margin: 0; }
-          .header p { font-size: 12px; color: #64748b; margin: 5px 0; }
-          .section-title { background: #3b82f6; color: white; padding: 10px 15px; border-radius: 8px; font-size: 14px; margin-top: 25px; font-weight: bold; text-transform: uppercase; }
-          .grid { display: flex; flex-wrap: wrap; margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
-          .item { width: 50%; padding: 10px; border: 0.5px solid #f1f5f9; box-sizing: border-box; }
-          .full { width: 100%; }
-          .label { font-size: 10px; color: #64748b; font-weight: bold; text-transform: uppercase; display: block; }
-          .value { font-size: 13px; color: #0f172a; font-weight: 600; margin-top: 2px; }
+          body { font-family: 'Helvetica', sans-serif; color: #334155; line-height: 1.3; }
+          .header { text-align: center; border-bottom: 3px solid #3b82f6; padding-bottom: 10px; margin-bottom: 20px; }
+          h1 { color: #1e3a8a; font-size: 22px; margin: 0; }
+          .section-title { background: #3b82f6; color: white; padding: 8px 12px; border-radius: 6px; font-size: 13px; margin-top: 20px; font-weight: bold; }
+          .grid { display: flex; flex-wrap: wrap; margin-top: 8px; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; }
+          .item { width: 50%; padding: 8px; border: 0.5px solid #f1f5f9; box-sizing: border-box; }
+          .label { font-size: 9px; color: #64748b; font-weight: bold; text-transform: uppercase; }
+          .value { font-size: 12px; color: #0f172a; font-weight: 600; display: block; }
+          .no-val { color: #ef4444; }
           .page-break { page-break-before: always; }
-          .legal-text { font-size: 10px; line-height: 1.6; text-align: justify; color: #475569; background: #f8fafc; padding: 20px; border-radius: 10px; margin-top: 15px; }
-          .signature-box { margin-top: 40px; text-align: center; }
-          .signature-img { width: 280px; height: auto; border-bottom: 2px solid #1e293b; padding-bottom: 10px; }
-          .no-val { color: #ef4444; font-weight: bold; }
+          .legal-text { font-size: 10px; line-height: 1.5; text-align: justify; color: #475569; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
+          .signature-box { margin-top: 30px; text-align: center; }
+          .signature-img { width: 250px; border-bottom: 2px solid #1e293b; }
         </style>
       </head>
       <body>
-        <div class="container">
-          <div class="header">
-            <h1>EXPEDIENTE DE RECOMPOSICIÓN FITTECH</h1>
-            <p>Reporte de Evaluación de Salud y Acondicionamiento Físico</p>
-          </div>
+        <div class="header"><h1>EXPEDIENTE TÉCNICO FITTECH</h1><p>Alumno: ${a.nombre} | Fecha: ${new Date().toLocaleDateString()}</p></div>
 
-          <div class="section-title">1. Datos Personales y Antropometría</div>
-          <div class="grid">
-            <div class="item"><span class="label">Nombre completo</span><span class="value">${a.nombre}</span></div>
-            <div class="item"><span class="label">Teléfono</span><span class="value">${a.telefono}</span></div>
-            <div class="item"><span class="label">Edad</span><span class="value">${a.datosFisicos?.edad} años</span></div>
-            <div class="item"><span class="label">Género</span><span class="value">${a.datosFisicos?.genero}</span></div>
-            <div class="item"><span class="label">Peso Actual</span><span class="value">${a.datosFisicos?.peso} kg</span></div>
-            <div class="item"><span class="label">Estatura</span><span class="value">${a.datosFisicos?.altura} cm</span></div>
-          </div>
+        <div class="section-title">1. Datos e Identificación</div>
+        <div class="grid">
+          <div class="item"><span class="label">Teléfono</span><span class="value">${a.telefono}</span></div>
+          <div class="item"><span class="label">Género</span><span class="value">${a.datosFisicos?.genero}</span></div>
+          <div class="item"><span class="label">Peso</span><span class="value">${a.datosFisicos?.peso} kg</span></div>
+          <div class="item"><span class="label">Estatura</span><span class="value">${a.datosFisicos?.altura} cm</span></div>
+        </div>
 
-          <div class="section-title">2. Medidas Corporales (CM)</div>
-          <div class="grid">
-            <div class="item"><span class="label">Cuello</span><span class="value">${a.medidas?.cuello}</span></div>
-            <div class="item"><span class="label">Pecho</span><span class="value">${a.medidas?.pecho}</span></div>
-            <div class="item"><span class="label">Brazo Relajado</span><span class="value">${a.medidas?.brazoR}</span></div>
-            <div class="item"><span class="label">Brazo Flexionado</span><span class="value">${a.medidas?.brazoF}</span></div>
-            <div class="item"><span class="label">Cintura</span><span class="value">${a.medidas?.cintura}</span></div>
-            <div class="item"><span class="label">Cadera</span><span class="value">${a.medidas?.cadera}</span></div>
-            <div class="item"><span class="label">Muslo</span><span class="value">${a.medidas?.muslo}</span></div>
-            <div class="item"><span class="label">Pierna</span><span class="value">${a.medidas?.pierna}</span></div>
-          </div>
+        <div class="section-title">2. Medidas Corporales</div>
+        <div class="grid">
+          <div class="item"><span class="label">Cuello / Pecho</span><span class="value">${a.medidas?.cuello} / ${a.medidas?.pecho}</span></div>
+          <div class="item"><span class="label">Brazo R / F</span><span class="value">${a.medidas?.brazoR} / ${a.medidas?.brazoF}</span></div>
+          <div class="item"><span class="label">Cintura / Cadera</span><span class="value">${a.medidas?.cintura} / ${a.medidas?.cadera}</span></div>
+          <div class="item"><span class="label">Muslo / Pierna</span><span class="value">${a.medidas?.muslo} / ${a.medidas?.pierna}</span></div>
+        </div>
 
-          <div class="section-title">4. Historial Médico</div>
-          <div class="grid">
-            <div class="full" style="padding:10px; border-bottom: 1px solid #f1f5f9;"><span class="label">Enfermedades Familiares</span><span class="value">${a.salud?.enfFam?.join(', ') || 'NINGUNA'}</span></div>
-            <div class="full" style="padding:10px; border-bottom: 1px solid #f1f5f9;"><span class="label">Enfermedades Propias</span><span class="value">${a.salud?.enfPers?.join(', ') || 'NINGUNA'}</span></div>
-            <div class="item"><span class="label">Lesiones</span><span class="value">${validarValor(a.salud?.detalleLesion)}</span></div>
-            <div class="item"><span class="label">Cirugías</span><span class="value">${validarValor(a.salud?.detalleOperacion)}</span></div>
-          </div>
+        <div class="section-title">4. Historial de Salud</div>
+        <div class="grid">
+          <div class="item" style="width:100%"><span class="label">Enf. Familiares</span><span class="value">${a.salud?.enfFam?.join(', ') || 'NO'}</span></div>
+          <div class="item" style="width:100%"><span class="label">Enf. Personales</span><span class="value">${a.salud?.enfPers?.join(', ') || 'NO'}</span></div>
+          <div class="item"><span class="label">Lesiones</span><span class="value">${validarValor(a.salud?.detalleLesion)}</span></div>
+          <div class="item"><span class="label">Cirugías</span><span class="value">${validarValor(a.salud?.detalleOperacion)}</span></div>
+        </div>
 
-          <div class="page-break"></div>
+        <div class="page-break"></div>
 
-          <div class="section-title">5. Actividad Física (IPAQ)</div>
-          <div class="grid">
-            <div class="item"><span class="label">Vigorosa</span><span class="value">${a.ipaq?.vDias} días / ${a.ipaq?.vMin} min</span></div>
-            <div class="item"><span class="label">Moderada</span><span class="value">${a.ipaq?.mDias} días / ${a.ipaq?.mMin} min</span></div>
-            <div class="item"><span class="label">Caminata</span><span class="value">${a.ipaq?.cDias} días / ${a.ipaq?.cMin} min</span></div>
-            <div class="item"><span class="label">Sedentario</span><span class="value">${a.ipaq?.sentado} hrs/día</span></div>
-          </div>
+        <div class="section-title">5. Estilo de Vida e IPAQ</div>
+        <div class="grid">
+          <div class="item"><span class="label">Vigorosa</span><span class="value">${formatearActividad(a.ipaq?.vDias, a.ipaq?.vMin)}</span></div>
+          <div class="item"><span class="label">Moderada</span><span class="value">${formatearActividad(a.ipaq?.mDias, a.ipaq?.mMin)}</span></div>
+          <div class="item"><span class="label">Caminata</span><span class="value">${formatearActividad(a.ipaq?.cDias, a.ipaq?.cMin)}</span></div>
+          <div class="item"><span class="label">Sentado</span><span class="value">${validarValor(a.ipaq?.sentado)} hrs/día</span></div>
+        </div>
 
-          <div class="section-title">6. Nutrición y Objetivos</div>
-          <div class="grid">
-            <div class="full" style="padding:10px; border-bottom: 1px solid #f1f5f9;"><span class="label">Comidas actuales</span><span class="value">${a.nutricion?.comidasAct} comidas (${a.nutricion?.descAct})</span></div>
-            <div class="item"><span class="label">Alcohol</span><span class="value">${validarValor(a.nutricion?.alcoholFreq)}</span></div>
-            <div class="item"><span class="label">Sustancias</span><span class="value">${validarValor(a.nutricion?.sustFreq)}</span></div>
-            <div class="item"><span class="label">Días Entreno</span><span class="value">${a.nutricion?.entrenos} días</span></div>
-            <div class="item"><span class="label">Comidas en Plan</span><span class="value">${a.nutricion?.comidasDes}</span></div>
-            <div class="full" style="padding:10px; background:#eff6ff;"><span class="label">OBJETIVO PRINCIPAL</span><span class="value" style="color:#1d4ed8; font-size:16px;">${a.nutricion?.objetivo}</span></div>
-          </div>
+        <div class="section-title">6. Nutrición y Planificación</div>
+        <div class="grid">
+          <div class="item" style="width:100%"><span class="label">Comidas Actuales / Diario</span><span class="value">${a.nutricion?.comidasAct} (${a.nutricion?.descAct})</span></div>
+          <div class="item"><span class="label">Días Entreno</span><span class="value">${validarValor(a.nutricion?.entrenos)}</span></div>
+          <div class="item"><span class="label">Comidas en Plan</span><span class="value">${validarValor(a.nutricion?.comidasDes)}</span></div>
+          <div class="item" style="width:100%; background:#f0f9ff;"><span class="label">Objetivo</span><span class="value" style="color:#2563eb">${a.nutricion?.objetivo}</span></div>
+        </div>
 
-          <div class="section-title">7. Frecuencia de Alimentos</div>
-          <div class="grid">
-            ${Object.entries(a.frecuenciaAlimentos || {}).map(([k, v]) => `
-              <div class="item"><span class="label">${k}</span><span class="value">${v}</span></div>
-            `).join('')}
-          </div>
+        <div class="section-title">7. Frecuencia Alimentaria</div>
+        <div class="grid">
+          ${Object.entries(a.frecuenciaAlimentos || {}).map(([k, v]) => `<div class="item"><span class="label">${k}</span><span class="value">${v}</span></div>`).join('')}
+        </div>
 
-          <div class="page-break"></div>
+        <div class="page-break"></div>
 
-          <div class="section-title">8 y 9. Consentimiento Informado</div>
-          <div class="legal-text">
-            <b>1. Propósito y explicación de los procedimientos:</b> Mediante este documento acepto voluntariamente participar en un plan de entrenamiento personal de acondicionamiento físico. Estas pueden incluir asesoramiento dietético y actividades formativas sobre salud. Entrenadores capacitados dirigirán mis actividades y evaluarán mi esfuerzo.
-            <br/><br/>
-            <b>2. Riesgos:</b> Se me ha informado de efectos negativos durante el ejercicio como alteración de presión arterial, mareos, trastornos del ritmo cardíaco, lesiones musculares, derrames e incluso riesgo de muerte.
-            <br/><br/>
-            <b>3. Beneficios:</b> Soy consciente de que si sigo cuidadosamente las instrucciones mejoraré mi forma física tras un período de 3 a 6 meses.
-            <br/><br/>
-            <b>4. Confidencialidad:</b> La información obtenida se tratará con máxima confidencialidad bajo la ley de protección de datos personales.
-          </div>
+        <div class="section-title">8 y 9. Consentimiento Informado Legal</div>
+        <div class="legal-text">${consentimientoCompleto.replace(/\n/g, '<br/>')}</div>
 
-          <div class="signature-box">
-            <p style="font-size:12px; font-weight:bold; margin-bottom:10px;">ACEPTADO Y FIRMADO POR EL ALUMNO:</p>
-            <img src="${a.firma}" class="signature-img" />
-            <p><b>${a.nombre}</b></p>
-            <p style="font-size:10px; color:#64748b;">Firmado el: ${a.timestamp?.toDate().toLocaleString()}<br/>UUID: ${a.uid}</p>
-          </div>
+        <div class="signature-box">
+          <img src="${a.firma}" class="signature-img" />
+          <p><b>FIRMA: ${a.nombre}</b><br/>ID: ${a.uid}</p>
         </div>
       </body>
       </html>
@@ -150,7 +129,7 @@ export default function CoachPanel() {
     <SafeAreaView style={styles.container}>
       <View style={styles.headerPrincipal}>
         <Text style={styles.title}>Panel Coach</Text>
-        <TouchableOpacity onPress={() => signOut(auth)} style={styles.logOutBtn}><Ionicons name="log-out" size={22} color="#ef4444" /></TouchableOpacity>
+        <TouchableOpacity onPress={() => signOut(auth)} style={styles.logOutBtn}><Ionicons name="log-out" size={20} color="#ef4444" /></TouchableOpacity>
       </View>
 
       <FlatList
@@ -166,7 +145,6 @@ export default function CoachPanel() {
           </TouchableOpacity>
         )}
         contentContainerStyle={styles.list}
-        ListEmptyComponent={<Text style={styles.empty}>Sin alumnos pendientes.</Text>}
       />
 
       <Modal visible={!!alumnoSeleccionado} animationType="slide">
@@ -208,18 +186,18 @@ export default function CoachPanel() {
             </Section>
 
             <Section num={5} title="Estilo de Vida (IPAQ)" color="#f59e0b" icon="walking" activa={seccionActiva} setActiva={setSeccionActiva}>
-               <Dato label="Vigorosa" value={`${alumnoSeleccionado?.ipaq?.vDias} días / ${alumnoSeleccionado?.ipaq?.vMin}m`} />
-               <Dato label="Moderada" value={`${alumnoSeleccionado?.ipaq?.mDias} días / ${alumnoSeleccionado?.ipaq?.mMin}m`} />
-               <Dato label="Caminata" value={`${alumnoSeleccionado?.ipaq?.cDias} días / ${alumnoSeleccionado?.ipaq?.cMin}m`} />
-               <Dato label="Horas sentado" value={alumnoSeleccionado?.ipaq?.sentado} />
+               <Dato label="Vigorosa" value={formatearActividad(alumnoSeleccionado?.ipaq?.vDias, alumnoSeleccionado?.ipaq?.vMin)} />
+               <Dato label="Moderada" value={formatearActividad(alumnoSeleccionado?.ipaq?.mDias, alumnoSeleccionado?.ipaq?.mMin)} />
+               <Dato label="Caminata" value={formatearActividad(alumnoSeleccionado?.ipaq?.cDias, alumnoSeleccionado?.ipaq?.cMin)} />
+               <Dato label="Horas sentado" value={validarValor(alumnoSeleccionado?.ipaq?.sentado)} />
             </Section>
 
             <Section num={6} title="Nutrición y Objetivos" color="#8b5cf6" icon="utensils" activa={seccionActiva} setActiva={setSeccionActiva}>
                <Dato label="Comidas Actuales" value={alumnoSeleccionado?.nutricion?.comidasAct} />
                <Dato label="Descripción Diario" value={alumnoSeleccionado?.nutricion?.descAct} />
-               <Dato label="Días Entrenamiento" value={alumnoSeleccionado?.nutricion?.entrenos} />
-               <Dato label="Comidas en Plan" value={alumnoSeleccionado?.nutricion?.comidasDes} />
-               <Dato label="Objetivo principal" value={alumnoSeleccionado?.nutricion?.objetivo} />
+               <Dato label="Días Entrenamiento" value={validarValor(alumnoSeleccionado?.nutricion?.entrenos)} />
+               <Dato label="Comidas en Plan" value={validarValor(alumnoSeleccionado?.nutricion?.comidasDes)} />
+               <Dato label="Objetivo" value={alumnoSeleccionado?.nutricion?.objetivo} />
             </Section>
 
             <Section num={7} title="Frecuencia Alimentos" color="#22c55e" icon="apple-alt" activa={seccionActiva} setActiva={setSeccionActiva}>
@@ -229,12 +207,7 @@ export default function CoachPanel() {
             </Section>
 
             <Section num={8} title="Firma y Consentimiento" color="#1e293b" icon="file-signature" activa={seccionActiva} setActiva={setSeccionActiva}>
-               <Text style={styles.consentTxt}>
-                1. Propósito y explicación: Acepto participar en un plan de entrenamiento personal de acondicionamiento físico. Soy consciente de que se me puede requerir una prueba graduada de esfuerzo.{"\n\n"}
-                2. Riesgos: Se me ha informado de efectos negativos como alteración de presión arterial, mareos, trastornos del ritmo cardíaco, lesiones musculares, derrames o muerte.{"\n\n"}
-                3. Beneficios: Entiendo que los beneficios dependen de mi adherencia al programa de 3 a 6 meses.{"\n\n"}
-                4. Confidencialidad: Mis datos se tratarán bajo la ley de protección de datos personales.
-               </Text>
+               <Text style={styles.consentTxt}>{consentimientoCompleto}</Text>
                <Image source={{ uri: alumnoSeleccionado?.firma }} style={styles.firmaPreview} resizeMode="contain" />
             </Section>
             <View style={{height: 50}} />
@@ -274,7 +247,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: 'bold', color: '#1e293b' },
   logOutBtn: { padding: 8, backgroundColor: '#fee2e2', borderRadius: 8 },
   list: { padding: 20 },
-  cardAlumno: { backgroundColor: '#fff', padding: 18, borderRadius: 16, marginBottom: 12, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8 },
+  cardAlumno: { backgroundColor: '#fff', padding: 18, borderRadius: 16, marginBottom: 12, elevation: 3 },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 15 },
   avatar: { width: 45, height: 45, borderRadius: 22, backgroundColor: '#3b82f6', justifyContent: 'center', alignItems: 'center' },
   avatarTxt: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
@@ -289,11 +262,10 @@ const styles = StyleSheet.create({
   numText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
   sectionTitle: { fontSize: 14, fontWeight: 'bold', color: '#334155' },
   content: { padding: 16, borderTopWidth: 1, borderTopColor: '#f8fafc', backgroundColor: '#fafafa' },
-  datoBox: { marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', pb: 5 },
+  datoBox: { marginBottom: 12 },
   datoLabel: { fontSize: 9, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 2, fontWeight: '700' },
   datoValue: { fontSize: 14, fontWeight: '600', color: '#0f172a' },
   row: { flexDirection: 'row', gap: 20 },
-  firmaPreview: { width: '100%', height: 120, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, marginTop: 10 },
-  consentTxt: { fontSize: 10, color: '#64748b', textAlign: 'justify' },
-  empty: { textAlign: 'center', marginTop: 40, color: '#94a3b8' }
+  firmaPreview: { width: '100%', height: 120, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, marginTop: 15 },
+  consentTxt: { fontSize: 10, color: '#475569', textAlign: 'justify', lineHeight: 16 }
 });
