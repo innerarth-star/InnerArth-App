@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, Modal, ScrollView, ActivityIndicator, SafeAreaView, Image, Alert } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
-import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, doc, deleteDoc } from 'firebase/firestore'; // Se agregó doc y deleteDoc
 import { signOut } from 'firebase/auth';
 import { FontAwesome5, Ionicons, FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
@@ -24,6 +24,29 @@ export default function CoachPanel() {
     });
     return unsub;
   }, []);
+
+  // --- NUEVA FUNCIÓN PARA ELIMINAR ---
+  const eliminarRegistro = (id: string, nombre: string) => {
+    Alert.alert(
+      "Eliminar Expediente",
+      `¿Estás seguro de que deseas eliminar permanentemente el registro de ${nombre}?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Eliminar", 
+          style: "destructive", 
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, "revisiones_pendientes", id));
+              Alert.alert("Eliminado", "El registro ha sido borrado correctamente.");
+            } catch (error) {
+              Alert.alert("Error", "No se pudo eliminar el registro.");
+            }
+          } 
+        }
+      ]
+    );
+  };
 
   const procesarTexto = (val: any) => {
     if (val === undefined || val === null || val === '' || val === 'no' || val === 0) return "NO";
@@ -149,13 +172,29 @@ export default function CoachPanel() {
         data={alumnos}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.cardAlumno} onPress={() => { setAlumnoSeleccionado(item); setSeccionActiva(null); }}>
-            <View style={styles.infoRow}>
-              <View style={styles.avatar}><Text style={styles.avatarTxt}>{procesarTexto(item.nombre?.charAt(0))}</Text></View>
-              <View style={{ flex: 1 }}><Text style={styles.nombreAlumno}>{procesarTexto(item.nombre)}</Text><Text style={styles.emailAlumno}>{procesarTexto(item.email)}</Text></View>
-              <MaterialCommunityIcons name="chevron-right" size={24} color="#3b82f6" />
-            </View>
-          </TouchableOpacity>
+          <View style={styles.cardContainer}>
+            <TouchableOpacity 
+              style={styles.cardAlumno} 
+              onPress={() => { setAlumnoSeleccionado(item); setSeccionActiva(null); }}
+            >
+              <View style={styles.infoRow}>
+                <View style={styles.avatar}><Text style={styles.avatarTxt}>{procesarTexto(item.nombre?.charAt(0))}</Text></View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.nombreAlumno}>{procesarTexto(item.nombre)}</Text>
+                  <Text style={styles.emailAlumno}>{procesarTexto(item.email)}</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={24} color="#3b82f6" />
+              </View>
+            </TouchableOpacity>
+            
+            {/* BOTÓN ELIMINAR REGISTRO */}
+            <TouchableOpacity 
+              style={styles.btnBorrar} 
+              onPress={() => eliminarRegistro(item.id, item.nombre)}
+            >
+              <Ionicons name="trash-outline" size={20} color="#ef4444" />
+            </TouchableOpacity>
+          </View>
         )}
         contentContainerStyle={styles.list}
       />
@@ -262,7 +301,9 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: 'bold', color: '#1e293b' },
   logOutBtn: { padding: 8, backgroundColor: '#fee2e2', borderRadius: 8 },
   list: { padding: 20 },
-  cardAlumno: { backgroundColor: '#fff', padding: 18, borderRadius: 16, marginBottom: 12, elevation: 3 },
+  cardContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  cardAlumno: { flex: 1, backgroundColor: '#fff', padding: 18, borderRadius: 16, elevation: 3 },
+  btnBorrar: { padding: 12, marginLeft: 10, backgroundColor: '#fee2e2', borderRadius: 12 },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 15 },
   avatar: { width: 45, height: 45, borderRadius: 22, backgroundColor: '#3b82f6', justifyContent: 'center', alignItems: 'center' },
   avatarTxt: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
