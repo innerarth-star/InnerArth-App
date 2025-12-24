@@ -25,6 +25,17 @@ export default function CoachPanel() {
     return () => unsub();
   }, []);
 
+  // --- FUNCIONES PARA PLANES ---
+  const abrirPlanAlimentacion = (alumno: any) => {
+    Alert.alert("Acceso", `Iniciando creación de Plan de Alimentación para ${alumno.nombre}`);
+    // Aquí conectaremos la siguiente lógica
+  };
+
+  const abrirPlanEntrenamiento = (alumno: any) => {
+    Alert.alert("Acceso", `Iniciando creación de Plan de Entrenamiento para ${alumno.nombre}`);
+    // Aquí conectaremos la siguiente lógica
+  };
+
   // --- NUEVA FUNCIÓN PARA ELIMINAR ---
   const eliminarRegistro = (id: string, nombre: string) => {
     Alert.alert(
