@@ -82,21 +82,21 @@ export default function CoachPanel() {
       <html>
       <head>
         <style>
-          @page { size: A4; margin: 20mm; }
-          body { font-family: 'Helvetica', sans-serif; color: #334155; line-height: 1.4; margin: 0; padding: 10px; }
-          .header { text-align: center; border-bottom: 4px solid #3b82f6; padding-bottom: 15px; margin-bottom: 25px; }
-          h1 { color: #1e3a8a; font-size: 24px; margin: 0; text-transform: uppercase; }
-          p.subtitle { font-size: 12px; color: #64748b; margin-top: 5px; }
-          .section-title { background: #3b82f6; color: white; padding: 8px 20px; border-radius: 25px; font-size: 13px; margin-top: 20px; font-weight: bold; width: fit-content; text-transform: uppercase; }
-          .grid { display: flex; flex-wrap: wrap; margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff; }
-          .item { width: 50%; padding: 12px; border: 0.5px solid #f1f5f9; box-sizing: border-box; }
-          .label { font-size: 9px; color: #64748b; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 2px; }
-          .value { font-size: 12px; color: #0f172a; font-weight: 600; }
+          @page { size: A4; margin: 15mm; }
+          body { font-family: 'Helvetica', sans-serif; color: #334155; line-height: 1.2; margin: 0; padding: 0; }
+          .header { text-align: center; border-bottom: 3px solid #3b82f6; padding-bottom: 10px; margin-bottom: 15px; }
+          h1 { color: #1e3a8a; font-size: 20px; margin: 0; text-transform: uppercase; }
+          p.subtitle { font-size: 11px; color: #64748b; margin-top: 2px; }
+          .section-title { background: #3b82f6; color: white; padding: 5px 15px; border-radius: 20px; font-size: 11px; margin-top: 12px; font-weight: bold; width: fit-content; text-transform: uppercase; }
+          .grid { display: flex; flex-wrap: wrap; margin-top: 5px; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; background: #fff; }
+          .item { width: 50%; padding: 8px; border: 0.5px solid #f1f5f9; box-sizing: border-box; }
+          .label { font-size: 8px; color: #64748b; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 1px; }
+          .value { font-size: 11px; color: #0f172a; font-weight: 600; }
           .page-break { page-break-before: always; }
-          .legal-text { font-size: 8.5px; line-height: 1.5; text-align: justify; color: #475569; margin-top: 15px; padding: 15px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; }
-          .signature-box { margin-top: 30px; text-align: center; }
+          .legal-text { font-size: 8.5px; line-height: 1.4; text-align: justify; color: #475569; margin-top: 10px; padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
+          .signature-box { margin-top: 20px; text-align: center; }
           .signature-img { width: 80px; height: auto; margin: 0 auto; display: block; border-bottom: 2px solid #1e293b; }
-          .signature-label { font-size: 10px; font-weight: bold; margin-top: 10px; color: #1e293b; }
+          .signature-label { font-size: 10px; font-weight: bold; margin-top: 8px; color: #1e293b; }
         </style>
       </head>
       <body>
@@ -133,8 +133,6 @@ export default function CoachPanel() {
           <div class="item"><span class="label">Lesiones</span><span class="value">${procesarTexto(a.salud?.detalleLesion)}</span></div>
           <div class="item"><span class="label">Cirugías</span><span class="value">${procesarTexto(a.salud?.detalleOperacion)}</span></div>
         </div>
-
-        <div class="page-break"></div>
 
         <div class="section-title">5. Estilo de Vida e IPAQ</div>
         <div class="grid">
