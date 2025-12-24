@@ -82,30 +82,98 @@ export default function CoachPanel() {
       <html>
       <head>
         <style>
-          @page { size: A4; margin: 15mm; }
-          body { font-family: 'Helvetica', sans-serif; color: #334155; line-height: 1.2; margin: 0; padding: 0; }
+          /* Margen global de la hoja */
+          @page { 
+            size: A4; 
+            margin: 20mm; 
+          }
           
-          /* Evita que los bloques se partan entre hojas */
-          .block-container { page-break-inside: avoid; margin-bottom: 20px; width: 100%; }
+          body { 
+            font-family: 'Helvetica', sans-serif; 
+            color: #334155; 
+            line-height: 1.3; 
+            margin: 0; 
+            /* Esto empuja todo el contenido hacia abajo para que no pegue arriba */
+            padding-top: 30px; 
+          }
           
-          .header { text-align: center; border-bottom: 3px solid #3b82f6; padding-bottom: 10px; margin-bottom: 15px; }
-          h1 { color: #1e3a8a; font-size: 20px; margin: 0; text-transform: uppercase; }
-          p.subtitle { font-size: 11px; color: #64748b; margin-top: 2px; }
+          /* Contenedores que no se parten entre hojas */
+          .block-container { 
+            page-break-inside: avoid; 
+            margin-bottom: 25px; 
+            width: 100%; 
+          }
           
-          .section-title { background: #3b82f6; color: white; padding: 5px 15px; border-radius: 20px; font-size: 11px; font-weight: bold; width: fit-content; text-transform: uppercase; margin-bottom: 5px; }
+          .header { 
+            text-align: center; 
+            border-bottom: 4px solid #3b82f6; 
+            padding-bottom: 15px; 
+            margin-bottom: 30px; 
+          }
           
-          .grid { display: flex; flex-wrap: wrap; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; background: #fff; }
-          .item { width: 50%; padding: 8px; border: 0.5px solid #f1f5f9; box-sizing: border-box; }
+          h1 { color: #1e3a8a; font-size: 22px; margin: 0; text-transform: uppercase; }
+          p.subtitle { font-size: 12px; color: #64748b; margin-top: 5px; }
+          
+          .section-title { 
+            background: #3b82f6; 
+            color: white; 
+            padding: 6px 18px; 
+            border-radius: 25px; 
+            font-size: 11px; 
+            font-weight: bold; 
+            width: fit-content; 
+            text-transform: uppercase; 
+            margin-bottom: 8px; 
+          }
+          
+          .grid { 
+            display: flex; 
+            flex-wrap: wrap; 
+            border: 1px solid #e2e8f0; 
+            border-radius: 12px; 
+            overflow: hidden; 
+            background: #fff; 
+          }
+          
+          .item { 
+            width: 50%; 
+            padding: 10px; 
+            border: 0.5px solid #f1f5f9; 
+            box-sizing: border-box; 
+          }
+          
           .full-width { width: 100%; }
           
-          .label { font-size: 8px; color: #64748b; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 1px; }
-          .value { font-size: 10.5px; color: #0f172a; font-weight: 600; }
+          .label { font-size: 8px; color: #64748b; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 2px; }
+          .value { font-size: 11px; color: #0f172a; font-weight: 600; }
           
-          .legal-text { font-size: 8.5px; line-height: 1.4; text-align: justify; color: #475569; padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; page-break-inside: avoid; }
+          .legal-text { 
+            font-size: 8.5px; 
+            line-height: 1.5; 
+            text-align: justify; 
+            color: #475569; 
+            padding: 15px; 
+            background: #f8fafc; 
+            border-radius: 10px; 
+            border: 1px solid #e2e8f0; 
+            page-break-inside: avoid; 
+          }
           
-          .signature-box { margin-top: 20px; text-align: center; page-break-inside: avoid; }
-          .signature-img { width: 80px; height: auto; margin: 0 auto; display: block; border-bottom: 2px solid #1e293b; }
-          .signature-label { font-size: 10px; font-weight: bold; margin-top: 8px; color: #1e293b; }
+          .signature-box { 
+            margin-top: 30px; 
+            text-align: center; 
+            page-break-inside: avoid; 
+          }
+          
+          .signature-img { 
+            width: 90px; 
+            height: auto; 
+            margin: 0 auto; 
+            display: block; 
+            border-bottom: 2px solid #1e293b; 
+          }
+          
+          .signature-label { font-size: 10px; font-weight: bold; margin-top: 10px; color: #1e293b; }
           
           .page-break-before { page-break-before: always; }
         </style>
