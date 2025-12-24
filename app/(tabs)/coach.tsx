@@ -22,7 +22,7 @@ export default function CoachPanel() {
     }, (error) => {
       setCargando(false);
     });
-    return unsub;
+    return () => unsub();
   }, []);
 
   // --- NUEVA FUNCIÓN PARA ELIMINAR ---
