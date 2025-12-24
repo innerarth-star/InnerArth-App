@@ -28,12 +28,10 @@ export default function CoachPanel() {
   // --- FUNCIONES PARA PLANES ---
   const abrirPlanAlimentacion = (alumno: any) => {
     Alert.alert("Acceso", `Iniciando creación de Plan de Alimentación para ${alumno.nombre}`);
-    // Aquí conectaremos la siguiente lógica
   };
 
   const abrirPlanEntrenamiento = (alumno: any) => {
     Alert.alert("Acceso", `Iniciando creación de Plan de Entrenamiento para ${alumno.nombre}`);
-    // Aquí conectaremos la siguiente lógica
   };
 
   // --- NUEVA FUNCIÓN PARA ELIMINAR ---
@@ -120,6 +118,14 @@ export default function CoachPanel() {
           <div class="item"><span class="label">Muslo / Pierna</span><span class="value">${procesarTexto(a.medidas?.muslo)} / ${procesarTexto(a.medidas?.pierna)}</span></div>
         </div>
 
+        ${a.datosFisicos?.genero === 'mujer' ? `
+        <div class="section-title">3. Ciclo Menstrual</div>
+        <div class="grid">
+          <div class="item"><span class="label">Estado del Ciclo</span><span class="value">${procesarTexto(a.ciclo?.tipo)}</span></div>
+          <div class="item"><span class="label">Método Anticonceptivo</span><span class="value">${procesarTexto(a.ciclo?.anticonceptivo)}</span></div>
+        </div>
+        ` : ''}
+
         <div class="section-title">4. Historial de Salud</div>
         <div class="grid">
           <div class="item" style="width:100%"><span class="label">Enf. Familiares</span><span class="value">${procesarTexto(a.salud?.enfFam)}</span></div>
@@ -198,7 +204,6 @@ export default function CoachPanel() {
               </View>
             </TouchableOpacity>
             
-            {/* BOTÓN ELIMINAR REGISTRO */}
             <TouchableOpacity 
               style={styles.btnBorrar} 
               onPress={() => eliminarRegistro(item.id, item.nombre)}
@@ -273,6 +278,19 @@ export default function CoachPanel() {
                <Text style={styles.consentTxt}>{consentimientoCompleto}</Text>
                <Image source={{ uri: alumnoSeleccionado?.firma }} style={styles.firmaPreview} resizeMode="contain" />
             </Section>
+
+            {/* --- INSERCIÓN: BOTONES DE PLANES --- */}
+            <View style={styles.planesContainer}>
+               <TouchableOpacity style={[styles.btnAccion, {backgroundColor: '#a855f7'}]} onPress={() => abrirPlanAlimentacion(alumnoSeleccionado)}>
+                 <FontAwesome5 name="apple-alt" size={18} color="white" />
+                 <Text style={styles.btnAccionText}>Plan de Alimentación</Text>
+               </TouchableOpacity>
+               <TouchableOpacity style={[styles.btnAccion, {backgroundColor: '#22c55e'}]} onPress={() => abrirPlanEntrenamiento(alumnoSeleccionado)}>
+                 <FontAwesome5 name="dumbbell" size={18} color="white" />
+                 <Text style={styles.btnAccionText}>Plan de Entrenamiento</Text>
+               </TouchableOpacity>
+            </View>
+
             <View style={{height: 50}} />
           </ScrollView>
         </SafeAreaView>
@@ -334,5 +352,9 @@ const styles = StyleSheet.create({
   datoValue: { fontSize: 14, fontWeight: '600', color: '#0f172a' },
   row: { flexDirection: 'row', gap: 20 },
   firmaPreview: { width: '100%', height: 120, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, marginTop: 15 },
-  consentTxt: { fontSize: 10, color: '#475569', textAlign: 'justify', lineHeight: 16 }
+  consentTxt: { fontSize: 10, color: '#475569', textAlign: 'justify', lineHeight: 16 },
+  // ESTILOS INSERCIÓN BOTONES
+  planesContainer: { marginTop: 20, gap: 12 },
+  btnAccion: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 14, gap: 10, elevation: 2 },
+  btnAccionText: { color: 'white', fontWeight: 'bold', fontSize: 16 }
 });
