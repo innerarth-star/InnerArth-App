@@ -82,27 +82,16 @@ export default function CoachPanel() {
       <html>
       <head>
         <style>
-          /* Margen global de la hoja */
-          @page { 
-            size: A4; 
-            margin: 20mm; 
-          }
-          
+          @page { size: A4; margin: 20mm; }
           body { 
             font-family: 'Helvetica', sans-serif; 
             color: #334155; 
             line-height: 1.3; 
             margin: 0; 
-            /* Esto empuja todo el contenido hacia abajo para que no pegue arriba */
-            padding-top: 30px; 
+            padding-top: 20px; 
           }
           
-          /* Contenedores que no se parten entre hojas */
-          .block-container { 
-            page-break-inside: avoid; 
-            margin-bottom: 25px; 
-            width: 100%; 
-          }
+          .block-container { page-break-inside: avoid; margin-bottom: 25px; width: 100%; }
           
           .header { 
             text-align: center; 
@@ -126,24 +115,9 @@ export default function CoachPanel() {
             margin-bottom: 8px; 
           }
           
-          .grid { 
-            display: flex; 
-            flex-wrap: wrap; 
-            border: 1px solid #e2e8f0; 
-            border-radius: 12px; 
-            overflow: hidden; 
-            background: #fff; 
-          }
-          
-          .item { 
-            width: 50%; 
-            padding: 10px; 
-            border: 0.5px solid #f1f5f9; 
-            box-sizing: border-box; 
-          }
-          
+          .grid { display: flex; flex-wrap: wrap; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff; }
+          .item { width: 50%; padding: 10px; border: 0.5px solid #f1f5f9; box-sizing: border-box; }
           .full-width { width: 100%; }
-          
           .label { font-size: 8px; color: #64748b; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 2px; }
           .value { font-size: 11px; color: #0f172a; font-weight: 600; }
           
@@ -159,23 +133,17 @@ export default function CoachPanel() {
             page-break-inside: avoid; 
           }
           
-          .signature-box { 
-            margin-top: 30px; 
-            text-align: center; 
-            page-break-inside: avoid; 
-          }
-          
-          .signature-img { 
-            width: 90px; 
-            height: auto; 
-            margin: 0 auto; 
-            display: block; 
-            border-bottom: 2px solid #1e293b; 
-          }
-          
+          .signature-box { margin-top: 30px; text-align: center; page-break-inside: avoid; }
+          .signature-img { width: 80px; height: auto; margin: 0 auto; display: block; border-bottom: 2px solid #1e293b; }
           .signature-label { font-size: 10px; font-weight: bold; margin-top: 10px; color: #1e293b; }
-          
-          .page-break-before { page-break-before: always; }
+
+          /* AJUSTE PARA MÁRGENES EN PÁGINAS 2 Y 3 */
+          .page-break-before { 
+            page-break-before: always; 
+            display: block;
+            content: "";
+            height: 40px; /* Esto empuja el contenido de la nueva hoja hacia abajo */
+          }
         </style>
       </head>
       <body>
