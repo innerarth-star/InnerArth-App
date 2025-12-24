@@ -26,9 +26,11 @@ export default function CoachPanel() {
     return unsub;
   }, []);
 
+  // FUNCIÓN CRÍTICA: Convierte cualquier dato (Arreglos, Objetos) en String para evitar pantalla blanca
   const validarValor = (val: any) => {
     if (val === undefined || val === null || val === '' || val === 'no' || val === 0 || val === '0') return "NO";
     if (Array.isArray(val)) return val.length > 0 ? val.join(', ') : "NO";
+    if (typeof val === 'object') return "Dato Protegido"; 
     return String(val);
   };
 
@@ -48,17 +50,17 @@ export default function CoachPanel() {
       <head>
         <style>
           @page { size: A4; margin: 10mm; }
-          body { font-family: 'Helvetica', sans-serif; color: #334155; line-height: 1.2; margin: 0; padding: 0; }
-          .header { text-align: center; border-bottom: 4px solid #3b82f6; padding-bottom: 10px; margin-bottom: 15px; }
-          .section-title { background: #3b82f6; color: white; padding: 6px 15px; border-radius: 20px; font-size: 12px; margin-top: 15px; font-weight: bold; width: fit-content; }
-          .grid { display: flex; flex-wrap: wrap; margin-top: 8px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
-          .item { width: 50%; padding: 8px; border: 0.5px solid #f1f5f9; box-sizing: border-box; }
+          body { font-family: 'Helvetica', sans-serif; color: #334155; line-height: 1.1; margin: 0; padding: 0; }
+          .header { text-align: center; border-bottom: 4px solid #3b82f6; padding-bottom: 5px; margin-bottom: 10px; }
+          .section-title { background: #3b82f6; color: white; padding: 6px 15px; border-radius: 20px; font-size: 11px; margin-top: 10px; font-weight: bold; width: fit-content; }
+          .grid { display: flex; flex-wrap: wrap; margin-top: 5px; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; }
+          .item { width: 50%; padding: 6px; border: 0.5px solid #f1f5f9; box-sizing: border-box; }
           .label { font-size: 8px; color: #64748b; font-weight: bold; text-transform: uppercase; display: block; }
-          .value { font-size: 11px; color: #0f172a; font-weight: 600; }
+          .value { font-size: 10px; color: #0f172a; font-weight: 600; }
           .page-break { page-break-before: always; }
-          .legal-text { font-size: 8.2px; line-height: 1.3; text-align: justify; color: #475569; margin-top: 10px; }
-          .signature-box { margin-top: 15px; text-align: right; border-top: 1px solid #eee; padding-top: 10px; }
-          .signature-img { width: 130px; height: auto; margin-left: auto; }
+          .legal-text { font-size: 8px; line-height: 1.2; text-align: justify; color: #475569; margin-top: 5px; }
+          .signature-box { margin-top: 10px; text-align: right; }
+          .signature-img { width: 130px; height: auto; margin-left: auto; border-bottom: 1px solid #000; }
         </style>
       </head>
       <body>
@@ -120,7 +122,7 @@ export default function CoachPanel() {
 
         <div class="signature-box">
           <img src="${a.firma}" class="signature-img" />
-          <p style="font-size:10px; margin:0;"><b>Firma del Alumno: ${a.nombre}</b></p>
+          <p style="font-size:10px; margin:0;"><b>Firma: ${a.nombre}</b></p>
         </div>
       </body>
       </html>
@@ -187,22 +189,22 @@ export default function CoachPanel() {
             <Section num={4} title="Historial Salud" color="#ef4444" icon="heartbeat" activa={seccionActiva} setActiva={setSeccionActiva}>
                <Dato label="Enf. Familiares" value={alumnoSeleccionado?.salud?.enfFam} />
                <Dato label="Enf. Propias" value={alumnoSeleccionado?.salud?.enfPers} />
-               <Dato label="Lesión" value={validarValor(alumnoSeleccionado?.salud?.detalleLesion)} />
-               <Dato label="Cirugía" value={validarValor(alumnoSeleccionado?.salud?.detalleOperacion)} />
+               <Dato label="Lesión" value={alumnoSeleccionado?.salud?.detalleLesion} />
+               <Dato label="Cirugía" value={alumnoSeleccionado?.salud?.detalleOperacion} />
             </Section>
 
             <Section num={5} title="Estilo de Vida (IPAQ)" color="#f59e0b" icon="walking" activa={seccionActiva} setActiva={setSeccionActiva}>
                <Dato label="Vigorosa" value={formatearActividad(alumnoSeleccionado?.ipaq?.vDias, alumnoSeleccionado?.ipaq?.vMin)} />
                <Dato label="Moderada" value={formatearActividad(alumnoSeleccionado?.ipaq?.mDias, alumnoSeleccionado?.ipaq?.mMin)} />
                <Dato label="Caminata" value={formatearActividad(alumnoSeleccionado?.ipaq?.cDias, alumnoSeleccionado?.ipaq?.cMin)} />
-               <Dato label="Horas sentado" value={validarValor(alumnoSeleccionado?.ipaq?.sentado)} />
+               <Dato label="Horas sentado" value={alumnoSeleccionado?.ipaq?.sentado} />
             </Section>
 
             <Section num={6} title="Nutrición y Objetivos" color="#8b5cf6" icon="utensils" activa={seccionActiva} setActiva={setSeccionActiva}>
                <Dato label="Comidas Actuales" value={alumnoSeleccionado?.nutricion?.comidasAct} />
                <Dato label="Descripción Diario" value={alumnoSeleccionado?.nutricion?.descAct} />
-               <Dato label="Días Entrenamiento" value={validarValor(alumnoSeleccionado?.nutricion?.entrenos)} />
-               <Dato label="Comidas en Plan" value={validarValor(alumnoSeleccionado?.nutricion?.comidasDes)} />
+               <Dato label="Días Entrenamiento" value={alumnoSeleccionado?.nutricion?.entrenos} />
+               <Dato label="Comidas en Plan" value={alumnoSeleccionado?.nutricion?.comidasDes} />
                <Dato label="Objetivo" value={alumnoSeleccionado?.nutricion?.objetivo} />
             </Section>
 
