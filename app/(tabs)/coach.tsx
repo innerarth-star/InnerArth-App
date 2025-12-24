@@ -28,102 +28,86 @@ export default function CoachPanel() {
       <html>
         <head>
           <style>
-            @page { size: A4; margin: 20mm; }
-            body { font-family: 'Helvetica', sans-serif; color: #1e293b; line-height: 1.5; font-size: 12px; }
-            .header { text-align: center; border-bottom: 3px solid #3b82f6; margin-bottom: 30px; padding-bottom: 10px; }
-            h1 { color: #3b82f6; margin: 0; font-size: 24px; }
-            h2 { background: #3b82f6; color: white; padding: 8px 15px; font-size: 14px; border-radius: 5px; margin-top: 25px; margin-bottom: 10px; text-transform: uppercase; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-            td { padding: 10px; border: 1px solid #e2e8f0; }
-            .label { font-weight: bold; background: #f8fafc; width: 35%; color: #475569; }
-            .value { font-weight: 600; color: #000; }
+            @page { size: A4; margin: 10mm; }
+            body { font-family: 'Helvetica', sans-serif; color: #1e293b; line-height: 1.2; font-size: 10px; }
+            .header { text-align: center; border-bottom: 2px solid #3b82f6; margin-bottom: 10px; padding-bottom: 5px; }
+            h2 { background: #3b82f6; color: white; padding: 5px; font-size: 11px; margin-top: 10px; text-transform: uppercase; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
+            td { padding: 5px; border: 1px solid #e2e8f0; }
+            .label { font-weight: bold; background: #f8fafc; width: 30%; }
             .page-break { page-break-before: always; }
-            .legal { font-size: 10px; text-align: justify; color: #475569; line-height: 1.3; }
-            .firma-img { width: 300px; height: auto; margin-top: 10px; border-bottom: 2px solid #000; }
+            .legal { font-size: 8px; text-align: justify; color: #475569; }
+            .firma-img { width: 200px; height: auto; display: block; margin: 10px auto; border-bottom: 1px solid #000; }
           </style>
         </head>
         <body>
-          <div class="header">
-            <h1>EXPEDIENTE TÉCNICO FITTECH</h1>
-            <p>Reporte Oficial de Evaluación Inicial</p>
-          </div>
+          <div class="header"><h1>EXPEDIENTE FITTECH</h1><p>${a.nombre} | ${a.email}</p></div>
 
-          <h2>1. Identificación del Alumno</h2>
+          <h2>1. Datos Personales</h2>
           <table>
-            <tr><td class="label">Nombre Completo</td><td class="value">${a.nombre}</td></tr>
-            <tr><td class="label">Correo Electrónico</td><td class="value">${a.email}</td></tr>
-            <tr><td class="label">Teléfono</td><td class="value">${a.telefono}</td></tr>
-            <tr><td class="label">Edad / Género</td><td class="value">${a.datosFisicos?.edad} años / ${a.datosFisicos?.genero}</td></tr>
-            <tr><td class="label">Peso Actual</td><td class="value">${a.datosFisicos?.peso} kg</td></tr>
-            <tr><td class="label">Estatura</td><td class="value">${a.datosFisicos?.altura} cm</td></tr>
+            <tr><td class="label">Nombre</td><td>${a.nombre}</td></tr>
+            <tr><td class="label">Teléfono</td><td>${a.telefono}</td></tr>
+            <tr><td class="label">Edad / Género</td><td>${a.datosFisicos?.edad} años / ${a.datosFisicos?.genero}</td></tr>
+            <tr><td class="label">Peso</td><td>${a.datosFisicos?.peso} kg</td></tr>
+            <tr><td class="label">Altura</td><td>${a.datosFisicos?.altura} cm</td></tr>
           </table>
 
-          <h2>2. Medidas Antropométricas</h2>
+          <h2>2. Medidas Corporales</h2>
           <table>
             <tr><td class="label">Cuello</td><td>${a.medidas?.cuello} cm</td><td class="label">Pecho</td><td>${a.medidas?.pecho} cm</td></tr>
             <tr><td class="label">Cintura</td><td>${a.medidas?.cintura} cm</td><td class="label">Cadera</td><td>${a.medidas?.cadera} cm</td></tr>
-            <tr><td class="label">Brazo Relajado</td><td>${a.medidas?.brazoR} cm</td><td class="label">Brazo Flex.</td><td>${a.medidas?.brazoF} cm</td></tr>
+            <tr><td class="label">Brazo Relajado</td><td>${a.medidas?.brazoR} cm</td><td class="label">Brazo Flex</td><td>${a.medidas?.brazoF} cm</td></tr>
             <tr><td class="label">Muslo</td><td>${a.medidas?.muslo} cm</td><td class="label">Pierna</td><td>${a.medidas?.pierna} cm</td></tr>
           </table>
 
-          ${a.datosFisicos?.genero === 'mujer' ? `
-          <h2>3. Ciclo Menstrual</h2>
-          <table>
-            <tr><td class="label">Tipo de Ciclo</td><td>${a.ciclo?.tipo}</td></tr>
-            <tr><td class="label">Anticonceptivo</td><td>${a.ciclo?.anticonceptivo}</td></tr>
-          </table>` : ''}
+          ${a.datosFisicos?.genero === 'mujer' ? `<h2>3. Ciclo Menstrual</h2><table><tr><td class="label">Ciclo</td><td>${a.ciclo?.tipo}</td><td class="label">Método</td><td>${a.ciclo?.anticonceptivo}</td></tr></table>` : ''}
 
-          <h2>4. Antecedentes de Salud</h2>
+          <h2>4. Historial de Salud</h2>
           <table>
-            <tr><td class="label">Enf. Familiares</td><td class="value">${a.salud?.enfFam?.join(', ') || 'Ninguna'}</td></tr>
-            <tr><td class="label">Enf. Personales</td><td class="value">${a.salud?.enfPers?.join(', ') || 'Ninguna'}</td></tr>
-            <tr><td class="label">Lesiones</td><td class="value">${a.salud?.lesion === 'si' ? a.salud?.detalleLesion : 'Ninguna'}</td></tr>
-            <tr><td class="label">Operaciones</td><td class="value">${a.salud?.operacion === 'si' ? a.salud?.detalleOperacion : 'Ninguna'}</td></tr>
+            <tr><td class="label">Enf. Familiares</td><td>${a.salud?.enfFam?.join(', ') || 'Ninguna'}</td></tr>
+            <tr><td class="label">Enf. Personales</td><td>${a.salud?.enfPers?.join(', ') || 'Ninguna'}</td></tr>
+            <tr><td class="label">Lesión</td><td>${a.salud?.detalleLesion || 'No'}</td></tr>
+            <tr><td class="label">Operación</td><td>${a.salud?.detalleOperacion || 'No'}</td></tr>
           </table>
 
           <div class="page-break"></div>
 
-          <h2>5. Actividad Física (Cuestionario IPAQ)</h2>
+          <h2>5. Estilo de Vida (IPAQ)</h2>
           <table>
-            <tr><td class="label">Actividad Vigorosa</td><td class="value">${a.ipaq?.vDias} días / ${a.ipaq?.vMin} min por sesión</td></tr>
-            <tr><td class="label">Actividad Moderada</td><td class="value">${a.ipaq?.mDias} días / ${a.ipaq?.mMin} min por sesión</td></tr>
-            <tr><td class="label">Caminata</td><td class="value">${a.ipaq?.cDias} días / ${a.ipaq?.cMin} min por sesión</td></tr>
-            <tr><td class="label">Tiempo Sedentario</td><td class="value">${a.ipaq?.sentado} horas sentado al día</td></tr>
+            <tr><td class="label">Vigorosa</td><td>${a.ipaq?.vDias} días / ${a.ipaq?.vMin} min</td></tr>
+            <tr><td class="label">Moderada</td><td>${a.ipaq?.mDias} días / ${a.ipaq?.mMin} min</td></tr>
+            <tr><td class="label">Caminata</td><td>${a.ipaq?.cDias} días / ${a.ipaq?.cMin} min</td></tr>
+            <tr><td class="label">Sedentario</td><td>${a.ipaq?.sentado} horas/día</td></tr>
           </table>
 
-          <h2>6. Hábitos y Nutrición</h2>
+          <h2>6. Nutrición y Objetivos</h2>
           <table>
-            <tr><td class="label">Comidas Actuales</td><td class="value">${a.nutricion?.comidasAct} comidas (${a.nutricion?.descAct})</td></tr>
-            <tr><td class="label">Alcohol</td><td class="value">${a.nutricion?.alcohol === 'si' ? a.nutricion?.alcoholFreq : 'No consume'}</td></tr>
-            <tr><td class="label">Sustancias / Fuma</td><td class="value">${a.nutricion?.sust === 'si' ? a.nutricion?.sustFreq : 'No'}</td></tr>
-            <tr><td class="label">Días de Entrenamiento</td><td class="value">${a.nutricion?.entrenos} días por semana</td></tr>
-            <tr><td class="label">Comidas en Plan</td><td class="value">${a.nutricion?.comidasDes} comidas diarias</td></tr>
-            <tr><td class="label">Objetivo Principal</td><td class="value" style="color: #3b82f6; font-size: 14px;">${a.nutricion?.objetivo}</td></tr>
+            <tr><td class="label">Comidas Actuales</td><td>${a.nutricion?.comidasAct} al día</td></tr>
+            <tr><td class="label">Descripción Diario</td><td>${a.nutricion?.descAct}</td></tr>
+            <tr><td class="label">Alcohol/Sust</td><td>Alc: ${a.nutricion?.alcoholFreq || 'No'} | Sust: ${a.nutricion?.sustFreq || 'No'}</td></tr>
+            <tr><td class="label">Días Entreno</td><td>${a.nutricion?.entrenos} días</td></tr>
+            <tr><td class="label">Comidas Plan</td><td>${a.nutricion?.comidasDes} comidas</td></tr>
+            <tr><td class="label">Objetivo</td><td style="color:blue"><b>${a.nutricion?.objetivo}</b></td></tr>
           </table>
 
-          <h2>7. Frecuencia de Consumo Alimentos</h2>
+          <h2>7. Frecuencia de Alimentos</h2>
           <table>
-            ${Object.entries(a.frecuenciaAlimentos || {}).map(([k, v]) => `<tr><td class="label">${k}</td><td class="value">${v}</td></tr>`).join('')}
+            ${Object.entries(a.frecuenciaAlimentos || {}).map(([k, v]) => `<tr><td class="label">${k}</td><td>${v}</td></tr>`).join('')}
           </table>
 
           <div class="page-break"></div>
 
-          <h2>8 y 9. Consentimiento Informado</h2>
+          <h2>8 y 9. Consentimiento Completo</h2>
           <div class="legal">
-            <p><b>1. Propósito:</b> Acepto participar en un plan de entrenamiento personal. Soy consciente de que se me puede requerir una prueba de esfuerzo.</p>
-            <p><b>2. Riesgos:</b> Se me ha informado de efectos negativos remotos como alteración de presión arterial, mareos o lesiones musculares.</p>
-            <p><b>3. Beneficios:</b> Comprendo que la mejora de mi condición física depende de seguir las instrucciones durante 3 a 6 meses.</p>
-            <p><b>4. Confidencialidad:</b> Mi información será tratada con máxima confidencialidad bajo las leyes de protección de datos.</p>
-            <p style="margin-top:20px; border: 1px solid #ccc; padding: 10px; background: #f9f9f9;">
-              Certifico que he leído el consentimiento en su totalidad y acepto los términos y condiciones del programa.
-            </p>
+            <p><b>1. Propósito y explicación:</b> Acepto participar en un plan de entrenamiento personal de acondicionamiento físico. Soy consciente de que se me puede requerir una prueba graduada de esfuerzo. Me comprometo a realizar las sesiones y seguir instrucciones de dieta y ejercicio.</p>
+            <p><b>2. Riesgos:</b> Se me ha informado de efectos negativos como alteración de presión arterial, mareos, trastornos del ritmo cardíaco, lesiones musculares, de ligamentos e incluso riesgo de muerte.</p>
+            <p><b>3. Beneficios:</b> Comprendo que el programa mejorará mi capacidad física tras un período de 3 a 6 meses si sigo las instrucciones cuidadosamente.</p>
+            <p><b>4. Confidencialidad:</b> La información obtenida será tratada con máxima confidencialidad bajo la ley de protección de datos.</p>
           </div>
-
-          <div style="text-align: center; margin-top: 50px;">
-            <p><b>ACEPTADO Y FIRMADO POR EL ALUMNO:</b></p>
+          <div style="text-align:center; margin-top:30px;">
+            <p>FIRMA DEL ALUMNO:</p>
             <img src="${a.firma}" class="firma-img" />
-            <p style="margin-top: 10px; font-size: 14px;"><b>${a.nombre}</b></p>
-            <p style="color: #64748b;">Fecha de Firma: ${a.timestamp?.toDate().toLocaleString()}<br/>ID Único: ${a.uid}</p>
+            <p><b>${a.nombre}</b><br/>Fecha: ${a.timestamp?.toDate().toLocaleString()}</p>
           </div>
         </body>
       </html>
@@ -131,7 +115,7 @@ export default function CoachPanel() {
     try {
       const { uri } = await Print.printToFileAsync({ html: htmlContent });
       await Sharing.shareAsync(uri);
-    } catch (e) { Alert.alert("Error", "No se pudo generar el PDF"); }
+    } catch (e) { Alert.alert("Error", "Generación fallida"); }
   };
 
   return (
@@ -141,47 +125,43 @@ export default function CoachPanel() {
         <TouchableOpacity onPress={() => signOut(auth)}><Ionicons name="log-out-outline" size={26} color="#ef4444" /></TouchableOpacity>
       </View>
 
-      <Text style={styles.subTitle}>Revisiones Pendientes ({alumnos.length})</Text>
-
-      {cargando ? (
-        <ActivityIndicator size="large" color="#3b82f6" style={{ marginTop: 50 }} />
-      ) : (
-        <FlatList
-          data={alumnos}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.cardAlumno} onPress={() => { setAlumnoSeleccionado(item); setSeccionActiva(1); }}>
-              <View style={styles.infoRow}>
-                <View style={styles.avatar}><Text style={styles.avatarTxt}>{item.nombre?.charAt(0)}</Text></View>
-                <View style={{ flex: 1 }}><Text style={styles.nombreAlumno}>{item.nombre}</Text><Text style={styles.emailAlumno}>{item.email}</Text></View>
-                <FontAwesome5 name="chevron-right" size={14} color="#cbd5e1" />
-              </View>
-            </TouchableOpacity>
-          )}
-          contentContainerStyle={styles.list}
-          ListEmptyComponent={<Text style={styles.empty}>Sin alumnos pendientes.</Text>}
-        />
-      )}
+      <FlatList
+        data={alumnos}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <TouchableOpacity style={styles.cardAlumno} onPress={() => { setAlumnoSeleccionado(item); setSeccionActiva(1); }}>
+            <View style={styles.infoRow}>
+              <View style={styles.avatar}><Text style={styles.avatarTxt}>{item.nombre?.charAt(0)}</Text></View>
+              <View style={{ flex: 1 }}><Text style={styles.nombreAlumno}>{item.nombre}</Text><Text style={styles.emailAlumno}>{item.email}</Text></View>
+              <FontAwesome5 name="chevron-right" size={14} color="#cbd5e1" />
+            </View>
+          </TouchableOpacity>
+        )}
+        contentContainerStyle={styles.list}
+      />
 
       <Modal visible={!!alumnoSeleccionado} animationType="slide">
         <SafeAreaView style={{flex: 1, backgroundColor: '#f1f5f9'}}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setAlumnoSeleccionado(null)}><Ionicons name="arrow-back" size={28} color="#1e293b" /></TouchableOpacity>
-            <Text style={styles.modalTitle}>Expediente Alumno</Text>
+            <Text style={styles.modalTitle}>Detalle del Alumno</Text>
             <TouchableOpacity onPress={() => exportarPDF(alumnoSeleccionado)}><FontAwesome5 name="file-pdf" size={24} color="#3b82f6" /></TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={{padding: 15}} showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={{padding: 15}}>
             <Section num={1} title="Datos Personales" color="#3b82f6" icon="user" activa={seccionActiva} setActiva={setSeccionActiva}>
                <Dato label="Nombre" value={alumnoSeleccionado?.nombre} />
+               <Dato label="Teléfono" value={alumnoSeleccionado?.telefono} />
                <Dato label="Edad" value={alumnoSeleccionado?.datosFisicos?.edad} />
-               <Dato label="Peso/Altura" value={`${alumnoSeleccionado?.datosFisicos?.peso}kg / ${alumnoSeleccionado?.datosFisicos?.altura}cm`} />
+               <Dato label="Peso (kg)" value={alumnoSeleccionado?.datosFisicos?.peso} />
+               <Dato label="Altura (cm)" value={alumnoSeleccionado?.datosFisicos?.altura} />
             </Section>
 
             <Section num={2} title="Medidas Corporales" color="#10b981" icon="ruler-horizontal" activa={seccionActiva} setActiva={setSeccionActiva}>
                <View style={styles.row}><Dato label="Cuello" value={alumnoSeleccionado?.medidas?.cuello} /><Dato label="Pecho" value={alumnoSeleccionado?.medidas?.pecho} /></View>
+               <View style={styles.row}><Dato label="Brazo R" value={alumnoSeleccionado?.medidas?.brazoR} /><Dato label="Brazo F" value={alumnoSeleccionado?.medidas?.brazoF} /></View>
                <View style={styles.row}><Dato label="Cintura" value={alumnoSeleccionado?.medidas?.cintura} /><Dato label="Cadera" value={alumnoSeleccionado?.medidas?.cadera} /></View>
-               <View style={styles.row}><Dato label="Brazo R" value={alumnoSeleccionado?.medidas?.brazoR} /><Dato label="Muslo" value={alumnoSeleccionado?.medidas?.muslo} /></View>
+               <View style={styles.row}><Dato label="Muslo" value={alumnoSeleccionado?.medidas?.muslo} /><Dato label="Pierna" value={alumnoSeleccionado?.medidas?.pierna} /></View>
             </Section>
 
             {alumnoSeleccionado?.datosFisicos?.genero === 'mujer' && (
@@ -192,22 +172,25 @@ export default function CoachPanel() {
             )}
 
             <Section num={4} title="Historial Salud" color="#ef4444" icon="heartbeat" activa={seccionActiva} setActiva={setSeccionActiva}>
+               <Dato label="Enf. Familiares" value={alumnoSeleccionado?.salud?.enfFam?.join(', ')} />
                <Dato label="Enf. Propias" value={alumnoSeleccionado?.salud?.enfPers?.join(', ')} />
-               <Dato label="Lesión" value={alumnoSeleccionado?.salud?.detalleLesion || 'No'} />
-               <Dato label="Cirugías" value={alumnoSeleccionado?.salud?.detalleOperacion || 'No'} />
+               <Dato label="Lesión" value={alumnoSeleccionado?.salud?.detalleLesion} />
+               <Dato label="Cirugía" value={alumnoSeleccionado?.salud?.detalleOperacion} />
             </Section>
 
             <Section num={5} title="Estilo de Vida (IPAQ)" color="#f59e0b" icon="walking" activa={seccionActiva} setActiva={setSeccionActiva}>
                <Dato label="Vigorosa" value={`${alumnoSeleccionado?.ipaq?.vDias} días / ${alumnoSeleccionado?.ipaq?.vMin}m`} />
                <Dato label="Moderada" value={`${alumnoSeleccionado?.ipaq?.mDias} días / ${alumnoSeleccionado?.ipaq?.mMin}m`} />
                <Dato label="Caminata" value={`${alumnoSeleccionado?.ipaq?.cDias} días / ${alumnoSeleccionado?.ipaq?.cMin}m`} />
-               <Dato label="Sentado" value={`${alumnoSeleccionado?.ipaq?.sentado} hrs/día`} />
+               <Dato label="Horas sentado" value={alumnoSeleccionado?.ipaq?.sentado} />
             </Section>
 
             <Section num={6} title="Nutrición y Objetivos" color="#8b5cf6" icon="utensils" activa={seccionActiva} setActiva={setSeccionActiva}>
-               <Dato label="Días Entreno" value={alumnoSeleccionado?.nutricion?.entrenos} />
-               <Dato label="Comidas Deseadas" value={alumnoSeleccionado?.nutricion?.comidasDes} />
-               <Dato label="Objetivo principal" value={alumnoSeleccionado?.nutricion?.objetivo} />
+               <Dato label="Comidas Actuales" value={alumnoSeleccionado?.nutricion?.comidasAct} />
+               <Dato label="Descripción Día" value={alumnoSeleccionado?.nutricion?.descAct} />
+               <Dato label="Días Entrenamiento" value={alumnoSeleccionado?.nutricion?.entrenos} />
+               <Dato label="Comidas en Plan" value={alumnoSeleccionado?.nutricion?.comidasDes} />
+               <Dato label="Objetivo" value={alumnoSeleccionado?.nutricion?.objetivo} />
             </Section>
 
             <Section num={7} title="Frecuencia Alimentos" color="#22c55e" icon="apple-alt" activa={seccionActiva} setActiva={setSeccionActiva}>
@@ -216,11 +199,11 @@ export default function CoachPanel() {
                ))}
             </Section>
 
-            <Section num={8} title="Firma y Consentimiento" color="#1e293b" icon="file-signature" activa={seccionActiva} setActiva={setSeccionActiva}>
+            <Section num={8} title="Consentimiento y Firma" color="#1e293b" icon="file-signature" activa={seccionActiva} setActiva={setSeccionActiva}>
                <Text style={styles.consentFull}>
-                1. Propósito: Acepto participar en un plan de entrenamiento personal. Soy consciente de que se me puede requerir una prueba de esfuerzo física.{"\n\n"}
-                2. Riesgos: Se me ha informado de efectos negativos durante el ejercicio como alteración de presión arterial o lesiones corporales.{"\n\n"}
-                3. Beneficios: Entiendo que los beneficios dependen de mi adherencia al programa de 3 a 6 meses.{"\n\n"}
+                1. Propósito: Acepto participar en un plan de entrenamiento personal de acondicionamiento físico. Soy consciente de que se me puede requerir una prueba graduada de esfuerzo. Me comprometo a realizar las sesiones y seguir instrucciones de dieta y ejercicio.{"\n\n"}
+                2. Riesgos: Se me ha informado de efectos negativos durante el ejercicio como alteración de presión arterial, mareos, trastornos del ritmo cardíaco, lesiones musculares, de ligamentos e incluso riesgo de muerte.{"\n\n"}
+                3. Beneficios: Comprendo que el programa mejorará mi capacidad física tras un período de 3 a 6 meses si sigo las instrucciones cuidadosamente.{"\n\n"}
                 4. Confidencialidad: Mis datos se tratarán con máxima privacidad.
                </Text>
                <Image source={{ uri: alumnoSeleccionado?.firma }} style={styles.firmaPreview} resizeMode="contain" />
@@ -238,8 +221,7 @@ const Section = ({ num, title, color, icon, activa, setActiva, children }: any) 
     <TouchableOpacity style={styles.headerToggle} onPress={() => setActiva(activa === num ? null : num)}>
       <View style={styles.titleRow}>
         <View style={[styles.numCircle, {backgroundColor: color}]}><Text style={styles.numText}>{num}</Text></View>
-        <FontAwesome5 name={icon} size={13} color={color} />
-        <Text style={styles.sectionTitle}>{title}</Text>
+        <FontAwesome5 name={icon} size={13} color={color} /><Text style={styles.sectionTitle}>{title}</Text>
       </View>
       <FontAwesome name={activa === num ? "chevron-up" : "chevron-down"} size={14} color="#64748b" />
     </TouchableOpacity>
@@ -248,17 +230,13 @@ const Section = ({ num, title, color, icon, activa, setActiva, children }: any) 
 );
 
 const Dato = ({ label, value }: any) => (
-  <View style={styles.datoBox}>
-    <Text style={styles.datoLabel}>{label}</Text>
-    <Text style={styles.datoValue}>{value || '---'}</Text>
-  </View>
+  <View style={styles.datoBox}><Text style={styles.datoLabel}>{label}</Text><Text style={styles.datoValue}>{value || '---'}</Text></View>
 );
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f1f5f9' },
   headerPrincipal: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
   title: { fontSize: 24, fontWeight: 'bold', color: '#1e293b' },
-  subTitle: { fontSize: 13, color: '#64748b', paddingHorizontal: 20, marginTop: 15, fontWeight: '700', textTransform: 'uppercase' },
   list: { padding: 20 },
   cardAlumno: { backgroundColor: '#fff', padding: 15, borderRadius: 12, marginBottom: 10, elevation: 1 },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -280,6 +258,5 @@ const styles = StyleSheet.create({
   datoValue: { fontSize: 13, fontWeight: '600', color: '#1e293b' },
   row: { flexDirection: 'row', gap: 15 },
   firmaPreview: { width: '100%', height: 100, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8, marginTop: 5 },
-  consentFull: { fontSize: 10, color: '#64748b', textAlign: 'justify', marginBottom: 10 },
-  empty: { textAlign: 'center', marginTop: 40, color: '#94a3b8' }
+  consentFull: { fontSize: 10, color: '#64748b', textAlign: 'justify' }
 });
