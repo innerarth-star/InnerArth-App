@@ -25,12 +25,10 @@ export default function CoachPanel() {
     return unsub;
   }, []);
 
-  // BLINDAJE TOTAL: Esta función asegura que NUNCA se pase un objeto al componente Text
   const procesarTexto = (val: any) => {
     if (val === undefined || val === null || val === '' || val === 'no' || val === 0) return "NO";
     if (Array.isArray(val)) return val.length > 0 ? val.join(', ') : "NO";
     if (typeof val === 'object') {
-        // Si es un timestamp de Firebase lo convertimos a fecha, si no, a texto simple
         if (val.seconds) return new Date(val.seconds * 1000).toLocaleDateString();
         return JSON.stringify(val); 
     }
@@ -52,22 +50,26 @@ export default function CoachPanel() {
       <html>
       <head>
         <style>
-          @page { size: A4; margin: 10mm; }
-          body { font-family: 'Helvetica', sans-serif; color: #334155; line-height: 1.2; margin: 0; padding: 0; }
-          .header { text-align: center; border-bottom: 4px solid #3b82f6; padding-bottom: 10px; margin-bottom: 15px; }
-          .section-title { background: #3b82f6; color: white; padding: 6px 15px; border-radius: 20px; font-size: 11px; margin-top: 10px; font-weight: bold; width: fit-content; }
-          .grid { display: flex; flex-wrap: wrap; margin-top: 8px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
-          .item { width: 50%; padding: 8px; border: 0.5px solid #f1f5f9; box-sizing: border-box; }
-          .label { font-size: 8px; color: #64748b; font-weight: bold; text-transform: uppercase; display: block; }
-          .value { font-size: 10px; color: #0f172a; font-weight: 600; }
+          @page { size: A4; margin: 20mm; }
+          body { font-family: 'Helvetica', sans-serif; color: #334155; line-height: 1.4; margin: 0; padding: 10px; }
+          .header { text-align: center; border-bottom: 4px solid #3b82f6; padding-bottom: 15px; margin-bottom: 25px; }
+          h1 { color: #1e3a8a; font-size: 24px; margin: 0; text-transform: uppercase; }
+          p.subtitle { font-size: 12px; color: #64748b; margin-top: 5px; }
+          .section-title { background: #3b82f6; color: white; padding: 8px 20px; border-radius: 25px; font-size: 13px; margin-top: 20px; font-weight: bold; width: fit-content; text-transform: uppercase; }
+          .grid { display: flex; flex-wrap: wrap; margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff; }
+          .item { width: 50%; padding: 12px; border: 0.5px solid #f1f5f9; box-sizing: border-box; }
+          .label { font-size: 9px; color: #64748b; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 2px; }
+          .value { font-size: 12px; color: #0f172a; font-weight: 600; }
           .page-break { page-break-before: always; }
-          .legal-text { font-size: 8px; line-height: 1.3; text-align: justify; color: #475569; margin-top: 10px; }
-          .signature-box { margin-top: 15px; text-align: right; }
-          .signature-img { width: 130px; height: auto; margin-left: auto; }
+          .legal-text { font-size: 8.5px; line-height: 1.5; text-align: justify; color: #475569; margin-top: 15px; padding: 15px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; }
+          .signature-box { margin-top: 30px; text-align: right; }
+          .signature-img { width: 160px; height: auto; margin-left: auto; border-bottom: 2px solid #1e293b; }
+          .signature-label { font-size: 10px; font-weight: bold; margin-top: 5px; color: #1e293b; }
         </style>
       </head>
       <body>
-        <div class="header"><h1>EXPEDIENTE TÉCNICO FITTECH</h1><p>Alumno: ${a.nombre}</p></div>
+        <div class="header"><h1>EXPEDIENTE TÉCNICO FITTECH</h1><p class="subtitle">Alumno: ${a.nombre} | Fecha: ${new Date().toLocaleDateString()}</p></div>
+
         <div class="section-title">1. Datos e Identificación</div>
         <div class="grid">
           <div class="item"><span class="label">Teléfono</span><span class="value">${procesarTexto(a.telefono)}</span></div>
@@ -75,6 +77,7 @@ export default function CoachPanel() {
           <div class="item"><span class="label">Peso</span><span class="value">${procesarTexto(a.datosFisicos?.peso)} kg</span></div>
           <div class="item"><span class="label">Estatura</span><span class="value">${procesarTexto(a.datosFisicos?.altura)} cm</span></div>
         </div>
+
         <div class="section-title">2. Medidas Corporales</div>
         <div class="grid">
           <div class="item"><span class="label">Cuello / Pecho</span><span class="value">${procesarTexto(a.medidas?.cuello)} / ${procesarTexto(a.medidas?.pecho)}</span></div>
@@ -82,6 +85,7 @@ export default function CoachPanel() {
           <div class="item"><span class="label">Cintura / Cadera</span><span class="value">${procesarTexto(a.medidas?.cintura)} / ${procesarTexto(a.medidas?.cadera)}</span></div>
           <div class="item"><span class="label">Muslo / Pierna</span><span class="value">${procesarTexto(a.medidas?.muslo)} / ${procesarTexto(a.medidas?.pierna)}</span></div>
         </div>
+
         <div class="section-title">4. Historial de Salud</div>
         <div class="grid">
           <div class="item" style="width:100%"><span class="label">Enf. Familiares</span><span class="value">${procesarTexto(a.salud?.enfFam)}</span></div>
@@ -89,7 +93,9 @@ export default function CoachPanel() {
           <div class="item"><span class="label">Lesiones</span><span class="value">${procesarTexto(a.salud?.detalleLesion)}</span></div>
           <div class="item"><span class="label">Cirugías</span><span class="value">${procesarTexto(a.salud?.detalleOperacion)}</span></div>
         </div>
+
         <div class="page-break"></div>
+
         <div class="section-title">5. Estilo de Vida e IPAQ</div>
         <div class="grid">
           <div class="item"><span class="label">Vigorosa</span><span class="value">${formatearActividad(a.ipaq?.vDias, a.ipaq?.vMin)}</span></div>
@@ -97,6 +103,7 @@ export default function CoachPanel() {
           <div class="item"><span class="label">Caminata</span><span class="value">${formatearActividad(a.ipaq?.cDias, a.ipaq?.cMin)}</span></div>
           <div class="item"><span class="label">Sentado</span><span class="value">${procesarTexto(a.ipaq?.sentado)} hrs/día</span></div>
         </div>
+
         <div class="section-title">6. Nutrición y Planificación</div>
         <div class="grid">
           <div class="item" style="width:100%"><span class="label">Comidas Actuales</span><span class="value">${procesarTexto(a.nutricion?.comidasAct)} (${procesarTexto(a.nutricion?.descAct)})</span></div>
@@ -104,16 +111,23 @@ export default function CoachPanel() {
           <div class="item"><span class="label">Comidas en Plan</span><span class="value">${procesarTexto(a.nutricion?.comidasDes)}</span></div>
           <div class="item" style="width:100%; background:#f0f9ff;"><span class="label">Objetivo</span><span class="value" style="color:#2563eb">${procesarTexto(a.nutricion?.objetivo)}</span></div>
         </div>
+
         <div class="section-title">7. Frecuencia Alimentaria</div>
         <div class="grid">
           ${Object.entries(a.frecuenciaAlimentos || {}).map(([k, v]) => `<div class="item"><span class="label">${k}</span><span class="value">${procesarTexto(v)}</span></div>`).join('')}
         </div>
+
         <div class="page-break"></div>
+
         <div class="section-title">8. Consentimiento Informado Legal</div>
-        <div class="legal-text">${consentimientoCompleto.replace(/\n\n/g, '<br/><br/>')}</div>
+        <div class="legal-text">
+          ${consentimientoCompleto.replace(/\n\n/g, '<br/><br/>')}
+        </div>
+
         <div class="signature-box">
           <img src="${a.firma}" class="signature-img" />
-          <p style="font-size:10px; margin:0;"><b>Firma del Alumno: ${a.nombre}</b></p>
+          <div class="signature-label">Firma del Alumno: ${a.nombre}</div>
+          <div style="font-size:8px; color:#94a3b8;">ID Autenticación: ${a.uid}</div>
         </div>
       </body>
       </html>
