@@ -97,7 +97,7 @@ export default function CoachPanel() {
           style: "destructive", 
           onPress: async () => {
             try {
-              await deleteDoc(doc(db, "revisiones_pendientes", id));
+              await deleteDoc(doc(db, "usuarios", id));
               Alert.alert("Eliminado", "El registro ha sido borrado correctamente.");
             } catch (error) {
               Alert.alert("Error", "No se pudo eliminar el registro.");
