@@ -20,7 +20,7 @@ export default function CoachPanel() {
   const [alimentosFiltrados, setAlimentosFiltrados] = useState<any[]>([]);
 
   useEffect(() => {
-    const q = query(collection(db, "usuarios"), orderBy("timestamp", "desc"));
+    const q = query(collection(db, "revisiones_pendientes"), orderBy("timestamp", "desc"));
     const unsub = onSnapshot(q, (snapshot) => {
       const lista = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setAlumnos(lista);
@@ -97,7 +97,7 @@ export default function CoachPanel() {
           style: "destructive", 
           onPress: async () => {
             try {
-              await deleteDoc(doc(db, "usuarios", id));
+              await deleteDoc(doc(db, "revisiones_pendientes", id));
               Alert.alert("Eliminado", "El registro ha sido borrado correctamente.");
             } catch (error) {
               Alert.alert("Error", "No se pudo eliminar el registro.");
