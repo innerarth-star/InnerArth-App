@@ -338,7 +338,7 @@ export default function CoachPanel() {
         contentContainerStyle={styles.list}
       />
 
-      <Modal visible={!!alumnoSeleccionado} animationType="slide">
+      <Modal visible={!!alumnoSeleccionado && !modalDieta} animationType="slide">
         <SafeAreaView style={{flex: 1, backgroundColor: '#f1f5f9'}}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setAlumnoSeleccionado(null)}><Ionicons name="chevron-back" size={28} color="#1e293b" /></TouchableOpacity>
@@ -423,13 +423,9 @@ export default function CoachPanel() {
       <Modal visible={modalDieta} animationType="slide">
         <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
           <View style={stylesNutri.header}>
-            <TouchableOpacity onPress={() => setModalDieta(false)}>
-              <Ionicons name="close" size={28} color="#ef4444" />
-            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setModalDieta(false)}><Ionicons name="close" size={28} color="#ef4444" /></TouchableOpacity>
             <Text style={stylesNutri.headerTitle}>Dieta: {alumnoSeleccionado?.nombre}</Text>
-            <TouchableOpacity onPress={() => Alert.alert("Guardado", "Dieta enviada")}>
-              <Ionicons name="checkmark-circle" size={28} color="#22c55e" />
-            </TouchableOpacity>
+            <TouchableOpacity onPress={() => Alert.alert("Guardado", "Dieta enviada")}><Ionicons name="checkmark-circle" size={28} color="#22c55e" /></TouchableOpacity>
           </View>
 
           <ScrollView style={{ padding: 20 }} keyboardShouldPersistTaps="handled">
