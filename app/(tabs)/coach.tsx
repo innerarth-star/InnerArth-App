@@ -13,6 +13,12 @@ export default function CoachPanel() {
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState<any>(null);
   const [seccionActiva, setSeccionActiva] = useState<number | null>(null);
 
+  // --- ESTADOS PARA NUTRICIÓN ---
+  const [modalDieta, setModalDieta] = useState(false);
+  const [dietaActual, setDietaActual] = useState<any[]>([]);
+  const [busqueda, setBusqueda] = useState('');
+  const [alimentosFiltrados, setAlimentosFiltrados] = useState<any[]>([]);
+
   useEffect(() => {
     const q = query(collection(db, "revisiones_pendientes"), orderBy("timestamp", "desc"));
     const unsub = onSnapshot(q, (snapshot) => {
@@ -25,9 +31,54 @@ export default function CoachPanel() {
     return () => unsub();
   }, []);
 
+  // --- LÓGICA DE NUTRICIÓN ---
+  const calcularMetabolismo = (alumno: any) => {
+    if (!alumno?.datosFisicos) return 0;
+    const { peso, altura, edad, genero } = alumno.datosFisicos;
+    let tmb = 0;
+    if (genero === 'hombre') {
+      tmb = (10 * parseFloat(peso)) + (6.25 * parseFloat(altura)) - (5 * edad) + 5;
+    } else {
+      tmb = (10 * parseFloat(peso)) + (6.25 * parseFloat(altura)) - (5 * edad) - 161;
+    }
+    return Math.round(tmb * 1.4); 
+  };
+
+  const buscarAlimento = async (texto: string) => {
+    setBusqueda(texto);
+    if (texto.length > 2) {
+      const q = query(
+        collection(db, "alimentos"), 
+        where("nombre", ">=", texto.toLowerCase()), 
+        where("nombre", "<=", texto.toLowerCase() + "\uf8ff")
+      );
+      const querySnapshot = await getDocs(q);
+      const sugerencias = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setAlimentosFiltrados(sugerencias);
+    } else {
+      setAlimentosFiltrados([]);
+    }
+  };
+
+  const agregarAlPlan = (item: any, porcion: number) => {
+    const factor = porcion / 100;
+    const nuevoItem = {
+      ...item,
+      porcion,
+      p: (item.proteina * factor).toFixed(1),
+      g: (item.grasa * factor).toFixed(1),
+      c: (item.carbohidratos * factor).toFixed(1),
+      kcal: (item.calorias * factor).toFixed(0)
+    };
+    setDietaActual([...dietaActual, nuevoItem]);
+    setAlimentosFiltrados([]);
+    setBusqueda('');
+  };
+
   // --- FUNCIONES PARA PLANES ---
   const abrirPlanAlimentacion = (alumno: any) => {
-    Alert.alert("Acceso", `Iniciando creación de Plan de Alimentación para ${alumno.nombre}`);
+    setAlumnoSeleccionado(alumno);
+    setModalDieta(true);
   };
 
   const abrirPlanEntrenamiento = (alumno: any) => {
@@ -367,8 +418,72 @@ export default function CoachPanel() {
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
+
+{/* MODAL PLAN DE ALIMENTACIÓN INTELIGENTE */}
+      <Modal visible={modalDieta} animationType="slide">
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+          <View style={stylesNutri.header}>
+            <TouchableOpacity onPress={() => setModalDieta(false)}>
+              <Ionicons name="close" size={28} color="#ef4444" />
+            </TouchableOpacity>
+            <Text style={stylesNutri.headerTitle}>Dieta: {alumnoSeleccionado?.nombre}</Text>
+            <TouchableOpacity onPress={() => Alert.alert("Guardado", "Dieta enviada")}>
+              <Ionicons name="checkmark-circle" size={28} color="#22c55e" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={{ padding: 20 }} keyboardShouldPersistTaps="handled">
+            <View style={stylesNutri.macroCard}>
+              <Text style={stylesNutri.macroTitle}>OBJETIVO: {calcularMetabolismo(alumnoSeleccionado)} KCAL</Text>
+              <View style={stylesNutri.macroRow}>
+                <MacroDisplay label="PROT" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.p), 0).toFixed(1)} color="#60a5fa" />
+                <MacroDisplay label="GRASA" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.g), 0).toFixed(1)} color="#facc15" />
+                <MacroDisplay label="CARBS" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.c), 0).toFixed(1)} color="#4ade80" />
+                <MacroDisplay label="KCAL" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.kcal), 0)} color="#f87171" />
+              </View>
+            </View>
+
+            <TextInput
+              style={stylesNutri.searchInput}
+              placeholder="Buscar alimento..."
+              value={busqueda}
+              onChangeText={buscarAlimento}
+            />
+
+            {alimentosFiltrados.map((item) => (
+              <TouchableOpacity key={item.id} style={stylesNutri.suggestionItem} onPress={() => {
+                  Alert.prompt("Porción", "¿Gramos de " + item.nombre + "?", 
+                  (cant) => agregarAlPlan(item, parseFloat(cant || "100")), "plain-text", "100");
+                }}>
+                <Text style={stylesNutri.suggestionText}>{item.nombre.toUpperCase()}</Text>
+              </TouchableOpacity>
+            ))}
+
+            <View style={{ marginTop: 20 }}>
+              {dietaActual.map((item, index) => (
+                <View key={index} style={stylesNutri.foodCard}>
+                  <Text style={{flex:1, fontWeight:'bold'}}>{item.nombre.toUpperCase()} ({item.porcion}g)</Text>
+                  <Text>{item.kcal} kcal</Text>
+                  <TouchableOpacity onPress={() => setDietaActual(dietaActual.filter((_, i) => i !== index))}><Ionicons name="trash" size={18} color="red" style={{marginLeft:10}}/></TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+    </SafeAreaView>
+
   );
 }
+
+// COMPONENTES AUXILIARES
+const MacroDisplay = ({ label, value, color }: any) => (
+  <View style={{ alignItems: 'center' }}>
+    <Text style={{ color: color, fontSize: 10, fontWeight: 'bold' }}>{label}</Text>
+    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{value}</Text>
+  </View>
+);
+
 
 const Section = ({ num, title, color, icon, activa, setActiva, children }: any) => (
   <View style={styles.cardSection}>
