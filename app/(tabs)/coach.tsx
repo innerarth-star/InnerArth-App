@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, Modal, ScrollView, ActivityIndicator, SafeAreaView, Image, Alert } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Modal, ScrollView, ActivityIndicator, SafeAreaView, Image, Alert, TextInput } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
-import { collection, query, onSnapshot, orderBy, doc, deleteDoc } from 'firebase/firestore'; // Se agregó doc y deleteDoc
+import { collection, query, onSnapshot, orderBy, doc, deleteDoc, where, getDocs } from 'firebase/firestore'; // Se agregó doc y deleteDoc
 import { signOut } from 'firebase/auth';
 import { FontAwesome5, Ionicons, FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
@@ -23,19 +23,11 @@ export default function CoachPanel() {
     const q = query(collection(db, "revisiones_pendientes"));
     const unsub = onSnapshot(q, (snapshot) => {
       const lista = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-// 2. Alert de diagnóstico: Te dirá cuántos hay en la base de datos
-      if (lista.length === 0) {
-        Alert.alert("Diagnóstico", "Firebase está conectado pero la lista viene vacía. Revisa el nombre de la colección.");
-      } else {
-        console.log("Datos encontrados:", lista);
-      }
-
       setAlumnos(lista);
       setCargando(false);
     }, (error) => {
       // 3. Si hay un error de permisos (Security Rules), aquí saltará
-      Alert.alert("Error de Firebase", error.message);
+      Alert.alert("Error", error.message);
       setCargando(false);
     });
     return () => unsub();
@@ -549,4 +541,16 @@ const styles = StyleSheet.create({
   planesContainer: { marginTop: 20, gap: 12 },
   btnAccion: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 14, gap: 10, elevation: 2 },
   btnAccionText: { color: 'white', fontWeight: 'bold', fontSize: 16 }
+});
+
+const stylesNutri = StyleSheet.create({
+  header: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#1e3a8a' },
+  macroCard: { backgroundColor: '#1e3a8a', padding: 20, borderRadius: 20, marginBottom: 20 },
+  macroTitle: { color: '#fff', fontSize: 10, textAlign: 'center', marginBottom: 15 },
+  macroRow: { flexDirection: 'row', justifyContent: 'space-around' },
+  searchInput: { backgroundColor: '#fff', padding: 15, borderRadius: 12, borderWidth: 1, borderColor: '#cbd5e1', color: '#1e293b' },
+  suggestionItem: { padding: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  suggestionText: { fontWeight: 'bold', color: '#1e293b' },
+  foodCard: { flexDirection: 'row', padding: 15, backgroundColor: '#fff', borderRadius: 12, marginTop: 10, elevation: 2 }
 });
