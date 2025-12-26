@@ -20,12 +20,22 @@ export default function CoachPanel() {
   const [alimentosFiltrados, setAlimentosFiltrados] = useState<any[]>([]);
 
   useEffect(() => {
-    const q = query(collection(db, "revisiones_pendientes"), orderBy("timestamp", "desc"));
+    const q = query(collection(db, "revisiones_pendientes"));
     const unsub = onSnapshot(q, (snapshot) => {
       const lista = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+// 2. Alert de diagnóstico: Te dirá cuántos hay en la base de datos
+      if (lista.length === 0) {
+        Alert.alert("Diagnóstico", "Firebase está conectado pero la lista viene vacía. Revisa el nombre de la colección.");
+      } else {
+        console.log("Datos encontrados:", lista);
+      }
+
       setAlumnos(lista);
       setCargando(false);
     }, (error) => {
+      // 3. Si hay un error de permisos (Security Rules), aquí saltará
+      Alert.alert("Error de Firebase", error.message);
       setCargando(false);
     });
     return () => unsub();
