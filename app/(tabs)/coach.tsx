@@ -18,6 +18,9 @@ export default function CoachPanel() {
   const [dietaActual, setDietaActual] = useState<any[]>([]);
   const [busqueda, setBusqueda] = useState('');
   const [alimentosFiltrados, setAlimentosFiltrados] = useState<any[]>([]);
+  const [caloriasManuales, setCaloriasManuales] = useState<string>('');
+  const [factorActividad, setFactorActividad] = useState<string>('1.4');
+
 
   useEffect(() => {
     const q = query(collection(db, "revisiones_pendientes"));
@@ -35,16 +38,17 @@ export default function CoachPanel() {
 
   // --- LÓGICA DE NUTRICIÓN ---
   const calcularMetabolismo = (alumno: any) => {
-    if (!alumno?.datosFisicos) return 0;
-    const { peso, altura, edad, genero } = alumno.datosFisicos;
-    let tmb = 0;
-    if (genero === 'hombre') {
-      tmb = (10 * parseFloat(peso)) + (6.25 * parseFloat(altura)) - (5 * edad) + 5;
-    } else {
-      tmb = (10 * parseFloat(peso)) + (6.25 * parseFloat(altura)) - (5 * edad) - 161;
+    if (!alumno?.datosFisicos) return 0;
+    const { peso, altura, edad, genero } = alumno.datosFisicos;
+    let tmb = 0;
+    if (genero === 'hombre') {
+      tmb = (10 * parseFloat(peso)) + (6.25 * parseFloat(altura)) - (5 * edad) + 5;
+    } else {
+      tmb = (10 * parseFloat(peso)) + (6.25 * parseFloat(altura)) - (5 * edad) - 161;
     }
-    return Math.round(tmb * 1.4); 
-  };
+  // Usamos el estado factorActividad que tú controlas
+    return Math.round(tmb * parseFloat(factorActividad || "1.4")); 
+};
 
   const buscarAlimento = async (texto: string) => {
     setBusqueda(texto);
@@ -422,53 +426,93 @@ export default function CoachPanel() {
       </Modal>
 
 {/* MODAL PLAN DE ALIMENTACIÓN INTELIGENTE */}
-      <Modal visible={modalDieta} animationType="slide">
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
-          <View style={stylesNutri.header}>
-            <TouchableOpacity onPress={() => setModalDieta(false)}><Ionicons name="close" size={28} color="#ef4444" /></TouchableOpacity>
-            <Text style={stylesNutri.headerTitle}>Dieta: {alumnoSeleccionado?.nombre}</Text>
-            <TouchableOpacity onPress={() => Alert.alert("Guardado", "Dieta enviada")}><Ionicons name="checkmark-circle" size={28} color="#22c55e" /></TouchableOpacity>
-          </View>
+<Modal visible={modalDieta} animationType="slide">
+  <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+    <View style={stylesNutri.header}>
+      <TouchableOpacity onPress={() => setModalDieta(false)}><Ionicons name="close" size={28} color="#ef4444" /></TouchableOpacity>
+      <Text style={stylesNutri.headerTitle}>Plan de: {alumnoSeleccionado?.nombre}</Text>
+      <TouchableOpacity onPress={() => Alert.alert("Guardado", "Dieta enviada")}><Ionicons name="checkmark-circle" size={28} color="#22c55e" /></TouchableOpacity>
+    </View>
 
-          <ScrollView style={{ padding: 20 }} keyboardShouldPersistTaps="handled">
-            <View style={stylesNutri.macroCard}>
-              <Text style={stylesNutri.macroTitle}>OBJETIVO: {calcularMetabolismo(alumnoSeleccionado)} KCAL</Text>
-              <View style={stylesNutri.macroRow}>
-                <MacroDisplay label="PROT" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.p), 0).toFixed(1)} color="#60a5fa" />
-                <MacroDisplay label="GRASA" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.g), 0).toFixed(1)} color="#facc15" />
-                <MacroDisplay label="CARBS" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.c), 0).toFixed(1)} color="#4ade80" />
-                <MacroDisplay label="KCAL" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.kcal), 0)} color="#f87171" />
-              </View>
-            </View>
-
-            <TextInput
-              style={stylesNutri.searchInput}
-              placeholder="Buscar alimento..."
-              value={busqueda}
-              onChangeText={buscarAlimento}
+    <ScrollView style={{ padding: 20 }} keyboardShouldPersistTaps="handled">
+      
+      {/* TARJETA DE CONTROL DE CALORÍAS Y FACTOR */}
+      <View style={[stylesNutri.macroCard, { backgroundColor: '#1e293b' }]}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}>FACTOR ACTIVIDAD</Text>
+            <TextInput 
+              style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', borderBottomWidth: 1, borderBottomColor: '#3b82f6', width: 60 }}
+              keyboardType="numeric"
+              value={factorActividad}
+              onChangeText={setFactorActividad}
+              placeholder="1.4"
+              placeholderTextColor="#475569"
             />
+          </View>
+          <View style={{ flex: 1, alignItems: 'flex-end' }}>
+            <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}>CALORÍAS OBJETIVO</Text>
+            <TextInput 
+              style={{ color: '#fff', fontSize: 22, fontWeight: 'bold', borderBottomWidth: 1, borderBottomColor: '#22c55e', width: 100, textAlign: 'right' }}
+              keyboardType="numeric"
+              value={caloriasManuales}
+              onChangeText={setCaloriasManuales}
+              placeholder={calcularMetabolismo(alumnoSeleccionado).toString()}
+              placeholderTextColor="#475569"
+            />
+          </View>
+        </View>
 
-            {alimentosFiltrados.map((item) => (
-              <TouchableOpacity key={item.id} style={stylesNutri.suggestionItem} onPress={() => {
-                  Alert.prompt("Porción", "¿Gramos de " + item.nombre + "?", 
-                  (cant) => agregarAlPlan(item, parseFloat(cant || "100")), "plain-text", "100");
-                }}>
-                <Text style={stylesNutri.suggestionText}>{item.nombre.toUpperCase()}</Text>
-              </TouchableOpacity>
-            ))}
+        <View style={stylesNutri.macroRow}>
+          <MacroDisplay label="PROT" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.p), 0).toFixed(1)} color="#60a5fa" />
+          <MacroDisplay label="GRASA" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.g), 0).toFixed(1)} color="#facc15" />
+          <MacroDisplay label="CARBS" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.c), 0).toFixed(1)} color="#4ade80" />
+          <MacroDisplay 
+            label="RESTANTE" 
+            value={(parseFloat(caloriasManuales || calcularMetabolismo(alumnoSeleccionado).toString()) - dietaActual.reduce((acc, i) => acc + parseFloat(i.kcal), 0)).toFixed(0)} 
+            color="#f87171" 
+          />
+        </View>
+      </View>
 
-            <View style={{ marginTop: 20 }}>
-              {dietaActual.map((item, index) => (
-                <View key={index} style={stylesNutri.foodCard}>
-                  <Text style={{flex:1, fontWeight:'bold'}}>{item.nombre.toUpperCase()} ({item.porcion}g)</Text>
-                  <Text>{item.kcal} kcal</Text>
-                  <TouchableOpacity onPress={() => setDietaActual(dietaActual.filter((_, i) => i !== index))}><Ionicons name="trash" size={18} color="red" style={{marginLeft:10}}/></TouchableOpacity>
-                </View>
-              ))}
+      <TextInput
+        style={stylesNutri.searchInput}
+        placeholder="Buscar alimento en biblioteca..."
+        value={busqueda}
+        onChangeText={buscarAlimento}
+        placeholderTextColor="#94a3b8"
+      />
+
+      {alimentosFiltrados.map((item) => (
+        <TouchableOpacity key={item.id} style={stylesNutri.suggestionItem} onPress={() => {
+            Alert.prompt("Porción", "¿Cuántos gramos de " + item.nombre + "?", 
+            (cant) => agregarAlPlan(item, parseFloat(cant || "100")), "plain-text", "100");
+          }}>
+          <Text style={stylesNutri.suggestionText}>{item.nombre.toUpperCase()}</Text>
+        </TouchableOpacity>
+      ))}
+
+      <View style={{ marginTop: 20 }}>
+        <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#1e293b', marginBottom: 10 }}>Alimentos en el Plan:</Text>
+        {dietaActual.map((item, index) => (
+          <View key={index} style={stylesNutri.foodCard}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: 'bold', color: '#1e293b' }}>{item.nombre.toUpperCase()}</Text>
+              <Text style={{ fontSize: 12, color: '#64748b' }}>{item.porcion}g • P: {item.p}g | G: {item.g}g | C: {item.c}g</Text>
             </View>
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
+            <View style={{ alignItems: 'flex-end', marginRight: 10 }}>
+              <Text style={{ fontWeight: 'bold', color: '#1e293b' }}>{item.kcal} kcal</Text>
+            </View>
+            <TouchableOpacity onPress={() => setDietaActual(dietaActual.filter((_, i) => i !== index))}>
+              <Ionicons name="trash" size={20} color="#ef4444" />
+            </TouchableOpacity>
+          </View>
+        ))}
+      </View>
+      <View style={{ height: 100 }} />
+    </ScrollView>
+  </SafeAreaView>
+</Modal>
     </SafeAreaView>
 
   );
