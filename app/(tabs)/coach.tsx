@@ -325,7 +325,8 @@ export default function CoachPanel() {
                 <MaterialCommunityIcons name="chevron-right" size={24} color="#3b82f6" />
               </View>
             </TouchableOpacity>
-            
+
+
             <TouchableOpacity 
               style={styles.btnBorrar} 
               onPress={() => eliminarRegistro(item.id, item.nombre)}
@@ -417,7 +418,6 @@ export default function CoachPanel() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
 
 {/* MODAL PLAN DE ALIMENTACIÓN INTELIGENTE */}
       <Modal visible={modalDieta} animationType="slide">
