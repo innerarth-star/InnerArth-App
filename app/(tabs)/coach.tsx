@@ -20,7 +20,7 @@ export default function CoachPanel() {
   const [alimentosFiltrados, setAlimentosFiltrados] = useState<any[]>([]);
 
   useEffect(() => {
-    const q = query(collection(db, "revisiones_pendientes"), orderBy("timestamp", "desc"));
+    const q = query(collection(db, "usuarios"), orderBy("timestamp", "desc"));
     const unsub = onSnapshot(q, (snapshot) => {
       const lista = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setAlumnos(lista);
