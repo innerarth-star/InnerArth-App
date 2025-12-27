@@ -21,36 +21,27 @@ export default function TabLayout() {
 
   return (
     <Tabs screenOptions={{ tabBarActiveTintColor: '#3b82f6' }}>
-      {/* Pestaña Principal (Esta no se mueve, es tu código perfecto) */}
+      
+      {/* 1. HOME (index.tsx): Esto es lo que ve el cliente */}
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Mi Dieta', // Nombre para el cliente
           tabBarIcon: ({ color }) => <FontAwesome5 name="home" size={20} color={color} />,
         }}
       />
 
-      {/* Pestaña Explore (Oculta) */}
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explorar',
-          href: null,
-          tabBarIcon: ({ color }) => <FontAwesome5 name="search" size={20} color={color} />,
-        }}
-      />
-
-      {/* Pestaña de Coach - CONDICIONAL */}
+      {/* 2. PANEL COACH (coach.tsx): Solo lo ves tú (isCoach) */}
       <Tabs.Screen
         name="coach"
         options={{
           title: 'Panel Coach',
-          href: isCoach ? '/coach' : null, 
+          href: isCoach ? ("/coach" as any) : null, 
           tabBarIcon: ({ color }) => <FontAwesome5 name="user-shield" size={20} color={color} />,
         }}
       />
 
-      {/* NUEVA PESTAÑA: Biblioteca de Alimentos (Excel 1g) */}
+      {/* 3. BIBLIOTECA (AdminAlimnetos.tsx): Solo la ves tú (isCoach) */}
       <Tabs.Screen
         name="AdminAlimnetos"
         options={{
@@ -58,6 +49,12 @@ export default function TabLayout() {
           href: isCoach ? ("/AdminAlimnetos" as any) : null, 
           tabBarIcon: ({ color }) => <FontAwesome5 name="book" size={20} color={color} />,
         }}
+      />
+
+      {/* EXPLORE: Lo dejamos oculto como ya lo tenías */}
+      <Tabs.Screen
+        name="explore"
+        options={{ href: null }}
       />
     </Tabs>
   );
