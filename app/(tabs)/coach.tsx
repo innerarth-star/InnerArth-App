@@ -74,15 +74,19 @@ export default function CoachPanel() {
     }
   };
 
-  const agregarAlPlan = (item: any, porcion: number) => {
-    const factor = porcion / 100;
+  const agregarAlPlan = (item: any, cantidad: number, unidad: string) => {
+    // Calculamos el factor según la cantidad (ej: 0.5 para media taza)
+    const factor = cantidad; 
+    
     const nuevoItem = {
       ...item,
-      porcion,
-      p: (item.proteina * factor).toFixed(1),
-      g: (item.grasa * factor).toFixed(1),
-      c: (item.carbohidratos * factor).toFixed(1),
-      kcal: (item.calorias * factor).toFixed(0)
+      idTemporal: Date.now() + Math.random(), // ID único para evitar errores al borrar
+      cantidadUsada: cantidad,
+      unidadElegida: unidad || item.unidadMedida || "unidad", 
+      p: (parseFloat(item.proteina || item.p || 0) * factor).toFixed(1),
+      g: (parseFloat(item.grasa || item.g || 0) * factor).toFixed(1),
+      c: (parseFloat(item.carbohidratos || item.c || 0) * factor).toFixed(1),
+      kcal: (parseFloat(item.calorias || item.kcal || 0) * factor).toFixed(0)
     };
     setDietaActual([...dietaActual, nuevoItem]);
     setAlimentosFiltrados([]);
@@ -539,14 +543,47 @@ export default function CoachPanel() {
         placeholderTextColor="#94a3b8"
       />
 
-      {alimentosFiltrados.map((item) => (
-        <TouchableOpacity key={item.id} style={stylesNutri.suggestionItem} onPress={() => {
-            Alert.prompt("Porción", "¿Cuántos gramos de " + item.nombre + "?", 
-            (cant) => agregarAlPlan(item, parseFloat(cant || "100")), "plain-text", "100");
-          }}>
-          <Text style={stylesNutri.suggestionText}>{item.nombre.toUpperCase()}</Text>
-        </TouchableOpacity>
-      ))}
+{alimentosFiltrados.map((item) => (
+  <TouchableOpacity 
+    key={item.id} 
+    style={stylesNutri.suggestionItem} 
+    onPress={() => {
+      // Tomamos la unidad que guardaste en la biblioteca (taza, pieza, etc.)
+      const unidad = item.unidadMedida || "unidad"; 
+
+      Alert.alert(
+        `${item.nombre.toUpperCase()}`,
+        `Selecciona la cantidad en [${unidad}]:`,
+        [
+          { text: "1/4", onPress: () => agregarAlPlan(item, 0.25, unidad) },
+          { text: "1/2", onPress: () => agregarAlPlan(item, 0.5, unidad) },
+          { text: "1", onPress: () => agregarAlPlan(item, 1, unidad) },
+          { text: "2", onPress: () => agregarAlPlan(item, 2, unidad) },
+          { 
+            text: "Manual", 
+            onPress: () => {
+              Alert.prompt(
+                "Cantidad Personalizada",
+                `Ingresa el número de ${unidad}:`,
+                (val) => {
+                  const num = parseFloat(val || "0");
+                  if (num > 0) agregarAlPlan(item, num, unidad);
+                },
+                "plain-text",
+                "1"
+              );
+            }
+          },
+          { text: "Cancelar", style: "cancel" }
+        ]
+      );
+    }}>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Text style={stylesNutri.suggestionText}>{item.nombre.toUpperCase()}</Text>
+      <Text style={{ fontSize: 10, color: '#3b82f6', fontWeight: 'bold' }}>{item.unidadMedida?.toUpperCase()}</Text>
+    </View>
+  </TouchableOpacity>
+))}
 
       <View style={{ marginTop: 20 }}>
         <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#1e293b', marginBottom: 10 }}>Alimentos en el Plan:</Text>
