@@ -59,23 +59,26 @@ export default function CoachPanel() {
     return Math.round(tmb * factorActividad); 
   };
 
-const buscarAlimento = (texto: string) => {
-  setBusqueda(texto);
+useEffect(() => {
+  // Este es el "mensajero" que va a Firebase por tus alimentos
+  const q = query(collection(db, "alimentos"));
   
-  if (texto.length > 1) {
-    const minustexto = texto.toLowerCase();
+  const unsub = onSnapshot(q, (snapshot) => {
+    // Aquí transformamos los datos de la nube en una lista para tu App
+    const lista = snapshot.docs.map(doc => ({ 
+      id: doc.id, 
+      ...doc.data() 
+    } as any));
     
-    // Filtramos localmente: busca coincidencias en cualquier parte del nombre
-    const sugerencias = alimentos.filter(item => 
-      item.nombre.toLowerCase().includes(minustexto) || 
-      item.grupo?.toLowerCase().includes(minustexto)
-    );
+    // Aquí llenamos el "tanque" para que 'buscarAlimento' tenga qué filtrar
+    setAlimentos(lista);
     
-    setAlimentosFiltrados(sugerencias);
-  } else {
-    setAlimentosFiltrados([]);
-  }
-};
+    // Este log te dirá en la terminal cuántos alimentos cargó (ej. 54)
+    console.log("Sistema: Biblioteca cargada con", lista.length, "alimentos.");
+  });
+
+  return () => unsub();
+}, []);
 
   const agregarAlPlan = (item: any, cantidad: number, unidad: string) => {
     // Calculamos el factor según la cantidad (ej: 0.5 para media taza)
