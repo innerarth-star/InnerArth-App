@@ -12,7 +12,7 @@ const GRUPOS_ALIMENTOS = [
     { nombre: 'Cereales', unidades: ['taza', 'pieza', 'rebanada'] },
     { nombre: 'Aceites', unidades: ['cucharada', 'pieza'] },
     { nombre: 'Azúcares', unidades: ['taza', 'cucharada'] },
-    { nombre: 'Origen Animal', unidades: ['porción (35g)', 'gr', 'pieza', 'rebanada'] },
+    { nombre: 'Origen Animal', unidades: ['gr', 'pieza', 'rebanada'] },
 ];
 
 export default function BibliotecaAlimentos() {
@@ -87,17 +87,17 @@ const q = query(collection(db, "alimentos"));
         { nombre: "agua de sabor", grupo: "Azúcares", unidadMedida: "taza", calorias: 40, proteina: 0, grasa: 0, carbohidratos: 10 },
         { nombre: "miel (2)", grupo: "Azúcares", unidadMedida: "cucharada", calorias: 40, proteina: 0, grasa: 0, carbohidratos: 10 },
         { nombre: "mermelada (2)", grupo: "Azúcares", unidadMedida: "cucharada", calorias: 40, proteina: 0, grasa: 0, carbohidratos: 10 },
-        { nombre: "atun", grupo: "Origen Animal", unidadMedida: "porción (35g)", calorias: 55, proteina: 7, grasa: 3, carbohidratos: 0 },
-        { nombre: "bistec de res", grupo: "Origen Animal", unidadMedida: "porción (35g)", calorias: 55, proteina: 7, grasa: 3, carbohidratos: 0 },
-        { nombre: "lomo de cerdo", grupo: "Origen Animal", unidadMedida: "porción (35g)", calorias: 55, proteina: 7, grasa: 3, carbohidratos: 0 },
-        { nombre: "clara de huevo (2)", grupo: "Origen Animal", unidadMedida: "porción (35g)", calorias: 55, proteina: 7, grasa: 3, carbohidratos: 0 },
-        { nombre: "jamon de pavo", grupo: "Origen Animal", unidadMedida: "porción (35g)", calorias: 55, proteina: 7, grasa: 3, carbohidratos: 0 },
-        { nombre: "pechuga de pollo", grupo: "Origen Animal", unidadMedida: "porción (35g)", calorias: 55, proteina: 7, grasa: 3, carbohidratos: 0 },
-        { nombre: "pescado", grupo: "Origen Animal", unidadMedida: "porción (35g)", calorias: 55, proteina: 7, grasa: 3, carbohidratos: 0 },
-        { nombre: "requeson (4)", grupo: "Origen Animal", unidadMedida: "porción (35g)", calorias: 55, proteina: 7, grasa: 3, carbohidratos: 0 },
-        { nombre: "queso panela", grupo: "Origen Animal", unidadMedida: "porción (35g)", calorias: 55, proteina: 7, grasa: 3, carbohidratos: 0 },
-        { nombre: "queso cottage (3)", grupo: "Origen Animal", unidadMedida: "porción (35g)", calorias: 55, proteina: 7, grasa: 3, carbohidratos: 0 },
-        { nombre: "huevo (1)", grupo: "Origen Animal", unidadMedida: "porción (35g)", calorias: 55, proteina: 7, grasa: 3, carbohidratos: 0 },
+        { nombre: "atun", grupo: "Origen Animal", unidadMedida: "gr", calorias: 1.57, proteina: 0.2, grasa: 0.09, carbohidratos: 0 },
+        { nombre: "bistec de res", grupo: "Origen Animal", unidadMedida: "gr", calorias: 1.57, proteina: 0.2, grasa: 0.09, carbohidratos: 0 },
+        { nombre: "lomo de cerdo", grupo: "Origen Animal", unidadMedida: "gr", calorias: 1.57, proteina: 0.2, grasa: 0.09, carbohidratos: 0 },
+        { nombre: "pechuga de pollo", grupo: "Origen Animal", unidadMedida: "gr", calorias: 1.57, proteina: 0.2, grasa: 0.09, carbohidratos: 0 },
+        { nombre: "pescado", grupo: "Origen Animal", unidadMedida: "gr", calorias: 1.57, proteina: 0.2, grasa: 0.09, carbohidratos: 0 },
+        { nombre: "huevo (1)", grupo: "Origen Animal", unidadMedida: "pieza", calorias: 55, proteina: 7, grasa: 5, carbohidratos: 0 },
+        { nombre: "clara de huevo (2)", grupo: "Origen Animal", unidadMedida: "pieza", calorias: 55, proteina: 7, grasa: 5, carbohidratos: 0 },
+        { nombre: "jamon de pavo", grupo: "Origen Animal", unidadMedida: "gr", calorias: 1.57, proteina: 0.2, grasa: 0.09, carbohidratos: 0 },
+        { nombre: "requeson (4)", grupo: "Origen Animal", unidadMedida: "cucharada", calorias: 75, proteina: 7, grasa: 5, carbohidratos: 0 },
+        { nombre: "queso panela", grupo: "Origen Animal", unidadMedida: "gr", calorias: 1.57, proteina: 0.2, grasa: 0.09, carbohidratos: 0 },
+        { nombre: "queso cottage (3)", grupo: "Origen Animal", unidadMedida: "cucharada", calorias: 75, proteina: 7, grasa: 5, carbohidratos: 0 },     
     ];
 
     try {
@@ -108,7 +108,7 @@ const q = query(collection(db, "alimentos"));
           fechaCreacion: new Date()
         });
       }
-      Alert.alert("Éxito", "¡Se cargaron " + listaAlimentos.length + " alimentos!");
+Alert.alert("Éxito", "Biblioteca actualizada a 1 gramo.");
     } catch (e) {
       Alert.alert("Error", "No se pudo cargar la lista.");
     }
@@ -159,6 +159,17 @@ const q = query(collection(db, "alimentos"));
             </TouchableOpacity>
           ))}
         </View>
+{/* EL AVISO VA AQUÍ */}
+        {unidad === 'gr' && (
+          <View style={{ backgroundColor: '#fff7ed', padding: 10, borderRadius: 10, marginBottom: 10, borderWidth: 1, borderColor: '#ffedd5' }}>
+            <Text style={{ color: '#9a3412', fontSize: 11, fontWeight: 'bold' }}>
+              ⚠️ MODO PRECISIÓN: Ingresa los macros por cada 1 gramo.
+            </Text>
+            <Text style={{ color: '#9a3412', fontSize: 10 }}>
+              Ejemplo Pollo: 0.2 prot | 1.5 kcal | 0.08 grasa
+            </Text>
+          </View>
+        )}
 
         <View style={styles.gridInputs}>
           <View style={styles.boxInput}><Text style={styles.miniLabel}>Kcal</Text><TextInput style={styles.inputN} keyboardType="numeric" value={calorias} onChangeText={setCalorias} placeholder="0"/></View>
