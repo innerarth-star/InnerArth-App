@@ -21,7 +21,7 @@ export default function TabLayout() {
 
   return (
     <Tabs screenOptions={{ tabBarActiveTintColor: '#3b82f6' }}>
-      {/* Pestaña Principal */}
+      {/* Pestaña Principal (Esta no se mueve, es tu código perfecto) */}
       <Tabs.Screen
         name="index"
         options={{
@@ -30,12 +30,12 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Pestaña Explore (Opcional - puedes ocultarla si no la usas) */}
+      {/* Pestaña Explore (Oculta) */}
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Explorar',
-          href: null, // Esto oculta la pestaña por completo
+          href: null,
           tabBarIcon: ({ color }) => <FontAwesome5 name="search" size={20} color={color} />,
         }}
       />
@@ -45,9 +45,18 @@ export default function TabLayout() {
         name="coach"
         options={{
           title: 'Panel Coach',
-          // EL TRUCO ESTÁ AQUÍ: Si no es coach, href es null y desaparece
           href: isCoach ? '/coach' : null, 
           tabBarIcon: ({ color }) => <FontAwesome5 name="user-shield" size={20} color={color} />,
+        }}
+      />
+
+      {/* NUEVA PESTAÑA: Biblioteca de Alimentos (Excel 1g) */}
+      <Tabs.Screen
+        name="AdminAlimnetos"
+        options={{
+          title: 'Biblioteca',
+          href: isCoach ? ("/AdminAlimnetos" as any) : null, 
+          tabBarIcon: ({ color }) => <FontAwesome5 name="book" size={20} color={color} />,
         }}
       />
     </Tabs>
