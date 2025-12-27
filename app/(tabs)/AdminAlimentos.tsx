@@ -85,18 +85,32 @@ export default function BibliotecaAlimentos() {
           ))}
         </ScrollView>
 
-        <Text style={styles.label}>Unidad de medida (Macros por 1 {unidad}):</Text>
-        <View style={styles.row}>
-          {grupo.unidades.map((u) => (
-            <TouchableOpacity 
-              key={u} 
-              onPress={() => setUnidad(u)}
-              style={[styles.unitBtn, unidad === u && styles.unitBtnActive]}
-            >
-              <Text style={[styles.unitText, unidad === u && styles.unitTextActive]}>{u}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+<Text style={styles.label}>Selecciona la Unidad de Medida:</Text>
+<View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 15 }}>
+  {grupo.unidades.map((u) => (
+    <TouchableOpacity 
+      key={u} 
+      onPress={() => setUnidad(u)}
+      style={{
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+        borderRadius: 10,
+        borderWidth: 2,
+        borderColor: unidad === u ? '#3b82f6' : '#e2e8f0',
+        backgroundColor: unidad === u ? '#eff6ff' : '#fff',
+        minWidth: '30%',
+        alignItems: 'center'
+      }}
+    >
+      <Text style={{ 
+        color: unidad === u ? '#3b82f6' : '#64748b', 
+        fontWeight: 'bold',
+        fontSize: 12,
+        textTransform: 'uppercase'
+      }}>{u}</Text>
+    </TouchableOpacity>
+  ))}
+</View>
 
         <View style={styles.gridInputs}>
           <View style={styles.boxInput}><Text style={styles.miniLabel}>Kcal</Text><TextInput style={styles.inputN} keyboardType="numeric" value={calorias} onChangeText={setCalorias} placeholder="0"/></View>
