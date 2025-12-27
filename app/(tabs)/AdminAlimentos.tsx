@@ -6,14 +6,15 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 // Definición de grupos y sus unidades según lo que pediste
 const GRUPOS_ALIMENTOS = [
-  { nombre: 'Verduras', unidades: ['taza', 'pieza', 'cucharada'] },
-  { nombre: 'Frutas', unidades: ['pieza', 'taza'] },
-  { nombre: 'Lácteos', unidades: ['taza', 'pieza'] },
-  { nombre: 'Leguminosas', unidades: ['taza'] },
-  { nombre: 'Cereales', unidades: ['taza', 'pieza', 'rebanada'] },
-  { nombre: 'Aceites', unidades: ['cucharada', 'pieza'] },
-  { nombre: 'Azúcares', unidades: ['taza', 'cucharada'] },
-  { nombre: 'Origen Animal', unidades: ['gr', 'pieza', 'rebanada', 'cucharada'] },
+    { nombre: 'Verduras', unidades: ['taza', 'pieza', 'cucharada'] },
+    { nombre: 'Frutas', unidades: ['pieza', 'taza'] },
+    { nombre: 'Lácteos', unidades: ['taza', 'pieza'] },
+    { nombre: 'Leguminosas', unidades: ['taza'] },
+    { nombre: 'Cereales', unidades: ['taza', 'pieza', 'rebanada'] },
+    { nombre: 'Aceites', unidades: ['cucharada', 'pieza'] },
+    { nombre: 'Azúcares', unidades: ['taza', 'cucharada'] },
+  // Aquí agregamos tu medida específica de 35g
+    { nombre: 'Origen Animal', unidades: ['porción (35g)', 'gr', 'pieza', 'rebanada'] },
 ];
 
 export default function BibliotecaAlimentos() {
