@@ -451,20 +451,29 @@ export default function CoachPanel() {
         <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: 'bold', marginBottom: 8 }}>NIVEL DE ACTIVIDAD FISICA:</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 15 }}>
           {[
-            { label: 'SEDENTARIO (1.2)', val: 1.2 },
-            { label: 'LEVE (1.6)', val: 1.6 },
-            { label: 'MODERADO (3.0)', val: 3.0 },
-            { label: 'VIGOROSO (6.0)', val: 6.0 },
+            { label: 'SEDENTARIO', desc: 'Poco o nada', val: 1.2 },
+            { label: 'LEVE', desc: '3 días/sem', val: 1.375 },
+            { label: 'MODERADO', desc: '5 días/sem', val: 1.55 },
+            { label: 'VIGOROSO', desc: '6 días/sem', val: 1.725 },
+            { label: 'ATLETA', desc: 'Muy intenso', val: 1.9 },
+            { label: 'ALTO REND.', desc: 'Extremo', val: 6.0 },
           ].map((f) => (
             <TouchableOpacity 
               key={f.val} 
               onPress={() => setFactorActividad(f.val)}
               style={{ 
-                backgroundColor: factorActividad === f.val ? '#3b82f6' : '#334155', 
-                paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, flex: 1, minWidth: '45%' 
+                backgroundColor: factorActividad === f.val ? '#3b82f6' : '#1e293b', 
+                borderWidth: 1,
+                borderColor: factorActividad === f.val ? '#60a5fa' : '#334155',
+                padding: 8, 
+                borderRadius: 8, 
+                width: '31%', // Para que salgan 3 por fila
+                alignItems: 'center'
               }}
             >
-              <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center', fontWeight: 'bold' }}>{f.label}</Text>
+              <Text style={{ color: '#fff', fontSize: 8, fontWeight: 'bold', textAlign: 'center' }}>{f.label}</Text>
+              <Text style={{ color: factorActividad === f.val ? '#fff' : '#94a3b8', fontSize: 7, textAlign: 'center' }}>{f.desc}</Text>
+              <Text style={{ color: '#60a5fa', fontSize: 9, fontWeight: 'bold', marginTop: 2 }}>{f.val}</Text>
             </TouchableOpacity>
           ))}
         </View>
