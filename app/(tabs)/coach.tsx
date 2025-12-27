@@ -59,21 +59,23 @@ export default function CoachPanel() {
     return Math.round(tmb * factorActividad); 
   };
 
-  const buscarAlimento = async (texto: string) => {
-    setBusqueda(texto);
-    if (texto.length > 2) {
-      const q = query(
-        collection(db, "alimentos"), 
-        where("nombre", ">=", texto.toLowerCase()), 
-        where("nombre", "<=", texto.toLowerCase() + "\uf8ff")
-      );
-      const querySnapshot = await getDocs(q);
-      const sugerencias = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setAlimentosFiltrados(sugerencias);
-    } else {
-      setAlimentosFiltrados([]);
-    }
-  };
+const buscarAlimento = (texto: string) => {
+  setBusqueda(texto);
+  
+  if (texto.length > 1) {
+    const minustexto = texto.toLowerCase();
+    
+    // Filtramos localmente: busca coincidencias en cualquier parte del nombre
+    const sugerencias = alimentos.filter(item => 
+      item.nombre.toLowerCase().includes(minustexto) || 
+      item.grupo?.toLowerCase().includes(minustexto)
+    );
+    
+    setAlimentosFiltrados(sugerencias);
+  } else {
+    setAlimentosFiltrados([]);
+  }
+};
 
   const agregarAlPlan = (item: any, cantidad: number, unidad: string) => {
     // Calculamos el factor según la cantidad (ej: 0.5 para media taza)
