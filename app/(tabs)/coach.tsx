@@ -564,38 +564,40 @@ const buscarAlimento = (texto: string) => {
     style={stylesNutri.suggestionItem} 
     onPress={() => {
       // Tomamos la unidad que guardaste en la biblioteca (taza, pieza, etc.)
-      const unidad = item.unidadMedida || "unidad"; 
+      const unidad = (item.unidadMedida || "unidad").toLowerCase();
+      let botones = [];
 
-      Alert.alert(
-        `${item.nombre.toUpperCase()}`,
-        `Selecciona la cantidad en [${unidad}]:`,
-        [
+// Si es Taza, damos las opciones de fracciones
+      if (unidad.includes("taza")) {
+        botones = [
           { text: "1/4", onPress: () => agregarAlPlan(item, 0.25, unidad) },
+          { text: "1/3", onPress: () => agregarAlPlan(item, 0.33, unidad) },
+          { text: "1/2", onPress: () => agregarAlPlan(item, 0.5, unidad) },
+          { text: "1", onPress: () => agregarAlPlan(item, 1, unidad) },
+        ];
+      } 
+      // Para piezas, rebanadas o porciones (como el pollo de 35g)
+      else {
+        botones = [
           { text: "1/2", onPress: () => agregarAlPlan(item, 0.5, unidad) },
           { text: "1", onPress: () => agregarAlPlan(item, 1, unidad) },
           { text: "2", onPress: () => agregarAlPlan(item, 2, unidad) },
-          { 
-            text: "Manual", 
-            onPress: () => {
-              Alert.prompt(
-                "Cantidad Personalizada",
-                `Ingresa el número de ${unidad}:`,
-                (val) => {
-                  const num = parseFloat(val || "0");
-                  if (num > 0) agregarAlPlan(item, num, unidad);
-                },
-                "plain-text",
-                "1"
-              );
-            }
-          },
-          { text: "Cancelar", style: "cancel" }
-        ]
-      );
+          { text: "3", onPress: () => agregarAlPlan(item, 3, unidad) },
+        ];
+      }
+
+      // Agregamos opción manual y cancelar
+      botones.push({ 
+        text: "Otro", 
+        onPress: () => Alert.prompt("Manual", `Cant. de ${unidad}:`, (v) => agregarAlPlan(item, parseFloat(v || "1"), unidad)) 
+      });
+      botones.push({ text: "X", onPress: () => console.log("Cancelado") });
+
+      Alert.alert(item.nombre.toUpperCase(), `Medida base: ${unidad}`, botones);
     }}>
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 10 }}>
       <Text style={stylesNutri.suggestionText}>{item.nombre.toUpperCase()}</Text>
-      <Text style={{ fontSize: 10, color: '#3b82f6', fontWeight: 'bold' }}>{item.unidadMedida?.toUpperCase()}</Text>
+      <Text style={{ fontSize: 10, color: '#3b82f6' }}>{item.unidadMedida?.toUpperCase()}</Text>
     </View>
   </TouchableOpacity>
 ))}

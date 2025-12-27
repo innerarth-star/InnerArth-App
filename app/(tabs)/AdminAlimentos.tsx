@@ -26,13 +26,20 @@ export default function BibliotecaAlimentos() {
   const [alimentos, setAlimentos] = useState<any[]>([]);
 
   useEffect(() => {
-    const q = query(collection(db, "alimentos"));
-    const unsub = onSnapshot(q, (snapshot) => {
-      const lista = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-      setAlimentos(lista.sort((a, b) => a.nombre.localeCompare(b.nombre)));
-    });
-    return () => unsub();
-  }, []);
+const q = query(collection(db, "alimentos"));
+  const unsub = onSnapshot(q, (snapshot) => {
+    const lista = snapshot.docs.map(doc => ({ 
+      id: doc.id, 
+      ...doc.data() 
+    } as any));
+    
+    // ESTO ES CLAVE: Mira tu terminal de VS Code al guardar
+    console.log("DEBUG: Alimentos bajados de Firebase ->", lista.length);
+    
+    setAlimentos(lista);
+  });
+  return () => unsub();
+}, []);
 
   // --- FUNCIÓN DE CARGA MASIVA DESDE TU EXCEL ---
   const importarDatosDesdeExcel = async () => {
