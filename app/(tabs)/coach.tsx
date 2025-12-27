@@ -17,6 +17,7 @@ export default function CoachPanel() {
   const [modalDieta, setModalDieta] = useState(false);
   const [dietaActual, setDietaActual] = useState<any[]>([]);
   const [busqueda, setBusqueda] = useState('');
+  const [alimentos, setAlimentos] = useState<any[]>([]);
   const [alimentosFiltrados, setAlimentosFiltrados] = useState<any[]>([]);
   const [factorActividad, setFactorActividad] = useState<number>(1.2);
   const [ajusteCalorico, setAjusteCalorico] = useState<number>(0);
@@ -535,12 +536,24 @@ export default function CoachPanel() {
         </View>
       </View>
 
-      <TextInput
-        style={stylesNutri.searchInput}
-        placeholder="Buscar alimento en biblioteca..."
-        value={busqueda}
-        onChangeText={buscarAlimento}
-        placeholderTextColor="#94a3b8"
+<TextInput 
+  style={stylesNutri.searchInput}
+  placeholder="Buscar alimento (ej: pollo, arroz...)"
+  placeholderTextColor="#94a3b8"
+  value={busqueda}
+  onChangeText={(text) => {
+    setBusqueda(text);
+    if (text.length > 1) {
+      // FILTRO INTELIGENTE:
+      // Convierte todo a minúsculas y busca si el texto está INCLUIDO en el nombre
+      const filtrados = alimentos.filter(item => 
+        item.nombre.toLowerCase().includes(text.toLowerCase())
+      );
+      setAlimentosFiltrados(filtrados);
+    } else {
+      setAlimentosFiltrados([]);
+    }
+  }}
       />
 
 {alimentosFiltrados.map((item) => (
