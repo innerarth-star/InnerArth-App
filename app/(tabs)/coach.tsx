@@ -18,8 +18,8 @@ export default function CoachPanel() {
   const [dietaActual, setDietaActual] = useState<any[]>([]);
   const [busqueda, setBusqueda] = useState('');
   const [alimentosFiltrados, setAlimentosFiltrados] = useState<any[]>([]);
-  const [caloriasManuales, setCaloriasManuales] = useState<string>('');
-  const [factorActividad, setFactorActividad] = useState<string>('1.4');
+  const [factorActividad, setFactorActividad] = useState<number>(1.2);
+  const [ajusteCalorico, setAjusteCalorico] = useState<number>(0);
 
 
   useEffect(() => {
@@ -36,19 +36,27 @@ export default function CoachPanel() {
     return () => unsub();
   }, []);
 
-  // --- LÓGICA DE NUTRICIÓN ---
+ // --- LÓGICA DE NUTRICIÓN (CORREGIDA) ---
   const calcularMetabolismo = (alumno: any) => {
-    if (!alumno?.datosFisicos) return 0;
-    const { peso, altura, edad, genero } = alumno.datosFisicos;
-    let tmb = 0;
-    if (genero === 'hombre') {
-      tmb = (10 * parseFloat(peso)) + (6.25 * parseFloat(altura)) - (5 * edad) + 5;
-    } else {
-      tmb = (10 * parseFloat(peso)) + (6.25 * parseFloat(altura)) - (5 * edad) - 161;
+    if (!alumno?.datosFisicos) return 0;
+    const { peso, altura, edad, genero } = alumno.datosFisicos;
+    
+    let tmb = 0;
+    // Aseguramos que los valores sean numéricos para el cálculo de la TMB
+    const p = parseFloat(peso) || 0;
+    const a = parseFloat(altura) || 0;
+    const e = parseFloat(edad) || 0;
+
+    if (genero === 'hombre') {
+      tmb = (10 * p) + (6.25 * a) - (5 * e) + 5;
+    } else {
+      tmb = (10 * p) + (6.25 * a) - (5 * e) - 161;
     }
-  // Usamos el estado factorActividad que tú controlas
-    return Math.round(tmb * parseFloat(factorActividad || "1.4")); 
-};
+
+    // Usamos directamente el factorActividad (que ya es número)
+    // Sin parseFloat y sin el operador || "1.4" que causaba el conflicto de tipos
+    return Math.round(tmb * factorActividad); 
+  };
 
   const buscarAlimento = async (texto: string) => {
     setBusqueda(texto);
@@ -436,40 +444,79 @@ export default function CoachPanel() {
 
     <ScrollView style={{ padding: 20 }} keyboardShouldPersistTaps="handled">
       
-      {/* TARJETA DE CONTROL DE CALORÍAS Y FACTOR */}
+{/* TARJETA DE CONTROL DE CALORÍAS Y FACTOR (ACTUALIZADA) */}
       <View style={[stylesNutri.macroCard, { backgroundColor: '#1e293b' }]}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}>FACTOR ACTIVIDAD</Text>
-            <TextInput 
-              style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', borderBottomWidth: 1, borderBottomColor: '#3b82f6', width: 60 }}
-              keyboardType="numeric"
-              value={factorActividad}
-              onChangeText={setFactorActividad}
-              placeholder="1.4"
-              placeholderTextColor="#475569"
-            />
-          </View>
-          <View style={{ flex: 1, alignItems: 'flex-end' }}>
-            <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}>CALORÍAS OBJETIVO</Text>
-            <TextInput 
-              style={{ color: '#fff', fontSize: 22, fontWeight: 'bold', borderBottomWidth: 1, borderBottomColor: '#22c55e', width: 100, textAlign: 'right' }}
-              keyboardType="numeric"
-              value={caloriasManuales}
-              onChangeText={setCaloriasManuales}
-              placeholder={calcularMetabolismo(alumnoSeleccionado).toString()}
-              placeholderTextColor="#475569"
-            />
-          </View>
+        
+        {/* SELECTOR DE INTENSIDAD (FACTORES) */}
+        <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: 'bold', marginBottom: 8 }}>NIVEL DE ACTIVIDAD FISICA:</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 15 }}>
+          {[
+            { label: 'SEDENTARIO (1.2)', val: 1.2 },
+            { label: 'LEVE (1.6)', val: 1.6 },
+            { label: 'MODERADO (3.0)', val: 3.0 },
+            { label: 'VIGOROSO (6.0)', val: 6.0 },
+          ].map((f) => (
+            <TouchableOpacity 
+              key={f.val} 
+              onPress={() => setFactorActividad(f.val)}
+              style={{ 
+                backgroundColor: factorActividad === f.val ? '#3b82f6' : '#334155', 
+                paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, flex: 1, minWidth: '45%' 
+              }}
+            >
+              <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center', fontWeight: 'bold' }}>{f.label}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
+        {/* BOTONES DE AJUSTE (DÉFICIT / SUPERÁVIT) */}
+        <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: 'bold', marginBottom: 8 }}>AJUSTE DE OBJETIVO (KCAL):</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+          {[200, 300, 400, 500].map((num) => (
+            <TouchableOpacity 
+              key={num} 
+              onPress={() => setAjusteCalorico(-num)} 
+              style={{ backgroundColor: ajusteCalorico === -num ? '#ef4444' : '#450a0a', padding: 6, borderRadius: 6, flex: 1, marginHorizontal: 2 }}
+            >
+              <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center' }}>-{num}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 }}>
+          {[200, 300, 400, 500].map((num) => (
+            <TouchableOpacity 
+              key={num} 
+              onPress={() => setAjusteCalorico(num)} 
+              style={{ backgroundColor: ajusteCalorico === num ? '#22c55e' : '#064e3b', padding: 6, borderRadius: 6, flex: 1, marginHorizontal: 2 }}
+            >
+              <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center' }}>+{num}</Text>
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity 
+            onPress={() => setAjusteCalorico(0)} 
+            style={{ backgroundColor: ajusteCalorico === 0 ? '#3b82f6' : '#1e3a8a', padding: 6, borderRadius: 6, flex: 1, marginHorizontal: 2 }}
+          >
+            <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center' }}>BASE</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* RESULTADO FINAL DINÁMICO */}
+        <View style={{ alignItems: 'center', backgroundColor: '#0f172a', padding: 12, borderRadius: 12, marginBottom: 15 }}>
+          <Text style={{ color: '#94a3b8', fontSize: 9 }}>META DIARIA FINAL</Text>
+          <Text style={{ color: '#fff', fontSize: 28, fontWeight: 'bold' }}>
+            {calcularMetabolismo(alumnoSeleccionado) + ajusteCalorico} 
+            <Text style={{ fontSize: 12, color: '#60a5fa' }}> KCAL</Text>
+          </Text>
+        </View>
+
+        {/* VISUALIZACIÓN DE MACROS ACTUALES */}
         <View style={stylesNutri.macroRow}>
           <MacroDisplay label="PROT" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.p), 0).toFixed(1)} color="#60a5fa" />
           <MacroDisplay label="GRASA" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.g), 0).toFixed(1)} color="#facc15" />
           <MacroDisplay label="CARBS" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.c), 0).toFixed(1)} color="#4ade80" />
           <MacroDisplay 
-            label="RESTANTE" 
-            value={(parseFloat(caloriasManuales || calcularMetabolismo(alumnoSeleccionado).toString()) - dietaActual.reduce((acc, i) => acc + parseFloat(i.kcal), 0)).toFixed(0)} 
+            label="FALTAN" 
+            value={( (calcularMetabolismo(alumnoSeleccionado) + ajusteCalorico) - dietaActual.reduce((acc, i) => acc + parseFloat(i.kcal), 0) ).toFixed(0)} 
             color="#f87171" 
           />
         </View>
