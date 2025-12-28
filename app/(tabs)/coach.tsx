@@ -640,7 +640,7 @@ const abrirPlanAlimentacion = (alumno: any) => {
         </Text>
       </View>
 
-      {/* 3. MACROS ACTUALES Y FALTANTES */}
+{/* 3. MACROS ACTUALES Y FALTANTES */}
       <View style={[stylesNutri.macroRow, {backgroundColor: '#1e293b', padding: 15, borderRadius: 15, marginBottom: 20}]}>
         <MacroDisplay label="PROT" value={dietaActual.reduce((acc, i) => acc + (parseFloat(i.p) || 0), 0).toFixed(1)} color="#60a5fa" />
         <MacroDisplay label="GRASA" value={dietaActual.reduce((acc, i) => acc + (parseFloat(i.g) || 0), 0).toFixed(1)} color="#facc15" />
@@ -649,7 +649,7 @@ const abrirPlanAlimentacion = (alumno: any) => {
           label="FALTAN" 
           value={(
             (esPlanHistorico 
-              ? (planSeleccionado?.macrosTotales?.kcal || planSeleccionado?.kcalObjetivo || 0) 
+              ? (parseFloat(planSeleccionado?.macrosTotales?.kcal) || 0) 
               : (calcularMetabolismo(alumnoSeleccionado) + ajusteCalorico)
             ) - dietaActual.reduce((acc, i) => acc + (parseFloat(i.kcal) || 0), 0)
           ).toFixed(0)} 
