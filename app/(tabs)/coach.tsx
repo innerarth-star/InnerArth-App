@@ -23,6 +23,7 @@ export default function CoachPanel() {
   const [ajusteCalorico, setAjusteCalorico] = useState<number>(0);
   const [comidaActiva, setComidaActiva] = useState(1);
   const [historialPlanes, setHistorialPlanes] = useState<any[]>([]);
+  const [esPlanHistorico, setEsPlanHistorico] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, "revisiones_pendientes"));
@@ -146,10 +147,12 @@ const nuevoItem = {
   };
 
   // --- FUNCIONES PARA PLANES ---
-  const abrirPlanAlimentacion = (alumno: any) => {
-    setAlumnoSeleccionado(alumno);
-    setModalDieta(true);
-  };
+const abrirPlanAlimentacion = (alumno: any) => {
+  setAlumnoSeleccionado(alumno);
+  setDietaActual([]); // Empieza vacío
+  setEsPlanHistorico(false); // PERMITE guardar
+  setModalDieta(true);
+};
 
 // AQUÍ PEGAS LA FUNCIÓN DE GUARDADO
   const guardarPlanAlimentacion = async () => {
@@ -528,8 +531,9 @@ const nuevoItem = {
                   <TouchableOpacity 
                     key={plan.id} 
                     onPress={() => {
-                      setDietaActual(plan.dieta); // Carga la dieta vieja al editor
-                      setModalDieta(true); // Abre el diseñador para verla
+                      setDietaActual(plan.dieta); 
+                      setEsPlanHistorico(true); // BLOQUEA el guardado (Modo Lectura)
+                      setModalDieta(true);
                     }}
                     style={{ 
                       backgroundColor: 'white', 
@@ -700,6 +704,64 @@ const nuevoItem = {
         </ScrollView>
       </View>
 
+{/* --- EL BUSCADOR Y RESULTADOS SOLO SE VEN SI NO ES HISTÓRICO --- */}
+      {!esPlanHistorico && (
+        <>
+          <TextInput 
+            style={stylesNutri.searchInput}
+            placeholder="Buscar alimento (ej: pollo, arroz...)"
+            placeholderTextColor="#94a3b8"
+            value={busqueda}
+            onChangeText={(text) => {
+              setBusqueda(text);
+              if (text.length > 1) {
+                const filtrados = alimentos.filter(item => 
+                  item.nombre.toLowerCase().includes(text.toLowerCase())
+                );
+                setAlimentosFiltrados(filtrados);
+              } else {
+                setAlimentosFiltrados([]);
+              }
+            }}
+          />
+
+          {alimentosFiltrados.map((item) => (
+            <TouchableOpacity 
+              key={item.id} 
+              style={stylesNutri.suggestionItem} 
+              onPress={() => {
+                const unidad = (item.unidadMedida || "unidad").toLowerCase();
+                let botones = [];
+                if (unidad.includes("taza")) {
+                  botones = [
+                    { text: "1/4", onPress: () => agregarAlPlan(item, 0.25, unidad) },
+                    { text: "1/3", onPress: () => agregarAlPlan(item, 0.33, unidad) },
+                    { text: "1/2", onPress: () => agregarAlPlan(item, 0.5, unidad) },
+                    { text: "1", onPress: () => agregarAlPlan(item, 1, unidad) },
+                  ];
+                } else {
+                  botones = [
+                    { text: "1/2", onPress: () => agregarAlPlan(item, 0.5, unidad) },
+                    { text: "1", onPress: () => agregarAlPlan(item, 1, unidad) },
+                    { text: "2", onPress: () => agregarAlPlan(item, 2, unidad) },
+                    { text: "3", onPress: () => agregarAlPlan(item, 3, unidad) },
+                  ];
+                }
+                botones.push({ 
+                  text: "Otro", 
+                  onPress: () => Alert.prompt("Manual", `Cant. de ${unidad}:`, (v) => agregarAlPlan(item, parseFloat(v || "1"), unidad)) 
+                });
+                botones.push({ text: "X", onPress: () => console.log("Cancelado") });
+                Alert.alert(item.nombre.toUpperCase(), `Medida base: ${unidad}`, botones);
+              }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 10 }}>
+                <Text style={stylesNutri.suggestionText}>{item.nombre.toUpperCase()}</Text>
+                <Text style={{ fontSize: 10, color: '#3b82f6' }}>{item.unidadMedida?.toUpperCase()}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </>
+      )}
 
 <TextInput 
   style={stylesNutri.searchInput}
@@ -808,14 +870,17 @@ const nuevoItem = {
                       {item.cantidadUsada} {item.unidadElegida} • P: {item.p}g G: {item.g}g C: {item.c}g
                     </Text>
                   </View>
+              {/* ESTA ES LA MODIFICACIÓN: Si es histórico, no sale la basura */}
+                {!esPlanHistorico && (
                   <TouchableOpacity 
                     onPress={() => setDietaActual(dietaActual.filter(a => a.idTemporal !== item.idTemporal))}
                     style={{ padding: 5 }}
                   >
                     <Ionicons name="trash" size={18} color="#ef4444" />
                   </TouchableOpacity>
-                </View>
-              ))}
+                )}
+              </View>
+            ))}
 
               {alimentosDeEstaComida.length === 0 && (
                 <Text style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic', textAlign: 'center', marginTop: 5 }}>
