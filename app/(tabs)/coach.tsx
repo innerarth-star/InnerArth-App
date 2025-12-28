@@ -634,7 +634,7 @@ const abrirPlanAlimentacion = (alumno: any) => {
         <Text style={{ color: '#94a3b8', fontSize: 10 }}>META DIARIA FINAL</Text>
         <Text style={{ color: '#fff', fontSize: 32, fontWeight: 'bold' }}>
           {esPlanHistorico 
-            ? (planSeleccionado?.macrosTotales?.kcal || planSeleccionado?.kcalObjetivo || 0) 
+            ? (planSeleccionado?.macrosTotales?.kcal || 0) 
             : (calcularMetabolismo(alumnoSeleccionado) + ajusteCalorico)} 
           <Text style={{ fontSize: 14, color: '#60a5fa' }}> KCAL</Text>
         </Text>
