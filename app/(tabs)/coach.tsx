@@ -24,6 +24,7 @@ export default function CoachPanel() {
   const [comidaActiva, setComidaActiva] = useState(1);
   const [historialPlanes, setHistorialPlanes] = useState<any[]>([]);
   const [esPlanHistorico, setEsPlanHistorico] = useState(false);
+  const [planSeleccionado, setPlanSeleccionado] = useState<any>(null);
 
   useEffect(() => {
     const q = query(collection(db, "revisiones_pendientes"));
@@ -581,145 +582,115 @@ const abrirPlanAlimentacion = (alumno: any) => {
 <Modal visible={modalDieta} animationType="slide">
   <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
     <View style={stylesNutri.header}>
-      <TouchableOpacity onPress={() => setModalDieta(false)}><Ionicons name="close" size={28} color="#ef4444" /></TouchableOpacity>
-      <Text style={stylesNutri.headerTitle}>Plan de: {alumnoSeleccionado?.nombre}</Text>
-      <TouchableOpacity onPress={guardarPlanAlimentacion}><Ionicons name="checkmark-circle" size={28} color="#22c55e" /></TouchableOpacity>
+      <TouchableOpacity onPress={() => setModalDieta(false)}>
+        <Ionicons name="close" size={28} color="#ef4444" />
+      </TouchableOpacity>
+      <Text style={stylesNutri.headerTitle}>
+        {esPlanHistorico ? "Consulta de Plan" : `Plan de: ${alumnoSeleccionado?.nombre}`}
+      </Text>
+      {/* Solo mostramos la paloma si no es histórico */}
+      {!esPlanHistorico ? (
+        <TouchableOpacity onPress={guardarPlanAlimentacion}>
+          <Ionicons name="checkmark-circle" size={28} color="#22c55e" />
+        </TouchableOpacity>
+      ) : <View style={{width: 28}} />}
     </View>
 
     <ScrollView style={{ padding: 20 }} keyboardShouldPersistTaps="handled">
       
-{/* TARJETA DE CONTROL DE CALORÍAS Y FACTOR (ACTUALIZADA) */}
-      <View style={[stylesNutri.macroCard, { backgroundColor: '#1e293b' }]}>
-        
-        {/* SELECTOR DE INTENSIDAD (FACTORES) */}
-        <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: 'bold', marginBottom: 8 }}>NIVEL DE ACTIVIDAD FISICA:</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 15 }}>
-          {[
-            { label: 'SEDENTARIO', desc: 'Poco o nada', val: 1.2 },
-            { label: 'LEVE', desc: '3 días/sem', val: 1.375 },
-            { label: 'MODERADO', desc: '5 días/sem', val: 1.55 },
-            { label: 'VIGOROSO', desc: '6 días/sem', val: 1.725 },
-            { label: 'ATLETA', desc: 'Muy intenso', val: 1.9 },
-            { label: 'ALTO REND.', desc: 'Extremo', val: 6.0 },
-          ].map((f) => (
-            <TouchableOpacity 
-              key={f.val} 
-              onPress={() => setFactorActividad(f.val)}
-              style={{ 
-                backgroundColor: factorActividad === f.val ? '#3b82f6' : '#1e293b', 
-                borderWidth: 1,
-                borderColor: factorActividad === f.val ? '#60a5fa' : '#334155',
-                padding: 8, 
-                borderRadius: 8, 
-                width: '31%', // Para que salgan 3 por fila
-                alignItems: 'center'
-              }}
-            >
-              <Text style={{ color: '#fff', fontSize: 8, fontWeight: 'bold', textAlign: 'center' }}>{f.label}</Text>
-              <Text style={{ color: factorActividad === f.val ? '#fff' : '#94a3b8', fontSize: 7, textAlign: 'center' }}>{f.desc}</Text>
-              <Text style={{ color: '#60a5fa', fontSize: 9, fontWeight: 'bold', marginTop: 2 }}>{f.val}</Text>
-            </TouchableOpacity>
-          ))}
+      {/* SECCIÓN DE EDICIÓN: Solo visible en planes nuevos */}
+      {!esPlanHistorico && (
+        <View style={[stylesNutri.macroCard, { backgroundColor: '#1e293b', marginBottom: 15 }]}>
+          <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: 'bold', marginBottom: 8 }}>NIVEL DE ACTIVIDAD FISICA:</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 15 }}>
+            {[
+              { label: 'SEDENTARIO', val: 1.2 }, { label: 'LEVE', val: 1.375 },
+              { label: 'MODERADO', val: 1.55 }, { label: 'VIGOROSO', val: 1.725 },
+              { label: 'ATLETA', val: 1.9 }
+            ].map((f) => (
+              <TouchableOpacity 
+                key={f.val} 
+                onPress={() => setFactorActividad(f.val)}
+                style={{ 
+                  backgroundColor: factorActividad === f.val ? '#3b82f6' : '#1e293b', 
+                  padding: 8, borderRadius: 8, width: '31%', alignItems: 'center', borderWidth: 1, borderColor: '#334155' 
+                }}
+              >
+                <Text style={{ color: '#fff', fontSize: 8, fontWeight: 'bold' }}>{f.label}</Text>
+                <Text style={{ color: '#60a5fa', fontSize: 9 }}>{f.val}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: 'bold', marginBottom: 8 }}>AJUSTE DE OBJETIVO (KCAL):</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 }}>
+            {[-500, -300, 0, 300, 500].map((num) => (
+              <TouchableOpacity 
+                key={num} 
+                onPress={() => setAjusteCalorico(num)} 
+                style={{ 
+                  backgroundColor: ajusteCalorico === num ? (num < 0 ? '#ef4444' : '#22c55e') : '#334155', 
+                  padding: 6, borderRadius: 6, flex: 1, marginHorizontal: 2 
+                }}
+              >
+                <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center' }}>
+                  {num > 0 ? `+${num}` : num === 0 ? 'BASE' : num}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
+      )}
 
-        {/* BOTONES DE AJUSTE (DÉFICIT / SUPERÁVIT) */}
-{/* --- TODO ESTO SE OCULTA EN EL HISTORIAL --- */}
-{!esPlanHistorico && (
-  <>
-    {/* SELECTOR DE INTENSIDAD */}
-    <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: 'bold', marginBottom: 8 }}>NIVEL DE ACTIVIDAD FISICA:</Text>
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 15 }}>
-       {/* ... aquí van tus botones de Sedentario, Leve, etc ... */}
-    </View>
-
-    {/* BOTONES DE AJUSTE (DÉFICIT / SUPERÁVIT) */}
-    <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: 'bold', marginBottom: 8 }}>AJUSTE DE OBJETIVO (KCAL):</Text>
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-      {[200, 300, 400, 500].map((num) => (
-        <TouchableOpacity 
-          key={num} 
-          onPress={() => setAjusteCalorico(-num)} 
-          style={{ backgroundColor: ajusteCalorico === -num ? '#ef4444' : '#450a0a', padding: 6, borderRadius: 6, flex: 1, marginHorizontal: 2 }}
-        >
-          <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center' }}>-{num}</Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 }}>
-      {[200, 300, 400, 500].map((num) => (
-        <TouchableOpacity 
-          key={num} 
-          onPress={() => setAjusteCalorico(num)} 
-          style={{ backgroundColor: ajusteCalorico === num ? '#22c55e' : '#064e3b', padding: 6, borderRadius: 6, flex: 1, marginHorizontal: 2 }}
-        >
-          <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center' }}>+{num}</Text>
-        </TouchableOpacity>
-      ))}
-      <TouchableOpacity 
-        onPress={() => setAjusteCalorico(0)} 
-        style={{ backgroundColor: ajusteCalorico === 0 ? '#3b82f6' : '#1e3a8a', padding: 6, borderRadius: 6, flex: 1, marginHorizontal: 2 }}
-      >
-        <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center' }}>BASE</Text>
-      </TouchableOpacity>
-    </View>
-  </>
-)}
-
-        {/* RESULTADO FINAL DINÁMICO */}
-        <View style={{ alignItems: 'center', backgroundColor: '#0f172a', padding: 12, borderRadius: 12, marginBottom: 15 }}>
-          <Text style={{ color: '#94a3b8', fontSize: 9 }}>META DIARIA FINAL</Text>
-          <Text style={{ color: '#fff', fontSize: 28, fontWeight: 'bold' }}>
-            {calcularMetabolismo(alumnoSeleccionado) + ajusteCalorico} 
-            <Text style={{ fontSize: 12, color: '#60a5fa' }}> KCAL</Text>
-          </Text>
-        </View>
-
-        {/* VISUALIZACIÓN DE MACROS ACTUALES */}
-        <View style={stylesNutri.macroRow}>
-          <MacroDisplay label="PROT" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.p), 0).toFixed(1)} color="#60a5fa" />
-          <MacroDisplay label="GRASA" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.g), 0).toFixed(1)} color="#facc15" />
-          <MacroDisplay label="CARBS" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.c), 0).toFixed(1)} color="#4ade80" />
-          <MacroDisplay 
-            label="FALTAN" 
-            value={( (calcularMetabolismo(alumnoSeleccionado) + ajusteCalorico) - dietaActual.reduce((acc, i) => acc + parseFloat(i.kcal), 0) ).toFixed(0)} 
-            color="#f87171" 
-          />
-        </View>
-      </View>
-
-{/* --- AQUÍ PEGAS EL SELECTOR DE COMIDAS --- */}
-    {!esPlanHistorico && (
-      <View style={{ marginTop: 20, marginBottom: 10 }}>
-        <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1e293b', marginBottom: 8, textTransform: 'uppercase' }}>
-          Selecciona la comida a editar:
+      {/* RESULTADO DE CALORÍAS (Se ve siempre, pero bloqueado en histórico) */}
+      <View style={{ alignItems: 'center', backgroundColor: '#0f172a', padding: 15, borderRadius: 15, marginBottom: 15, borderWidth: 1, borderColor: '#3b82f6' }}>
+        <Text style={{ color: '#94a3b8', fontSize: 9 }}>META DIARIA FINAL</Text>
+        <Text style={{ color: '#fff', fontSize: 32, fontWeight: 'bold' }}>
+          {esPlanHistorico 
+            ? planSeleccionado?.macrosTotales?.kcal 
+            : (calcularMetabolismo(alumnoSeleccionado) + ajusteCalorico)} 
+          <Text style={{ fontSize: 14, color: '#60a5fa' }}> KCAL</Text>
         </Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {Array.from({ length: parseInt(alumnoSeleccionado?.nutricion?.comidasDes || 3) }).map((_, i) => (
-            <TouchableOpacity
-              key={i}
-              onPress={() => setComidaActiva(i + 1)}
-              style={{
-                paddingHorizontal: 20,
-                paddingVertical: 10,
-                backgroundColor: comidaActiva === i + 1 ? '#3b82f6' : '#fff',
-                borderRadius: 12,
-                marginRight: 10,
-                borderWidth: 2,
-                borderColor: comidaActiva === i + 1 ? '#3b82f6' : '#e2e8f0',
-                elevation: comidaActiva === i + 1 ? 3 : 0
-              }}
-            >
-              <Text style={{ color: comidaActiva === i + 1 ? 'white' : '#64748b', fontWeight: 'bold', fontSize: 12 }}>
-                COMIDA {i + 1}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
       </View>
-    )}
-{/* --- EL BUSCADOR Y RESULTADOS SOLO SE VEN SI NO ES HISTÓRICO --- */}
+
+      {/* MACROS ACTUALES */}
+      <View style={[stylesNutri.macroRow, {backgroundColor: '#1e293b', padding: 15, borderRadius: 15, marginBottom: 20}]}>
+        <MacroDisplay label="PROT" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.p || 0), 0).toFixed(1)} color="#60a5fa" />
+        <MacroDisplay label="GRASA" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.g || 0), 0).toFixed(1)} color="#facc15" />
+        <MacroDisplay label="CARBS" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.c || 0), 0).toFixed(1)} color="#4ade80" />
+      </View>
+
+{/* --- SECCIÓN DE EDICIÓN: SOLO SI NO ES HISTÓRICO --- */}
       {!esPlanHistorico && (
         <>
+          <View style={{ marginTop: 20, marginBottom: 10 }}>
+            <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1e293b', marginBottom: 8, textTransform: 'uppercase' }}>
+              Selecciona la comida a editar:
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {Array.from({ length: parseInt(alumnoSeleccionado?.nutricion?.comidasDes || 3) }).map((_, i) => (
+                <TouchableOpacity
+                  key={i}
+                  onPress={() => setComidaActiva(i + 1)}
+                  style={{
+                    paddingHorizontal: 20,
+                    paddingVertical: 10,
+                    backgroundColor: comidaActiva === i + 1 ? '#3b82f6' : '#fff',
+                    borderRadius: 12,
+                    marginRight: 10,
+                    borderWidth: 2,
+                    borderColor: comidaActiva === i + 1 ? '#3b82f6' : '#e2e8f0',
+                    elevation: comidaActiva === i + 1 ? 3 : 0
+                  }}
+                >
+                  <Text style={{ color: comidaActiva === i + 1 ? 'white' : '#64748b', fontWeight: 'bold', fontSize: 12 }}>
+                    COMIDA {i + 1}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
           <TextInput 
             style={stylesNutri.searchInput}
             placeholder="Buscar alimento (ej: pollo, arroz...)"
@@ -775,6 +746,7 @@ const abrirPlanAlimentacion = (alumno: any) => {
           ))}
         </>
       )}
+      {/* --- FIN DE LA SECCIÓN PROTEGIDA --- */}
 
 <TextInput 
   style={stylesNutri.searchInput}
