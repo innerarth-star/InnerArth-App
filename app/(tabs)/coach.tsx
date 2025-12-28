@@ -637,24 +637,70 @@ const nuevoItem = {
   </TouchableOpacity>
 ))}
 
-      <View style={{ marginTop: 20 }}>
-        <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#1e293b', marginBottom: 10 }}>Alimentos en el Plan:</Text>
-        {dietaActual.map((item, index) => (
-          <View key={index} style={stylesNutri.foodCard}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: 'bold', color: '#1e293b' }}>{item.nombre.toUpperCase()}</Text>
-              <Text style={{ fontSize: 12, color: '#64748b' }}>{item.porcion}g • P: {item.p}g | G: {item.g}g | C: {item.c}g</Text>
+{/* --- LISTA ESTRUCTURADA POR COMIDAS --- */}
+      <View style={{ marginTop: 30 }}>
+        <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#1e293b', marginBottom: 15, textTransform: 'uppercase', letterSpacing: 1 }}>
+          Estructura del Plan:
+        </Text>
+        
+        {/* Generamos los bloques según el número de comidas que el alumno eligió en su formulario */}
+        {Array.from({ length: parseInt(alumnoSeleccionado?.nutricion?.comidasDes || 3) }).map((_, i) => {
+          const num = i + 1;
+          // FILTRO CLAVE: Solo mostramos los alimentos que pertenecen a este número de comida
+          const alimentosDeEstaComida = dietaActual.filter(a => a.numComida === num);
+
+          return (
+            <View key={num} style={{ 
+              marginBottom: 15, 
+              backgroundColor: '#fff', 
+              borderRadius: 15, 
+              padding: 15, 
+              elevation: 2, 
+              borderLeftWidth: 5, 
+              borderLeftColor: comidaActiva === num ? '#3b82f6' : '#cbd5e1',
+              borderWidth: 1,
+              borderColor: '#f1f5f9'
+            }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10, alignItems: 'center' }}>
+                <Text style={{ fontWeight: 'bold', color: '#334155', fontSize: 14 }}>
+                  {comidaActiva === num ? '➡️ ' : ''}COMIDA {num}
+                </Text>
+                <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 5 }}>
+                  <Text style={{ fontSize: 11, color: '#3b82f6', fontWeight: 'bold' }}>
+                    {alimentosDeEstaComida.reduce((acc, curr) => acc + parseFloat(curr.kcal), 0).toFixed(0)} kcal
+                  </Text>
+                </View>
+              </View>
+
+              {alimentosDeEstaComida.map((item) => (
+                <View key={item.idTemporal} style={[stylesNutri.foodCard, { marginTop: 5, marginBottom: 5 }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontWeight: 'bold', color: '#1e293b', fontSize: 13 }}>{item.nombre.toUpperCase()}</Text>
+                    <Text style={{ fontSize: 11, color: '#64748b' }}>
+                      {item.cantidadUsada} {item.unidadElegida} • P: {item.p}g G: {item.g}g C: {item.c}g
+                    </Text>
+                  </View>
+                  <TouchableOpacity 
+                    onPress={() => setDietaActual(dietaActual.filter(a => a.idTemporal !== item.idTemporal))}
+                    style={{ padding: 5 }}
+                  >
+                    <Ionicons name="trash" size={18} color="#ef4444" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              {alimentosDeEstaComida.length === 0 && (
+                <Text style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic', textAlign: 'center', marginTop: 5 }}>
+                  No hay alimentos añadidos a la Comida {num}
+                </Text>
+              )}
             </View>
-            <View style={{ alignItems: 'flex-end', marginRight: 10 }}>
-              <Text style={{ fontWeight: 'bold', color: '#1e293b' }}>{item.kcal} kcal</Text>
-            </View>
-            <TouchableOpacity onPress={() => setDietaActual(dietaActual.filter((_, i) => i !== index))}>
-              <Ionicons name="trash" size={20} color="#ef4444" />
-            </TouchableOpacity>
-          </View>
-        ))}
+          );
+        })}
       </View>
-      <View style={{ height: 100 }} />
+      {/* --- FIN DE LA LISTA ESTRUCTURADA --- */}
+
+      <View style={{ height: 120 }} />
     </ScrollView>
   </SafeAreaView>
 </Modal>
