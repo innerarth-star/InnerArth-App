@@ -21,6 +21,7 @@ export default function CoachPanel() {
   const [alimentosFiltrados, setAlimentosFiltrados] = useState<any[]>([]);
   const [factorActividad, setFactorActividad] = useState<number>(1.2);
   const [ajusteCalorico, setAjusteCalorico] = useState<number>(0);
+  const [comidaActiva, setComidaActiva] = useState(1);
 
 
   useEffect(() => {
@@ -84,9 +85,10 @@ useEffect(() => {
     // Calculamos el factor según la cantidad (ej: 0.5 para media taza)
     const factor = cantidad; 
     
-    const nuevoItem = {
+const nuevoItem = {
       ...item,
-      idTemporal: Date.now() + Math.random(), // ID único para evitar errores al borrar
+      idTemporal: Date.now() + Math.random(),
+      numComida: comidaActiva, // <--- VINCULACIÓN CON LA COMIDA SELECCIONADA
       cantidadUsada: cantidad,
       unidadElegida: unidad || item.unidadMedida || "unidad", 
       p: (parseFloat(item.proteina || item.p || 0) * factor).toFixed(1),
@@ -540,6 +542,36 @@ useEffect(() => {
           />
         </View>
       </View>
+
+{/* --- AQUÍ PEGAS EL SELECTOR DE COMIDAS --- */}
+      <View style={{ marginTop: 20, marginBottom: 10 }}>
+        <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1e293b', marginBottom: 8, textTransform: 'uppercase' }}>
+          Selecciona la comida a editar:
+        </Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {Array.from({ length: parseInt(alumnoSeleccionado?.nutricion?.comidasDes || 3) }).map((_, i) => (
+            <TouchableOpacity
+              key={i}
+              onPress={() => setComidaActiva(i + 1)}
+              style={{
+                paddingHorizontal: 20,
+                paddingVertical: 10,
+                backgroundColor: comidaActiva === i + 1 ? '#3b82f6' : '#fff',
+                borderRadius: 12,
+                marginRight: 10,
+                borderWidth: 2,
+                borderColor: comidaActiva === i + 1 ? '#3b82f6' : '#e2e8f0',
+                elevation: comidaActiva === i + 1 ? 3 : 0
+              }}
+            >
+              <Text style={{ color: comidaActiva === i + 1 ? 'white' : '#64748b', fontWeight: 'bold', fontSize: 12 }}>
+                COMIDA {i + 1}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
 
 <TextInput 
   style={stylesNutri.searchInput}
