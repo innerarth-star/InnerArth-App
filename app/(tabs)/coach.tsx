@@ -602,10 +602,17 @@ const abrirPlanAlimentacion = (alumno: any) => {
         <View style={[stylesNutri.macroCard, { backgroundColor: '#1e293b', padding: 15, borderRadius: 20, marginBottom: 20 }]}>
           <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: 'bold', marginBottom: 8 }}>NIVEL DE ACTIVIDAD FISICA:</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 15 }}>
-            {[1.2, 1.375, 1.55, 1.725, 1.9].map((val) => (
-              <TouchableOpacity key={val} onPress={() => setFactorActividad(val)}
-                style={{ backgroundColor: factorActividad === val ? '#3b82f6' : '#1e293b', padding: 8, borderRadius: 8, width: '18%', alignItems: 'center', borderWidth: 1, borderColor: '#334155' }}>
-                <Text style={{ color: '#fff', fontSize: 9, fontWeight: 'bold' }}>{val}</Text>
+            {[
+              {v: 1.2, t: 'Sedentario'},
+              {v: 1.375, t: '1-3 días'},
+              {v: 1.55, t: '3-5 días'},
+              {v: 1.725, t: '6-7 días'},
+              {v: 1.9, t: 'Atleta'}
+            ].map((obj) => (
+              <TouchableOpacity key={obj.v} onPress={() => setFactorActividad(obj.v)}
+                style={{ backgroundColor: factorActividad === obj.v ? '#3b82f6' : '#1e293b', padding: 8, borderRadius: 8, width: '18%', alignItems: 'center', borderWidth: 1, borderColor: '#334155' }}>
+                <Text style={{ color: '#fff', fontSize: 8, fontWeight: 'bold', textAlign: 'center' }}>{obj.t}</Text>
+                <Text style={{ color: '#60a5fa', fontSize: 7 }}>{obj.v}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -626,24 +633,31 @@ const abrirPlanAlimentacion = (alumno: any) => {
       <View style={{ alignItems: 'center', backgroundColor: '#0f172a', padding: 20, borderRadius: 15, marginBottom: 15, borderWidth: 1, borderColor: '#3b82f6' }}>
         <Text style={{ color: '#94a3b8', fontSize: 10 }}>META DIARIA FINAL</Text>
         <Text style={{ color: '#fff', fontSize: 32, fontWeight: 'bold' }}>
-          {esPlanHistorico ? planSeleccionado?.macrosTotales?.kcal : (calcularMetabolismo(alumnoSeleccionado) + ajusteCalorico)} 
+          {esPlanHistorico 
+            ? (planSeleccionado?.macrosTotales?.kcal || planSeleccionado?.kcalObjetivo || 0) 
+            : (calcularMetabolismo(alumnoSeleccionado) + ajusteCalorico)} 
           <Text style={{ fontSize: 14, color: '#60a5fa' }}> KCAL</Text>
         </Text>
       </View>
 
       {/* 3. MACROS ACTUALES Y FALTANTES */}
       <View style={[stylesNutri.macroRow, {backgroundColor: '#1e293b', padding: 15, borderRadius: 15, marginBottom: 20}]}>
-        <MacroDisplay label="PROT" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.p || 0), 0).toFixed(1)} color="#60a5fa" />
-        <MacroDisplay label="GRASA" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.g || 0), 0).toFixed(1)} color="#facc15" />
-        <MacroDisplay label="CARBS" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.c || 0), 0).toFixed(1)} color="#4ade80" />
+        <MacroDisplay label="PROT" value={dietaActual.reduce((acc, i) => acc + (parseFloat(i.p) || 0), 0).toFixed(1)} color="#60a5fa" />
+        <MacroDisplay label="GRASA" value={dietaActual.reduce((acc, i) => acc + (parseFloat(i.g) || 0), 0).toFixed(1)} color="#facc15" />
+        <MacroDisplay label="CARBS" value={dietaActual.reduce((acc, i) => acc + (parseFloat(i.c) || 0), 0).toFixed(1)} color="#4ade80" />
         <MacroDisplay 
           label="FALTAN" 
-          value={((esPlanHistorico ? planSeleccionado?.macrosTotales?.kcal : (calcularMetabolismo(alumnoSeleccionado) + ajusteCalorico)) - dietaActual.reduce((acc, i) => acc + parseFloat(i.kcal || 0), 0)).toFixed(0)} 
+          value={(
+            (esPlanHistorico 
+              ? (planSeleccionado?.macrosTotales?.kcal || planSeleccionado?.kcalObjetivo || 0) 
+              : (calcularMetabolismo(alumnoSeleccionado) + ajusteCalorico)
+            ) - dietaActual.reduce((acc, i) => acc + (parseFloat(i.kcal) || 0), 0)
+          ).toFixed(0)} 
           color="#f87171" 
         />
       </View>
 
-      {/* 4. SELECTOR Y BUSCADOR (SOLO SI NO ES HISTÓRICO) */}
+      {/* 4. SELECTOR Y BUSCADOR (SOLO PLAN NUEVO) */}
       {!esPlanHistorico && (
         <>
           <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1e293b', marginBottom: 8 }}>EDITANDO COMIDA:</Text>
@@ -658,15 +672,11 @@ const abrirPlanAlimentacion = (alumno: any) => {
 
           <TextInput 
             style={stylesNutri.searchInput}
-            placeholder="Buscar alimento (ej: pollo, arroz...)"
-            placeholderTextColor="#94a3b8"
+            placeholder="Buscar alimento..."
             value={busqueda}
-            onChangeText={(text) => {
-              setBusqueda(text);
-              if (text.length > 1) {
-                const filtrados = alimentos.filter(item => item.nombre.toLowerCase().includes(text.toLowerCase()));
-                setAlimentosFiltrados(filtrados);
-              } else { setAlimentosFiltrados([]); }
+            onChangeText={(t) => {
+              setBusqueda(t);
+              setAlimentosFiltrados(t.length > 1 ? alimentos.filter(a => a.nombre.toLowerCase().includes(t.toLowerCase())) : []);
             }}
           />
           {alimentosFiltrados.map((item) => (
@@ -678,33 +688,25 @@ const abrirPlanAlimentacion = (alumno: any) => {
               botones.push({ text: "Otro", onPress: () => Alert.prompt("Manual", `Cant. en ${unidad}:`, (v) => agregarAlPlan(item, parseFloat(v || "1"), unidad)) });
               Alert.alert(item.nombre.toUpperCase(), `Medida: ${unidad}`, botones);
             }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 10 }}>
-                <Text style={stylesNutri.suggestionText}>{item.nombre.toUpperCase()}</Text>
-                <Text style={{ fontSize: 10, color: '#3b82f6' }}>{item.unidadMedida?.toUpperCase()}</Text>
-              </View>
+              <Text style={stylesNutri.suggestionText}>{item.nombre.toUpperCase()}</Text>
             </TouchableOpacity>
           ))}
         </>
       )}
 
-      {/* 5. LISTA ESTRUCTURADA POR COMIDAS */}
+      {/* 5. LISTA POR COMIDAS */}
       <View style={{ marginTop: 20 }}>
         {Array.from({ length: parseInt(alumnoSeleccionado?.nutricion?.comidasDes || 3) }).map((_, i) => {
           const num = i + 1;
           const items = dietaActual.filter(a => a.numComida === num);
           return (
             <View key={num} style={{ marginBottom: 15, backgroundColor: '#fff', borderRadius: 15, padding: 15, borderLeftWidth: 5, borderLeftColor: comidaActiva === num ? '#3b82f6' : '#cbd5e1' }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-                <Text style={{ fontWeight: 'bold', color: '#1e3a8a' }}>COMIDA {num}</Text>
-                <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#3b82f6' }}>
-                  {items.reduce((acc, curr) => acc + parseFloat(curr.kcal), 0).toFixed(0)} kcal
-                </Text>
-              </View>
+              <Text style={{ fontWeight: 'bold', color: '#1e3a8a' }}>COMIDA {num}</Text>
               {items.map(item => (
                 <View key={item.idTemporal} style={stylesNutri.foodCard}>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: 'bold', fontSize: 13 }}>{item.nombre.toUpperCase()}</Text>
-                    <Text style={{ fontSize: 11, color: '#64748b' }}>{item.cantidadUsada} {item.unidadElegida} • {item.kcal} kcal</Text>
+                    <Text style={{ fontWeight: 'bold' }}>{item.nombre.toUpperCase()}</Text>
+                    <Text style={{ fontSize: 11, color: '#64748b' }}>{item.cantidadUsada} {item.unidadElegida} • {(parseFloat(item.kcal) || 0).toFixed(0)} kcal</Text>
                   </View>
                   {!esPlanHistorico && (
                     <TouchableOpacity onPress={() => setDietaActual(dietaActual.filter(a => a.idTemporal !== item.idTemporal))}>
@@ -717,7 +719,7 @@ const abrirPlanAlimentacion = (alumno: any) => {
           );
         })}
       </View>
-      <View style={{ height: 120 }} />
+      <View style={{ height: 100 }} />
     </ScrollView>
   </SafeAreaView>
 </Modal>
