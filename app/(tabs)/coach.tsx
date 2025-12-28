@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, Modal, ScrollView, ActivityIndicator, SafeAreaView, Image, Alert, TextInput } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
-import { collection, query, onSnapshot, orderBy, doc, deleteDoc, where, getDocs } from 'firebase/firestore'; // Se agregó doc y deleteDoc
+import { collection, query, onSnapshot, orderBy, doc, deleteDoc, where, getDocs, updateDoc, addDoc } from 'firebase/firestore'; // Se agregó doc y deleteDoc
 import { signOut } from 'firebase/auth';
 import { FontAwesome5, Ionicons, FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
@@ -22,7 +22,7 @@ export default function CoachPanel() {
   const [factorActividad, setFactorActividad] = useState<number>(1.2);
   const [ajusteCalorico, setAjusteCalorico] = useState<number>(0);
   const [comidaActiva, setComidaActiva] = useState(1);
-
+  const [historialPlanes, setHistorialPlanes] = useState<any[]>([]);
 
   useEffect(() => {
     const q = query(collection(db, "revisiones_pendientes"));
@@ -81,6 +81,50 @@ useEffect(() => {
   return () => unsub();
 }, []);
 
+useEffect(() => {
+  if (alumnoSeleccionado && alumnoSeleccionado.id) {
+    // Escuchamos la sub-colección "planes_alimentacion" de este alumno específico
+    const q = query(
+      collection(db, "revisiones_pendientes", alumnoSeleccionado.id, "planes_alimentacion"),
+      orderBy("fecha", "desc")
+    );
+    const unsub = onSnapshot(q, (snapshot) => {
+      const lista = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setHistorialPlanes(lista); // Guardamos la lista en el estado que creamos arriba
+    });
+    return () => unsub();
+  } else {
+    setHistorialPlanes([]);
+  }
+}, [alumnoSeleccionado]);
+
+const actualizarPlanPrincipal = async () => {
+  if (!alumnoSeleccionado) return;
+
+  try {
+    // Referencia al documento del alumno en la colección 'revisiones_pendientes'
+    const alumnoRef = doc(db, "revisiones_pendientes", alumnoSeleccionado.id);
+    
+    // Guardamos la dieta y los cálculos actuales
+    await updateDoc(alumnoRef, {
+      planAlimentacion: dietaActual, // Aquí va toda la lista separada por comidas
+      macrosTotales: {
+        kcal: (calcularMetabolismo(alumnoSeleccionado) + ajusteCalorico),
+        p: dietaActual.reduce((acc, i) => acc + parseFloat(i.p), 0).toFixed(1),
+        g: dietaActual.reduce((acc, i) => acc + parseFloat(i.g), 0).toFixed(1),
+        c: dietaActual.reduce((acc, i) => acc + parseFloat(i.c), 0).toFixed(1)
+      },
+      fechaCreacionPlan: new Date().toISOString()
+    });
+
+    Alert.alert("Éxito", "El plan ha sido guardado en el expediente del alumno.");
+    setModalDieta(false); // Cerramos el modal al terminar
+  } catch (error) {
+    console.error(error);
+    Alert.alert("Error", "No se pudo guardar el plan en la base de datos.");
+  }
+};
+
   const agregarAlPlan = (item: any, cantidad: number, unidad: string) => {
     // Calculamos el factor según la cantidad (ej: 0.5 para media taza)
     const factor = cantidad; 
@@ -106,6 +150,47 @@ const nuevoItem = {
     setAlumnoSeleccionado(alumno);
     setModalDieta(true);
   };
+
+// AQUÍ PEGAS LA FUNCIÓN DE GUARDADO
+  const guardarPlanAlimentacion = async () => {
+    if (!alumnoSeleccionado) return;
+
+    try {
+      // 1. Referencia a la sub-colección de planes dentro del alumno
+      const planesRef = collection(db, "revisiones_pendientes", alumnoSeleccionado.id, "planes_alimentacion");
+      
+      // 2. Consultamos cuántos hay para poner el número correcto
+      const snapshot = await getDocs(planesRef);
+      const numeroPlan = snapshot.size + 1;
+
+      // 3. Guardamos el nuevo documento del plan
+      await addDoc(planesRef, {
+        nombrePlan: `Plan ${numeroPlan}`,
+        dieta: dietaActual, 
+        macrosTotales: {
+          kcal: (calcularMetabolismo(alumnoSeleccionado) + ajusteCalorico),
+          p: dietaActual.reduce((acc, i) => acc + parseFloat(i.p || 0), 0).toFixed(1),
+          g: dietaActual.reduce((acc, i) => acc + parseFloat(i.g || 0), 0).toFixed(1),
+          c: dietaActual.reduce((acc, i) => acc + parseFloat(i.c || 0), 0).toFixed(1)
+        },
+        fecha: new Date().toISOString(),
+      });
+
+      // 4. Actualizamos el expediente principal para saber cuándo fue la última revisión
+      await updateDoc(doc(db, "revisiones_pendientes", alumnoSeleccionado.id), {
+        ultimaRevision: new Date().toISOString(),
+        ultimoPlanNombre: `Plan ${numeroPlan}`
+      });
+
+      Alert.alert("Éxito", `¡${alumnoSeleccionado.nombre} ya tiene su Plan ${numeroPlan} guardado!`);
+      setModalDieta(false);
+      setDietaActual([]); 
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "No se pudo guardar en el historial.");
+    }
+  };  
+
 
   const abrirPlanEntrenamiento = (alumno: any) => {
     Alert.alert("Acceso", `Iniciando creación de Plan de Entrenamiento para ${alumno.nombre}`);
@@ -428,6 +513,49 @@ const nuevoItem = {
                <Image source={{ uri: alumnoSeleccionado?.firma }} style={styles.firmaPreview} resizeMode="contain" />
             </Section>
 
+{/* --- BLOQUE DE HISTORIAL DE PLANES --- */}
+            <View style={{ marginTop: 20, paddingHorizontal: 5 }}>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#1e293b', marginBottom: 10 }}>
+                <FontAwesome5 name="history" size={14} color="#3b82f6" /> HISTORIAL DE PLANES
+              </Text>
+              
+              {historialPlanes.length === 0 ? (
+                <View style={{ padding: 15, backgroundColor: '#fff', borderRadius: 12, borderStyle: 'dashed', borderWidth: 1, borderColor: '#cbd5e1' }}>
+                  <Text style={{ color: '#94a3b8', fontSize: 12, textAlign: 'center' }}>No hay planes previos guardados.</Text>
+                </View>
+              ) : (
+                historialPlanes.map((plan) => (
+                  <TouchableOpacity 
+                    key={plan.id} 
+                    onPress={() => {
+                      setDietaActual(plan.dieta); // Carga la dieta vieja al editor
+                      setModalDieta(true); // Abre el diseñador para verla
+                    }}
+                    style={{ 
+                      backgroundColor: 'white', 
+                      padding: 12, 
+                      borderRadius: 12, 
+                      marginBottom: 8, 
+                      flexDirection: 'row', 
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      elevation: 2
+                    }}
+                  >
+                    <View>
+                      <Text style={{ fontWeight: 'bold', color: '#3b82f6' }}>{plan.nombrePlan}</Text>
+                      <Text style={{ fontSize: 10, color: '#64748b' }}>{new Date(plan.fecha).toLocaleDateString()}</Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#1e293b' }}>{plan.macrosTotales?.kcal} kcal</Text>
+                      <Text style={{ fontSize: 9, color: '#10b981', fontWeight: 'bold' }}>VER / EDITAR</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
+            </View>
+
+
             {/* --- INSERCIÓN: BOTONES DE PLANES --- */}
             <View style={styles.planesContainer}>
                <TouchableOpacity style={[styles.btnAccion, {backgroundColor: '#a855f7'}]} onPress={() => abrirPlanAlimentacion(alumnoSeleccionado)}>
@@ -451,7 +579,7 @@ const nuevoItem = {
     <View style={stylesNutri.header}>
       <TouchableOpacity onPress={() => setModalDieta(false)}><Ionicons name="close" size={28} color="#ef4444" /></TouchableOpacity>
       <Text style={stylesNutri.headerTitle}>Plan de: {alumnoSeleccionado?.nombre}</Text>
-      <TouchableOpacity onPress={() => Alert.alert("Guardado", "Dieta enviada")}><Ionicons name="checkmark-circle" size={28} color="#22c55e" /></TouchableOpacity>
+      <TouchableOpacity onPress={guardarPlanAlimentacion}><Ionicons name="checkmark-circle" size={28} color="#22c55e" /></TouchableOpacity>
     </View>
 
     <ScrollView style={{ padding: 20 }} keyboardShouldPersistTaps="handled">
