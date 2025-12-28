@@ -97,7 +97,8 @@ const q = query(collection(db, "alimentos"));
         { nombre: "jamon de pavo", grupo: "Origen Animal", unidadMedida: "gr", calorias: 1.65, proteina: 0.21, grasa: 0.09, carbohidratos: 0 },
         { nombre: "requeson", grupo: "Origen Animal", unidadMedida: "cucharada", calorias: 18.75, proteina: 1.75, grasa: 1.25, carbohidratos: 0 },
         { nombre: "queso panela", grupo: "Origen Animal", unidadMedida: "gr", calorias: 1.65, proteina: 0.21, grasa: 0.09, carbohidratos: 0 },
-        { nombre: "queso cottage", grupo: "Origen Animal", unidadMedida: "cucharada", calorias: 25, proteina: 2.3, grasa: 1.67, carbohidratos: 0 },     
+        { nombre: "queso cottage", grupo: "Origen Animal", unidadMedida: "cucharada", calorias: 25, proteina: 2.3, grasa: 1.67, carbohidratos: 0 },
+        { nombre: "proteina ISO", grupo: "Origen Animal", unidadMedida: "pieza", calorias: 110, proteina: 25, grasa: 0.5, carbohidratos: 0 },     
     ];
 
     try {
