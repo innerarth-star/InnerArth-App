@@ -586,301 +586,143 @@ const abrirPlanAlimentacion = (alumno: any) => {
         <Ionicons name="close" size={28} color="#ef4444" />
       </TouchableOpacity>
       <Text style={stylesNutri.headerTitle}>
-        {esPlanHistorico ? "Consulta de Plan" : `Plan de: ${alumnoSeleccionado?.nombre}`}
+        {esPlanHistorico ? "Consulta Historial" : `Plan de: ${alumnoSeleccionado?.nombre}`}
       </Text>
-      {/* Solo mostramos la paloma si no es histórico */}
       {!esPlanHistorico ? (
         <TouchableOpacity onPress={guardarPlanAlimentacion}>
           <Ionicons name="checkmark-circle" size={28} color="#22c55e" />
         </TouchableOpacity>
-      ) : <View style={{width: 28}} />}
+      ) : <View style={{ width: 28 }} />}
     </View>
 
     <ScrollView style={{ padding: 20 }} keyboardShouldPersistTaps="handled">
       
-      {/* SECCIÓN DE EDICIÓN: Solo visible en planes nuevos */}
+      {/* 1. SECCIÓN DE EDICIÓN: Solo visible en planes nuevos */}
       {!esPlanHistorico && (
-        <View style={[stylesNutri.macroCard, { backgroundColor: '#1e293b', marginBottom: 15 }]}>
+        <View style={[stylesNutri.macroCard, { backgroundColor: '#1e293b', padding: 15, borderRadius: 20, marginBottom: 20 }]}>
           <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: 'bold', marginBottom: 8 }}>NIVEL DE ACTIVIDAD FISICA:</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 15 }}>
-            {[
-              { label: 'SEDENTARIO', val: 1.2 }, { label: 'LEVE', val: 1.375 },
-              { label: 'MODERADO', val: 1.55 }, { label: 'VIGOROSO', val: 1.725 },
-              { label: 'ATLETA', val: 1.9 }
-            ].map((f) => (
-              <TouchableOpacity 
-                key={f.val} 
-                onPress={() => setFactorActividad(f.val)}
-                style={{ 
-                  backgroundColor: factorActividad === f.val ? '#3b82f6' : '#1e293b', 
-                  padding: 8, borderRadius: 8, width: '31%', alignItems: 'center', borderWidth: 1, borderColor: '#334155' 
-                }}
-              >
-                <Text style={{ color: '#fff', fontSize: 8, fontWeight: 'bold' }}>{f.label}</Text>
-                <Text style={{ color: '#60a5fa', fontSize: 9 }}>{f.val}</Text>
+            {[1.2, 1.375, 1.55, 1.725, 1.9].map((val) => (
+              <TouchableOpacity key={val} onPress={() => setFactorActividad(val)}
+                style={{ backgroundColor: factorActividad === val ? '#3b82f6' : '#1e293b', padding: 8, borderRadius: 8, width: '18%', alignItems: 'center', borderWidth: 1, borderColor: '#334155' }}>
+                <Text style={{ color: '#fff', fontSize: 9, fontWeight: 'bold' }}>{val}</Text>
               </TouchableOpacity>
             ))}
           </View>
 
           <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: 'bold', marginBottom: 8 }}>AJUSTE DE OBJETIVO (KCAL):</Text>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 }}>
-            {[-500, -300, 0, 300, 500].map((num) => (
-              <TouchableOpacity 
-                key={num} 
-                onPress={() => setAjusteCalorico(num)} 
-                style={{ 
-                  backgroundColor: ajusteCalorico === num ? (num < 0 ? '#ef4444' : '#22c55e') : '#334155', 
-                  padding: 6, borderRadius: 6, flex: 1, marginHorizontal: 2 
-                }}
-              >
-                <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center' }}>
-                  {num > 0 ? `+${num}` : num === 0 ? 'BASE' : num}
-                </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginBottom: 15 }}>
+            {[-500, -400, -300, -200, 0, 200, 300, 400, 500].map((num) => (
+              <TouchableOpacity key={num} onPress={() => setAjusteCalorico(num)}
+                style={{ backgroundColor: ajusteCalorico === num ? (num < 0 ? '#ef4444' : num > 0 ? '#22c55e' : '#3b82f6') : '#334155', padding: 8, borderRadius: 8, minWidth: 50 }}>
+                <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center' }}>{num === 0 ? 'BASE' : num > 0 ? `+${num}` : num}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
       )}
 
-      {/* RESULTADO DE CALORÍAS (Se ve siempre, pero bloqueado en histórico) */}
-      <View style={{ alignItems: 'center', backgroundColor: '#0f172a', padding: 15, borderRadius: 15, marginBottom: 15, borderWidth: 1, borderColor: '#3b82f6' }}>
-        <Text style={{ color: '#94a3b8', fontSize: 9 }}>META DIARIA FINAL</Text>
+      {/* 2. META DIARIA (CONGELADA EN HISTORIAL) */}
+      <View style={{ alignItems: 'center', backgroundColor: '#0f172a', padding: 20, borderRadius: 15, marginBottom: 15, borderWidth: 1, borderColor: '#3b82f6' }}>
+        <Text style={{ color: '#94a3b8', fontSize: 10 }}>META DIARIA FINAL</Text>
         <Text style={{ color: '#fff', fontSize: 32, fontWeight: 'bold' }}>
-          {esPlanHistorico 
-            ? planSeleccionado?.macrosTotales?.kcal 
-            : (calcularMetabolismo(alumnoSeleccionado) + ajusteCalorico)} 
+          {esPlanHistorico ? planSeleccionado?.macrosTotales?.kcal : (calcularMetabolismo(alumnoSeleccionado) + ajusteCalorico)} 
           <Text style={{ fontSize: 14, color: '#60a5fa' }}> KCAL</Text>
         </Text>
       </View>
 
-      {/* MACROS ACTUALES */}
+      {/* 3. MACROS ACTUALES Y FALTANTES */}
       <View style={[stylesNutri.macroRow, {backgroundColor: '#1e293b', padding: 15, borderRadius: 15, marginBottom: 20}]}>
         <MacroDisplay label="PROT" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.p || 0), 0).toFixed(1)} color="#60a5fa" />
         <MacroDisplay label="GRASA" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.g || 0), 0).toFixed(1)} color="#facc15" />
         <MacroDisplay label="CARBS" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.c || 0), 0).toFixed(1)} color="#4ade80" />
+        <MacroDisplay 
+          label="FALTAN" 
+          value={((esPlanHistorico ? planSeleccionado?.macrosTotales?.kcal : (calcularMetabolismo(alumnoSeleccionado) + ajusteCalorico)) - dietaActual.reduce((acc, i) => acc + parseFloat(i.kcal || 0), 0)).toFixed(0)} 
+          color="#f87171" 
+        />
       </View>
 
-{/* 1. SECCIÓN DE AJUSTES Y BUSCADOR (SOLO PARA PLAN NUEVO) */}
+      {/* 4. SELECTOR Y BUSCADOR (SOLO SI NO ES HISTÓRICO) */}
       {!esPlanHistorico && (
-        <View style={{ marginBottom: 20 }}>
-          {/* Tarjeta de Factores y Ajustes */}
-          <View style={[stylesNutri.macroCard, { backgroundColor: '#1e293b', padding: 15, borderRadius: 20 }]}>
-            <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: 'bold', marginBottom: 8 }}>NIVEL DE ACTIVIDAD FISICA:</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 15 }}>
-              {[1.2, 1.375, 1.55, 1.725, 1.9].map((val) => (
-                <TouchableOpacity key={val} onPress={() => setFactorActividad(val)}
-                  style={{ backgroundColor: factorActividad === val ? '#3b82f6' : '#1e293b', padding: 8, borderRadius: 8, width: '31%', alignItems: 'center', borderWidth: 1, borderColor: '#334155' }}>
-                  <Text style={{ color: '#fff', fontSize: 9, fontWeight: 'bold' }}>{val}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+        <>
+          <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1e293b', marginBottom: 8 }}>EDITANDO COMIDA:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 15 }}>
+            {Array.from({ length: parseInt(alumnoSeleccionado?.nutricion?.comidasDes || 3) }).map((_, i) => (
+              <TouchableOpacity key={i} onPress={() => setComidaActiva(i + 1)}
+                style={{ paddingHorizontal: 20, paddingVertical: 10, backgroundColor: comidaActiva === i + 1 ? '#3b82f6' : '#fff', borderRadius: 12, marginRight: 10, borderWidth: 1, borderColor: '#e2e8f0' }}>
+                <Text style={{ color: comidaActiva === i + 1 ? 'white' : '#64748b', fontWeight: 'bold' }}>COMIDA {i + 1}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
 
-            <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: 'bold', marginBottom: 8 }}>AJUSTE DE OBJETIVO (KCAL):</Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 }}>
-              {[-500, -300, 0, 300, 500].map((num) => (
-                <TouchableOpacity key={num} onPress={() => setAjusteCalorico(num)} 
-                  style={{ backgroundColor: ajusteCalorico === num ? (num < 0 ? '#ef4444' : '#22c55e') : '#334155', padding: 6, borderRadius: 6, flex: 1, marginHorizontal: 2 }}>
-                  <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center' }}>{num === 0 ? 'BASE' : num > 0 ? `+${num}` : num}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Selector de Comidas */}
-          <View style={{ marginTop: 20, marginBottom: 15 }}>
-            <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1e293b', marginBottom: 8, textTransform: 'uppercase' }}>Selecciona la comida a editar:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {Array.from({ length: parseInt(alumnoSeleccionado?.nutricion?.comidasDes || 3) }).map((_, i) => (
-                <TouchableOpacity key={i} onPress={() => setComidaActiva(i + 1)}
-                  style={{ paddingHorizontal: 20, paddingVertical: 10, backgroundColor: comidaActiva === i + 1 ? '#3b82f6' : '#fff', borderRadius: 12, marginRight: 10, borderWidth: 2, borderColor: comidaActiva === i + 1 ? '#3b82f6' : '#e2e8f0' }}>
-                  <Text style={{ color: comidaActiva === i + 1 ? 'white' : '#64748b', fontWeight: 'bold', fontSize: 12 }}>COMIDA {i + 1}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-
-          {/* Buscador de Alimentos Único */}
           <TextInput 
             style={stylesNutri.searchInput}
-            placeholder="Buscar alimento..."
+            placeholder="Buscar alimento (ej: pollo, arroz...)"
             placeholderTextColor="#94a3b8"
             value={busqueda}
             onChangeText={(text) => {
               setBusqueda(text);
               if (text.length > 1) {
-                setAlimentosFiltrados(alimentos.filter(item => item.nombre.toLowerCase().includes(text.toLowerCase())));
+                const filtrados = alimentos.filter(item => item.nombre.toLowerCase().includes(text.toLowerCase()));
+                setAlimentosFiltrados(filtrados);
               } else { setAlimentosFiltrados([]); }
             }}
           />
           {alimentosFiltrados.map((item) => (
             <TouchableOpacity key={item.id} style={stylesNutri.suggestionItem} onPress={() => {
               const unidad = (item.unidadMedida || "unidad").toLowerCase();
-              Alert.alert(item.nombre.toUpperCase(), `Añadir a Comida ${comidaActiva}`, [
-                { text: "1 Porción", onPress: () => agregarAlPlan(item, 1, unidad) },
-                { text: "Manual", onPress: () => Alert.prompt("Cantidad", `En ${unidad}:`, (v) => agregarAlPlan(item, parseFloat(v || "1"), unidad)) },
-                { text: "Cerrar" }
-              ]);
+              let botones = unidad.includes("taza") 
+                ? [{ text: "1/4", onPress: () => agregarAlPlan(item, 0.25, unidad) }, { text: "1/2", onPress: () => agregarAlPlan(item, 0.5, unidad) }, { text: "1", onPress: () => agregarAlPlan(item, 1, unidad) }]
+                : [{ text: "1/2", onPress: () => agregarAlPlan(item, 0.5, unidad) }, { text: "1", onPress: () => agregarAlPlan(item, 1, unidad) }, { text: "2", onPress: () => agregarAlPlan(item, 2, unidad) }];
+              botones.push({ text: "Otro", onPress: () => Alert.prompt("Manual", `Cant. en ${unidad}:`, (v) => agregarAlPlan(item, parseFloat(v || "1"), unidad)) });
+              Alert.alert(item.nombre.toUpperCase(), `Medida: ${unidad}`, botones);
             }}>
-              <Text style={stylesNutri.suggestionText}>{item.nombre.toUpperCase()}</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 10 }}>
+                <Text style={stylesNutri.suggestionText}>{item.nombre.toUpperCase()}</Text>
+                <Text style={{ fontSize: 10, color: '#3b82f6' }}>{item.unidadMedida?.toUpperCase()}</Text>
+              </View>
             </TouchableOpacity>
           ))}
-        </View>
+        </>
       )}
 
-      {/* 2. RESULTADO DE CALORÍAS (CONGELADO EN HISTORIAL) */}
-      <View style={{ alignItems: 'center', backgroundColor: '#0f172a', padding: 15, borderRadius: 15, marginBottom: 15, borderWidth: 1, borderColor: '#3b82f6' }}>
-        <Text style={{ color: '#94a3b8', fontSize: 9 }}>META DIARIA FINAL</Text>
-        <Text style={{ color: '#fff', fontSize: 32, fontWeight: 'bold' }}>
-          {esPlanHistorico 
-            ? planSeleccionado?.macrosTotales?.kcal 
-            : (calcularMetabolismo(alumnoSeleccionado) + ajusteCalorico)} 
-          <Text style={{ fontSize: 14, color: '#60a5fa' }}> KCAL</Text>
-        </Text>
-      </View>
-
-      {/* 3. MACROS ACTUALES */}
-      <View style={[stylesNutri.macroRow, {backgroundColor: '#1e293b', padding: 15, borderRadius: 15, marginBottom: 20}]}>
-        <MacroDisplay label="PROT" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.p || 0), 0).toFixed(1)} color="#60a5fa" />
-        <MacroDisplay label="GRASA" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.g || 0), 0).toFixed(1)} color="#facc15" />
-        <MacroDisplay label="CARBS" value={dietaActual.reduce((acc, i) => acc + parseFloat(i.c || 0), 0).toFixed(1)} color="#4ade80" />
-      </View>
-
-<TextInput 
-  style={stylesNutri.searchInput}
-  placeholder="Buscar alimento (ej: pollo, arroz...)"
-  placeholderTextColor="#94a3b8"
-  value={busqueda}
-  onChangeText={(text) => {
-    setBusqueda(text);
-    if (text.length > 1) {
-      // FILTRO INTELIGENTE:
-      // Convierte todo a minúsculas y busca si el texto está INCLUIDO en el nombre
-      const filtrados = alimentos.filter(item => 
-        item.nombre.toLowerCase().includes(text.toLowerCase())
-      );
-      setAlimentosFiltrados(filtrados);
-    } else {
-      setAlimentosFiltrados([]);
-    }
-  }}
-      />
-
-{alimentosFiltrados.map((item) => (
-  <TouchableOpacity 
-    key={item.id} 
-    style={stylesNutri.suggestionItem} 
-    onPress={() => {
-      // Tomamos la unidad que guardaste en la biblioteca (taza, pieza, etc.)
-      const unidad = (item.unidadMedida || "unidad").toLowerCase();
-      let botones = [];
-
-// Si es Taza, damos las opciones de fracciones
-      if (unidad.includes("taza")) {
-        botones = [
-          { text: "1/4", onPress: () => agregarAlPlan(item, 0.25, unidad) },
-          { text: "1/3", onPress: () => agregarAlPlan(item, 0.33, unidad) },
-          { text: "1/2", onPress: () => agregarAlPlan(item, 0.5, unidad) },
-          { text: "1", onPress: () => agregarAlPlan(item, 1, unidad) },
-        ];
-      } 
-      // Para piezas, rebanadas o porciones (como el pollo de 35g)
-      else {
-        botones = [
-          { text: "1/2", onPress: () => agregarAlPlan(item, 0.5, unidad) },
-          { text: "1", onPress: () => agregarAlPlan(item, 1, unidad) },
-          { text: "2", onPress: () => agregarAlPlan(item, 2, unidad) },
-          { text: "3", onPress: () => agregarAlPlan(item, 3, unidad) },
-        ];
-      }
-
-      // Agregamos opción manual y cancelar
-      botones.push({ 
-        text: "Otro", 
-        onPress: () => Alert.prompt("Manual", `Cant. de ${unidad}:`, (v) => agregarAlPlan(item, parseFloat(v || "1"), unidad)) 
-      });
-      botones.push({ text: "X", onPress: () => console.log("Cancelado") });
-
-      Alert.alert(item.nombre.toUpperCase(), `Medida base: ${unidad}`, botones);
-    }}>
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 10 }}>
-      <Text style={stylesNutri.suggestionText}>{item.nombre.toUpperCase()}</Text>
-      <Text style={{ fontSize: 10, color: '#3b82f6' }}>{item.unidadMedida?.toUpperCase()}</Text>
-    </View>
-  </TouchableOpacity>
-))}
-
-{/* --- LISTA ESTRUCTURADA POR COMIDAS --- */}
-      <View style={{ marginTop: 30 }}>
-        <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#1e293b', marginBottom: 15, textTransform: 'uppercase', letterSpacing: 1 }}>
-          Estructura del Plan:
-        </Text>
-        
-        {/* Generamos los bloques según el número de comidas que el alumno eligió en su formulario */}
+      {/* 5. LISTA ESTRUCTURADA POR COMIDAS */}
+      <View style={{ marginTop: 20 }}>
         {Array.from({ length: parseInt(alumnoSeleccionado?.nutricion?.comidasDes || 3) }).map((_, i) => {
           const num = i + 1;
-          // FILTRO CLAVE: Solo mostramos los alimentos que pertenecen a este número de comida
-          const alimentosDeEstaComida = dietaActual.filter(a => a.numComida === num);
-
+          const items = dietaActual.filter(a => a.numComida === num);
           return (
-            <View key={num} style={{ 
-              marginBottom: 15, 
-              backgroundColor: '#fff', 
-              borderRadius: 15, 
-              padding: 15, 
-              elevation: 2, 
-              borderLeftWidth: 5, 
-              borderLeftColor: comidaActiva === num ? '#3b82f6' : '#cbd5e1',
-              borderWidth: 1,
-              borderColor: '#f1f5f9'
-            }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10, alignItems: 'center' }}>
-                <Text style={{ fontWeight: 'bold', color: '#334155', fontSize: 14 }}>
-                  {comidaActiva === num ? '➡️ ' : ''}COMIDA {num}
+            <View key={num} style={{ marginBottom: 15, backgroundColor: '#fff', borderRadius: 15, padding: 15, borderLeftWidth: 5, borderLeftColor: comidaActiva === num ? '#3b82f6' : '#cbd5e1' }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+                <Text style={{ fontWeight: 'bold', color: '#1e3a8a' }}>COMIDA {num}</Text>
+                <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#3b82f6' }}>
+                  {items.reduce((acc, curr) => acc + parseFloat(curr.kcal), 0).toFixed(0)} kcal
                 </Text>
-                <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 5 }}>
-                  <Text style={{ fontSize: 11, color: '#3b82f6', fontWeight: 'bold' }}>
-                    {alimentosDeEstaComida.reduce((acc, curr) => acc + parseFloat(curr.kcal), 0).toFixed(0)} kcal
-                  </Text>
-                </View>
               </View>
-
-              {alimentosDeEstaComida.map((item) => (
-                <View key={item.idTemporal} style={[stylesNutri.foodCard, { marginTop: 5, marginBottom: 5 }]}>
+              {items.map(item => (
+                <View key={item.idTemporal} style={stylesNutri.foodCard}>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: 'bold', color: '#1e293b', fontSize: 13 }}>{item.nombre.toUpperCase()}</Text>
-                    <Text style={{ fontSize: 11, color: '#64748b' }}>
-                      {item.cantidadUsada} {item.unidadElegida} • P: {item.p}g G: {item.g}g C: {item.c}g
-                    </Text>
+                    <Text style={{ fontWeight: 'bold', fontSize: 13 }}>{item.nombre.toUpperCase()}</Text>
+                    <Text style={{ fontSize: 11, color: '#64748b' }}>{item.cantidadUsada} {item.unidadElegida} • {item.kcal} kcal</Text>
                   </View>
-              {/* ESTA ES LA MODIFICACIÓN: Si es histórico, no sale la basura */}
-                {!esPlanHistorico && (
-                  <TouchableOpacity 
-                    onPress={() => setDietaActual(dietaActual.filter(a => a.idTemporal !== item.idTemporal))}
-                    style={{ padding: 5 }}
-                  >
-                    <Ionicons name="trash" size={18} color="#ef4444" />
-                  </TouchableOpacity>
-                )}
-              </View>
-            ))}
-
-              {alimentosDeEstaComida.length === 0 && (
-                <Text style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic', textAlign: 'center', marginTop: 5 }}>
-                  No hay alimentos añadidos a la Comida {num}
-                </Text>
-              )}
+                  {!esPlanHistorico && (
+                    <TouchableOpacity onPress={() => setDietaActual(dietaActual.filter(a => a.idTemporal !== item.idTemporal))}>
+                      <Ionicons name="trash" size={18} color="#ef4444" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ))}
             </View>
           );
         })}
       </View>
-      {/* --- FIN DE LA LISTA ESTRUCTURADA --- */}
-
       <View style={{ height: 120 }} />
     </ScrollView>
   </SafeAreaView>
 </Modal>
-    </SafeAreaView>
 
+    </SafeAreaView>
   );
 }
 
