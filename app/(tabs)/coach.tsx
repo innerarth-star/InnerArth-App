@@ -623,35 +623,47 @@ const abrirPlanAlimentacion = (alumno: any) => {
         </View>
 
         {/* BOTONES DE AJUSTE (DÉFICIT / SUPERÁVIT) */}
-        <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: 'bold', marginBottom: 8 }}>AJUSTE DE OBJETIVO (KCAL):</Text>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-          {[200, 300, 400, 500].map((num) => (
-            <TouchableOpacity 
-              key={num} 
-              onPress={() => setAjusteCalorico(-num)} 
-              style={{ backgroundColor: ajusteCalorico === -num ? '#ef4444' : '#450a0a', padding: 6, borderRadius: 6, flex: 1, marginHorizontal: 2 }}
-            >
-              <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center' }}>-{num}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 }}>
-          {[200, 300, 400, 500].map((num) => (
-            <TouchableOpacity 
-              key={num} 
-              onPress={() => setAjusteCalorico(num)} 
-              style={{ backgroundColor: ajusteCalorico === num ? '#22c55e' : '#064e3b', padding: 6, borderRadius: 6, flex: 1, marginHorizontal: 2 }}
-            >
-              <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center' }}>+{num}</Text>
-            </TouchableOpacity>
-          ))}
-          <TouchableOpacity 
-            onPress={() => setAjusteCalorico(0)} 
-            style={{ backgroundColor: ajusteCalorico === 0 ? '#3b82f6' : '#1e3a8a', padding: 6, borderRadius: 6, flex: 1, marginHorizontal: 2 }}
-          >
-            <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center' }}>BASE</Text>
-          </TouchableOpacity>
-        </View>
+{/* --- TODO ESTO SE OCULTA EN EL HISTORIAL --- */}
+{!esPlanHistorico && (
+  <>
+    {/* SELECTOR DE INTENSIDAD */}
+    <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: 'bold', marginBottom: 8 }}>NIVEL DE ACTIVIDAD FISICA:</Text>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 15 }}>
+       {/* ... aquí van tus botones de Sedentario, Leve, etc ... */}
+    </View>
+
+    {/* BOTONES DE AJUSTE (DÉFICIT / SUPERÁVIT) */}
+    <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: 'bold', marginBottom: 8 }}>AJUSTE DE OBJETIVO (KCAL):</Text>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+      {[200, 300, 400, 500].map((num) => (
+        <TouchableOpacity 
+          key={num} 
+          onPress={() => setAjusteCalorico(-num)} 
+          style={{ backgroundColor: ajusteCalorico === -num ? '#ef4444' : '#450a0a', padding: 6, borderRadius: 6, flex: 1, marginHorizontal: 2 }}
+        >
+          <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center' }}>-{num}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 }}>
+      {[200, 300, 400, 500].map((num) => (
+        <TouchableOpacity 
+          key={num} 
+          onPress={() => setAjusteCalorico(num)} 
+          style={{ backgroundColor: ajusteCalorico === num ? '#22c55e' : '#064e3b', padding: 6, borderRadius: 6, flex: 1, marginHorizontal: 2 }}
+        >
+          <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center' }}>+{num}</Text>
+        </TouchableOpacity>
+      ))}
+      <TouchableOpacity 
+        onPress={() => setAjusteCalorico(0)} 
+        style={{ backgroundColor: ajusteCalorico === 0 ? '#3b82f6' : '#1e3a8a', padding: 6, borderRadius: 6, flex: 1, marginHorizontal: 2 }}
+      >
+        <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center' }}>BASE</Text>
+      </TouchableOpacity>
+    </View>
+  </>
+)}
 
         {/* RESULTADO FINAL DINÁMICO */}
         <View style={{ alignItems: 'center', backgroundColor: '#0f172a', padding: 12, borderRadius: 12, marginBottom: 15 }}>
@@ -676,6 +688,7 @@ const abrirPlanAlimentacion = (alumno: any) => {
       </View>
 
 {/* --- AQUÍ PEGAS EL SELECTOR DE COMIDAS --- */}
+    {!esPlanHistorico && (
       <View style={{ marginTop: 20, marginBottom: 10 }}>
         <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1e293b', marginBottom: 8, textTransform: 'uppercase' }}>
           Selecciona la comida a editar:
@@ -703,7 +716,7 @@ const abrirPlanAlimentacion = (alumno: any) => {
           ))}
         </ScrollView>
       </View>
-
+    )}
 {/* --- EL BUSCADOR Y RESULTADOS SOLO SE VEN SI NO ES HISTÓRICO --- */}
       {!esPlanHistorico && (
         <>
