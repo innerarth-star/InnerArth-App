@@ -167,18 +167,24 @@ const abrirPlanAlimentacion = (alumno: any) => {
       const snapshot = await getDocs(planesRef);
       const numeroPlan = snapshot.size + 1;
 
+// DEFINIMOS LA VARIABLE CORRECTAMENTE AQUÍ
+      const metaCalculada = (calcularMetabolismo(alumnoSeleccionado) + ajusteCalorico);      
+
+
       // 3. Guardamos el nuevo documento del plan
       await addDoc(planesRef, {
         nombrePlan: `Plan ${numeroPlan}`,
         dieta: dietaActual, 
         macrosTotales: {
-          kcal: (calcularMetabolismo(alumnoSeleccionado) + ajusteCalorico),
+          kcal: metaCalculada, // Aquí se guarda el número para el historial
           p: dietaActual.reduce((acc, i) => acc + parseFloat(i.p || 0), 0).toFixed(1),
           g: dietaActual.reduce((acc, i) => acc + parseFloat(i.g || 0), 0).toFixed(1),
           c: dietaActual.reduce((acc, i) => acc + parseFloat(i.c || 0), 0).toFixed(1)
         },
         fecha: new Date().toISOString(),
       });
+
+
 
       // 4. Actualizamos el expediente principal para saber cuándo fue la última revisión
       await updateDoc(doc(db, "revisiones_pendientes", alumnoSeleccionado.id), {
@@ -532,7 +538,8 @@ const abrirPlanAlimentacion = (alumno: any) => {
                   <TouchableOpacity 
                     key={plan.id} 
                     onPress={() => {
-                      setDietaActual(plan.dieta); 
+                      setPlanSeleccionado(plan); // ESTA LÍNEA ES VITAL para que la meta no salga en 0
+                      setDietaActual(plan.dieta || []); 
                       setEsPlanHistorico(true); // BLOQUEA el guardado (Modo Lectura)
                       setModalDieta(true);
                     }}
@@ -634,7 +641,7 @@ const abrirPlanAlimentacion = (alumno: any) => {
         <Text style={{ color: '#94a3b8', fontSize: 10 }}>META DIARIA FINAL</Text>
         <Text style={{ color: '#fff', fontSize: 32, fontWeight: 'bold' }}>
           {esPlanHistorico 
-            ? (planSeleccionado?.macrosTotales?.kcal || 0) 
+            ? (parseFloat(planSeleccionado?.macrosTotales?.kcal) || 0) 
             : (calcularMetabolismo(alumnoSeleccionado) + ajusteCalorico)} 
           <Text style={{ fontSize: 14, color: '#60a5fa' }}> KCAL</Text>
         </Text>
