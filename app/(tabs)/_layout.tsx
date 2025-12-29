@@ -40,43 +40,57 @@ export default function TabLayout() {
       tabBarStyle: !user ? { display: 'none' } : { display: 'flex' }
     }}>
       
-      {/* 1. MI PLAN (index) */}
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Mi Plan',
-          // Si eres coach, esta pestaña no se ve en la barra
-          href: isCoach ? null : ("/" as any),
-          tabBarItemStyle: isCoach ? { display: 'none' } : {},
-          tabBarIcon: ({ color }) => <FontAwesome5 name="clipboard-list" size={20} color={color} />,
-        }}
+      {/* 1. MI PLAN - Solo para Alumnos */}
+      {!isCoach && (
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Mi Plan',
+            tabBarIcon: ({ color }) => <FontAwesome5 name="clipboard-list" size={20} color={color} />,
+          }}
+        />
+      )}
+
+      {/* 2. CLIENTES - Solo para Coach */}
+      {isCoach && (
+        <Tabs.Screen
+          name="coach"
+          options={{
+            title: 'Clientes',
+            tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={20} color={color} />,
+          }}
+        />
+      )}
+
+      {/* 3. BIBLIOTECA - Solo para Coach */}
+      {isCoach && (
+        <Tabs.Screen
+          name="AdminAlimnetos"
+          options={{
+            title: 'Biblioteca',
+            tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
+          }}
+        />
+      )}
+
+      {/* ESTO ES PARA QUE EXPO ROUTER NO SE QUEDE EN BLANCO */}
+      <Tabs.Screen 
+        name="explore" 
+        options={{ 
+          href: null,
+          tabBarButton: () => null 
+        }} 
       />
 
-      {/* 2. CLIENTES (coach) */}
-      <Tabs.Screen
-        name="coach"
-        options={{
-          title: 'Clientes',
-          // Si NO eres coach, no se ve
-          href: !isCoach ? null : ("/coach" as any),
-          tabBarItemStyle: !isCoach ? { display: 'none' } : {},
-          tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={20} color={color} />,
-        }}
-      />
-
-      {/* 3. BIBLIOTECA (AdminAlimnetos) */}
-      <Tabs.Screen
-        name="AdminAlimnetos"
-        options={{
-          title: 'Biblioteca',
-          // Si NO eres coach, no se ve
-          href: !isCoach ? null : ("/AdminAlimnetos" as any),
-          tabBarItemStyle: !isCoach ? { display: 'none' } : {},
-          tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
-        }}
-      />
-
-      <Tabs.Screen name="explore" options={{ href: null }} />
+      {/* Pestañas fantasma para que TypeScript y el Router no den error al no encontrar las rutas */}
+      {isCoach ? (
+        <Tabs.Screen name="index" options={{ href: null, tabBarButton: () => null }} />
+      ) : (
+        <>
+          <Tabs.Screen name="coach" options={{ href: null, tabBarButton: () => null }} />
+          <Tabs.Screen name="AdminAlimnetos" options={{ href: null, tabBarButton: () => null }} />
+        </>
+      )}
     </Tabs>
   );
 }
