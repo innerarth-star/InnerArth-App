@@ -1,21 +1,11 @@
-import React from 'react';
-import { Tabs } from 'expo-router';
-import { FontAwesome5 } from '@expo/vector-icons';
+import { Stack } from 'expo-router';
 
-export default function ClientLayout() {
+export default function RootLayout() {
   return (
-    <Tabs screenOptions={{ 
-      tabBarActiveTintColor: '#3b82f6', 
-      headerShown: false,
-      tabBarStyle: { height: 60, paddingBottom: 8 } 
-    }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Mi Plan',
-          tabBarIcon: ({ color }) => <FontAwesome5 name="clipboard-list" size={20} color={color} />,
-        }}
-      />
-    </Tabs>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="(admin)" />
+      <Stack.Screen name="(client)" />
+    </Stack>
   );
 }
