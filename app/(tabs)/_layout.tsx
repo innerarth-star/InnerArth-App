@@ -13,8 +13,13 @@ export default function TabLayout() {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setIsCoach(currentUser?.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim());
+      if (currentUser) {
+        setUser(currentUser);
+        setIsCoach(currentUser.email?.toLowerCase().trim() === CORREO_COACH);
+      } else {
+        setUser(null);
+        setIsCoach(false);
+      }
       setLoading(false);
     });
     return unsub;
@@ -28,47 +33,58 @@ export default function TabLayout() {
     );
   }
 
+  // SI NO HAY USUARIO: No mostramos pestañas (para que el Login se vea bien)
+  if (!user) {
+    return (
+      <Tabs screenOptions={{ tabBarStyle: { display: 'none' }, headerShown: false }} />
+    );
+  }
+
+  // --- LA SOLUCIÓN DEFINITIVA: RENDERIZAR SEGÚN EL ROL ---
+
   return (
-    <Tabs screenOptions={{ 
-      tabBarActiveTintColor: '#3b82f6', 
-      headerShown: false,
-      tabBarStyle: !user ? { display: 'none' } : { display: 'flex' }
-    }}>
+    <Tabs screenOptions={{ tabBarActiveTintColor: '#3b82f6', headerShown: false }}>
       
-      {/* 1. MI PLAN (index) */}
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Mi Plan',
-          // Si es Coach, ocultamos el botón de la barra SIN romper la ruta
-          tabBarButton: isCoach ? () => <View style={{ width: 0 }} /> : undefined,
-          tabBarIcon: ({ color }) => <FontAwesome5 name="clipboard-list" size={20} color={color} />,
-        }}
-      />
+      {/* 1. PESTAÑA MI PLAN: Solo existe si NO eres coach */}
+      {!isCoach && (
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Mi Plan',
+            tabBarIcon: ({ color }) => <FontAwesome5 name="clipboard-list" size={20} color={color} />,
+          }}
+        />
+      )}
 
-      {/* 2. CLIENTES (coach) */}
-      <Tabs.Screen
-        name="coach"
-        options={{
-          title: 'Clientes',
-          // Si NO es Coach, borramos el botón físicamente
-          tabBarButton: !isCoach ? () => <View style={{ width: 0 }} /> : undefined,
-          tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={20} color={color} />,
-        }}
-      />
+      {/* 2. PESTAÑA CLIENTES: Solo existe si ERES coach */}
+      {isCoach && (
+        <Tabs.Screen
+          name="coach"
+          options={{
+            title: 'Clientes',
+            tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={20} color={color} />,
+          }}
+        />
+      )}
 
-      {/* 3. BIBLIOTECA (AdminAlimnetos) */}
-      <Tabs.Screen
-        name="AdminAlimnetos"
-        options={{
-          title: 'Biblioteca',
-          // SI NO ES COACH: Esta es la línea que DEBE borrar la pestaña para el cliente
-          tabBarButton: !isCoach ? () => <View style={{ width: 0 }} /> : undefined,
-          tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
-        }}
-      />
+      {/* 3. PESTAÑA BIBLIOTECA: Solo existe si ERES coach */}
+      {isCoach && (
+        <Tabs.Screen
+          name="AdminAlimnetos"
+          options={{
+            title: 'Biblioteca',
+            tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
+          }}
+        />
+      )}
 
-      <Tabs.Screen name="explore" options={{ href: null, tabBarButton: () => <View style={{ width: 0 }} /> }} />
+      {/* OCULTAR RUTAS SOBRANTES (OBLIGATORIO PARA QUE NO DEN ERROR) */}
+      <Tabs.Screen name="explore" options={{ href: null }} />
+      {/* Si eres coach, index debe existir pero sin icono */}
+      {isCoach && <Tabs.Screen name="index" options={{ href: null }} />}
+      {/* Si eres alumno, las de coach deben existir pero sin icono */}
+      {!isCoach && <Tabs.Screen name="coach" options={{ href: null }} />}
+      {!isCoach && <Tabs.Screen name="AdminAlimnetos" options={{ href: null }} />}
     </Tabs>
   );
 }
