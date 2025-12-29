@@ -67,9 +67,12 @@ export default function TabLayout() {
         name="AdminAlimnetos"
         options={{
           title: 'Biblioteca',
-          // ELIMINAMOS EL HREF para que no choque
-          // Si NO es coach, el botón NO EXISTE físicamente
-          tabBarButton: !isCoach ? () => null : undefined,
+          // Si NO es coach, creamos un botón "fantasma" que no mide nada y es invisible
+          tabBarButton: !isCoach 
+            ? () => <View style={{ width: 0, height: 0 }} /> 
+            : undefined,
+          // Esto quita el espacio que deja el botón aunque sea invisible
+          tabBarItemStyle: !isCoach ? { display: 'none', width: 0 } : {},
           tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
         }}
       />
