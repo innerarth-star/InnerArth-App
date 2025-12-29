@@ -13,13 +13,8 @@ export default function TabLayout() {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-        setIsCoach(currentUser.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim());
-      } else {
-        setUser(null);
-        setIsCoach(false);
-      }
+      setUser(currentUser);
+      setIsCoach(currentUser?.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim());
       setLoading(false);
     });
     return unsub;
@@ -33,53 +28,46 @@ export default function TabLayout() {
     );
   }
 
-  const tabStyle = !user ? { display: 'none' } : { display: 'flex' };
-
   return (
     <Tabs screenOptions={{ 
       tabBarActiveTintColor: '#3b82f6', 
       headerShown: false,
-      tabBarStyle: tabStyle as any 
+      // Si no hay usuario, escondemos la barra completa para que se vea el Login limpio
+      tabBarStyle: !user ? { display: 'none' } : { display: 'flex' }
     }}>
       
-      {/* 1. MI PLAN (index) - Solo para alumnos */}
+      {/* 1. MI PLAN (index) - Solo para el alumno */}
       <Tabs.Screen
         name="index"
         options={{
           title: 'Mi Plan',
-          href: (user && !isCoach) ? ("/" as any) : null,
-          // Si es Coach, borramos el botón de la barra
-          tabBarButton: isCoach ? () => null : undefined, 
+          href: (user && !isCoach) ? "/" : null,
           tabBarIcon: ({ color }) => <FontAwesome5 name="clipboard-list" size={20} color={color} />,
         }}
       />
 
-      {/* 2. CLIENTES (coach) - Solo para Coach */}
+      {/* 2. CLIENTES (coach) - Solo para ti */}
       <Tabs.Screen
         name="coach"
         options={{
           title: 'Clientes',
-          href: (user && isCoach) ? ("/coach" as any) : null,
-          // Si NO es Coach, borramos el botón de la barra
-          tabBarButton: !isCoach ? () => null : undefined,
+          href: (user && isCoach) ? "/coach" : null,
           tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={20} color={color} />,
         }}
       />
 
-      {/* 3. BIBLIOTECA (AdminAlimnetos) - Solo para Coach */}
+      {/* 3. BIBLIOTECA (AdminAlimnetos) - Solo para ti */}
       <Tabs.Screen
         name="AdminAlimnetos"
         options={{
           title: 'Biblioteca',
-          href: (user && isCoach) ? ("/AdminAlimnetos" as any) : null,
-          // Si NO es Coach, borramos el botón de la barra
-          tabBarButton: !isCoach ? () => null : undefined,
+          href: (user && isCoach) ? "/AdminAlimnetos" : null,
           tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
         }}
       />
 
-      {/* OCULTAR SIEMPRE EXPLORE */}
-      <Tabs.Screen name="explore" options={{ href: null, tabBarButton: () => null }} />
+      {/* EXPLORE SIEMPRE OCULTO */}
+      <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
 }
