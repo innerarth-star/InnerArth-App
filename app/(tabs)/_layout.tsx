@@ -13,13 +13,8 @@ export default function TabLayout() {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-        setIsCoach(currentUser.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim());
-      } else {
-        setUser(null);
-        setIsCoach(false);
-      }
+      setUser(currentUser);
+      setIsCoach(currentUser?.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim());
       setLoading(false);
     });
     return unsub;
@@ -37,43 +32,41 @@ export default function TabLayout() {
     <Tabs screenOptions={{ 
       tabBarActiveTintColor: '#3b82f6', 
       headerShown: false,
+      // Si no hay usuario, ocultamos la barra
       tabBarStyle: !user ? { display: 'none' } : { display: 'flex' }
     }}>
       
-      {/* 1. MI PLAN (index) */}
       <Tabs.Screen
         name="index"
         options={{
           title: 'Mi Plan',
-          // SI ES COACH: Borramos el botón físicamente de la barra
-          tabBarButton: isCoach ? () => null : undefined,
+          // Solo se ve el icono si NO eres coach
+          tabBarItemStyle: isCoach ? { display: 'none' } : {},
           tabBarIcon: ({ color }) => <FontAwesome5 name="clipboard-list" size={20} color={color} />,
         }}
       />
 
-      {/* 2. CLIENTES (coach) */}
       <Tabs.Screen
         name="coach"
         options={{
           title: 'Clientes',
-          // SI NO ES COACH: Borramos el botón físicamente de la barra
-          tabBarButton: !isCoach ? () => null : undefined,
+          // Solo se ve el icono si ERES coach
+          tabBarItemStyle: !isCoach ? { display: 'none' } : {},
           tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={20} color={color} />,
         }}
       />
 
-      {/* 3. BIBLIOTECA (AdminAlimnetos) */}
       <Tabs.Screen
         name="AdminAlimnetos"
         options={{
           title: 'Biblioteca',
-          // SI NO ES COACH: Borramos el botón físicamente de la barra
-          tabBarButton: !isCoach ? () => null : undefined,
+          // Solo se ve el icono si ERES coach
+          tabBarItemStyle: !isCoach ? { display: 'none' } : {},
           tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
         }}
       />
 
-      <Tabs.Screen name="explore" options={{ href: null, tabBarButton: () => null }} />
+      <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
 }
