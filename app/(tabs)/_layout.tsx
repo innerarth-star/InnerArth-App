@@ -67,8 +67,10 @@ export default function TabLayout() {
         name="AdminAlimnetos"
         options={{
           title: 'Biblioteca',
-          tabBarItemStyle: !isCoach ? { display: 'none' } : {},
+          // ESTA ES LA CLAVE: Si NO es coach, el botón se borra físicamente
+          tabBarButton: !isCoach ? () => null : undefined,
           tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
+          tabBarItemStyle: !isCoach ? { display: 'none' } : {}, // Doble seguridad
         }}
       />
 
