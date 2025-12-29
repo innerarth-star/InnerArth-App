@@ -13,8 +13,13 @@ export default function TabLayout() {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setIsCoach(currentUser?.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim());
+      if (currentUser) {
+        setUser(currentUser);
+        setIsCoach(currentUser.email?.toLowerCase().trim() === CORREO_COACH);
+      } else {
+        setUser(null);
+        setIsCoach(false);
+      }
       setLoading(false);
     });
     return unsub;
@@ -32,6 +37,7 @@ export default function TabLayout() {
     <Tabs screenOptions={{ 
       tabBarActiveTintColor: '#3b82f6', 
       headerShown: false,
+      // Si no hay usuario, ocultamos la barra globalmente
       tabBarStyle: !user ? { display: 'none' } : { display: 'flex' }
     }}>
       
@@ -40,8 +46,8 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Mi Plan',
-          // Si eres coach, borramos el botón físicamente
-          tabBarButton: isCoach ? () => null : undefined,
+          // EL TRUCO: Si es coach, ocultamos esta pestaña específica
+          tabBarStyle: isCoach ? { display: 'none' } : { display: 'flex' },
           tabBarIcon: ({ color }) => <FontAwesome5 name="clipboard-list" size={20} color={color} />,
         }}
       />
@@ -51,8 +57,8 @@ export default function TabLayout() {
         name="coach"
         options={{
           title: 'Clientes',
-          // Si NO eres coach, borramos el botón físicamente
-          tabBarButton: !isCoach ? () => null : undefined,
+          // EL TRUCO: Si NO es coach, ocultamos esta pestaña específica
+          tabBarStyle: !isCoach ? { display: 'none' } : { display: 'flex' },
           tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={20} color={color} />,
         }}
       />
@@ -62,13 +68,13 @@ export default function TabLayout() {
         name="AdminAlimnetos"
         options={{
           title: 'Biblioteca',
-          // Si NO eres coach, borramos el botón físicamente
-          tabBarButton: !isCoach ? () => null : undefined,
+          // EL TRUCO: Si NO es coach, ocultamos esta pestaña específica
+          tabBarStyle: !isCoach ? { display: 'none' } : { display: 'flex' },
           tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
         }}
       />
 
-      <Tabs.Screen name="explore" options={{ href: null, tabBarButton: () => null }} />
+      <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
 }
