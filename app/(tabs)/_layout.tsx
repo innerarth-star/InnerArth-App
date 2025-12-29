@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { auth } from '../../firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
-import { FontAwesome5 } from '@expo/vector-icons';
+import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { View, ActivityIndicator } from 'react-native';
 
 export default function TabLayout() {
@@ -15,7 +15,6 @@ export default function TabLayout() {
     const unsub = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        // Verificamos si es el coach
         setIsCoach(currentUser.email?.toLowerCase().trim() === CORREO_COACH);
       } else {
         setUser(null);
@@ -26,7 +25,6 @@ export default function TabLayout() {
     return unsub;
   }, []);
 
-  // 1. MIENTRAS CARGA: Mostramos un indicador para que no "parpadeen" las pestañas
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9' }}>
@@ -35,52 +33,48 @@ export default function TabLayout() {
     );
   }
 
-  // 2. SI NO HAY USUARIO: Ocultamos todas las pestañas (href: null) 
-  // Esto obliga a que se quede en la pantalla de Auth si no ha iniciado sesión
+  // SI NO HAY SESIÓN, OCULTAMOS TODO
   if (!user) {
-    return (
-      <Tabs screenOptions={{ tabBarStyle: { display: 'none' } }}>
-        <Tabs.Screen name="index" options={{ href: null }} />
-        <Tabs.Screen name="coach" options={{ href: null }} />
-        <Tabs.Screen name="AdminAlimnetos" options={{ href: null }} />
-        <Tabs.Screen name="explore" options={{ href: null }} />
-      </Tabs>
-    );
+    return <Tabs screenOptions={{ tabBarStyle: { display: 'none' } }} />;
   }
 
-  // 3. SI HAY USUARIO: Mostramos solo lo que le corresponde
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: '#3b82f6' }}>
+    <Tabs screenOptions={{ tabBarActiveTintColor: '#3b82f6', headerShown: false }}>
       
-      {/* Mi Dieta: Siempre visible para Alumno y Coach logueados */}
+      {/* 1. VISTA DEL CLIENTE (index.tsx) */}
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Mi Dieta',
-          tabBarIcon: ({ color }) => <FontAwesome5 name="home" size={20} color={color} />,
+          title: 'Mi Plan',
+          // Solo mostramos si NO es coach. Forzamos con 'as any' para evitar el error de TypeScript
+          href: !isCoach ? ("/index" as any) : null,
+          tabBarIcon: ({ color }) => <FontAwesome5 name="clipboard-list" size={20} color={color} />,
         }}
       />
 
-      {/* Panel Coach: SOLO si es el correo del coach */}
+      {/* 2. VISTA DEL COACH / CLIENTES (coach.tsx) */}
       <Tabs.Screen
         name="coach"
         options={{
-          title: 'Panel Coach',
-          href: isCoach ? undefined : null, // Si no es coach, desaparece
-          tabBarIcon: ({ color }) => <FontAwesome5 name="user-shield" size={20} color={color} />,
+          title: 'Clientes',
+          // Solo mostramos si ES coach
+          href: isCoach ? ("/coach" as any) : null,
+          tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={20} color={color} />,
         }}
       />
 
-      {/* Biblioteca: SOLO si es el correo del coach */}
+      {/* 3. BIBLIOTECA DE ALIMENTOS (AdminAlimnetos.tsx) */}
       <Tabs.Screen
         name="AdminAlimnetos"
         options={{
           title: 'Biblioteca',
-          href: isCoach ? undefined : null, // Si no es coach, desaparece
-          tabBarIcon: ({ color }) => <FontAwesome5 name="book" size={20} color={color} />,
+          // Solo mostramos si ES coach
+          href: isCoach ? ("/AdminAlimnetos" as any) : null,
+          tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
         }}
       />
 
+      {/* OCULTAR EXPLORE SIEMPRE */}
       <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
