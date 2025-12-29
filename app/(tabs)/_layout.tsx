@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { auth } from '../../firebaseConfig';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
-import { View, ActivityIndicator, Alert } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 
 export default function TabLayout() {
   const [user, setUser] = useState<any>(null);
@@ -33,45 +33,47 @@ export default function TabLayout() {
     );
   }
 
-  // SI NO HAY USUARIO (LOGIN)
-  if (!user) {
-    return (
-      <Tabs screenOptions={{ tabBarStyle: { display: 'none' }, headerShown: false }}>
-        <Tabs.Screen name="index" options={{ href: null }} />
-        <Tabs.Screen name="coach" options={{ href: null }} />
-        <Tabs.Screen name="AdminAlimnetos" options={{ href: null }} />
-      </Tabs>
-    );
-  }
-
-  // SI ES EL COACH
-  if (isCoach) {
-    return (
-      <Tabs screenOptions={{ tabBarActiveTintColor: '#3b82f6', headerShown: false }}>
-        <Tabs.Screen name="coach" options={{ 
-          title: 'Clientes', 
-          tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={20} color={color} /> 
-        }} />
-        <Tabs.Screen name="AdminAlimnetos" options={{ 
-          title: 'Biblioteca', 
-          tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} /> 
-        }} />
-        <Tabs.Screen name="index" options={{ href: null }} />
-        <Tabs.Screen name="explore" options={{ href: null }} />
-      </Tabs>
-    );
-  }
-
-  // SI ES EL CLIENTE (Aquí es imposible que vea AdminAlimnetos)
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: '#3b82f6', headerShown: false }}>
-      <Tabs.Screen name="index" options={{ 
-        title: 'Mi Plan', 
-        tabBarIcon: ({ color }) => <FontAwesome5 name="clipboard-list" size={20} color={color} /> 
-      }} />
-      <Tabs.Screen name="coach" options={{ href: null }} />
-      <Tabs.Screen name="AdminAlimnetos" options={{ href: null }} />
-      <Tabs.Screen name="explore" options={{ href: null }} />
+    <Tabs screenOptions={{ 
+      tabBarActiveTintColor: '#3b82f6', 
+      headerShown: false,
+      tabBarStyle: !user ? { display: 'none' } : { display: 'flex' }
+    }}>
+      
+      {/* 1. MI PLAN (index) */}
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Mi Plan',
+          // SI ES COACH: Borramos el botón físicamente de la barra
+          tabBarButton: isCoach ? () => null : undefined,
+          tabBarIcon: ({ color }) => <FontAwesome5 name="clipboard-list" size={20} color={color} />,
+        }}
+      />
+
+      {/* 2. CLIENTES (coach) */}
+      <Tabs.Screen
+        name="coach"
+        options={{
+          title: 'Clientes',
+          // SI NO ES COACH: Borramos el botón físicamente de la barra
+          tabBarButton: !isCoach ? () => null : undefined,
+          tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={20} color={color} />,
+        }}
+      />
+
+      {/* 3. BIBLIOTECA (AdminAlimnetos) */}
+      <Tabs.Screen
+        name="AdminAlimnetos"
+        options={{
+          title: 'Biblioteca',
+          // SI NO ES COACH: Borramos el botón físicamente de la barra
+          tabBarButton: !isCoach ? () => null : undefined,
+          tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
+        }}
+      />
+
+      <Tabs.Screen name="explore" options={{ href: null, tabBarButton: () => null }} />
     </Tabs>
   );
 }
