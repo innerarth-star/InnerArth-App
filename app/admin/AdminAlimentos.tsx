@@ -31,7 +31,7 @@ useEffect(() => {
         tabBarStyle: { display: 'none' }
       });
       // Y lo regresamos a su plan
-      router.replace('/');
+      router.replace('/(client)/' as any);
     }
   }, [isCoach]);
 
