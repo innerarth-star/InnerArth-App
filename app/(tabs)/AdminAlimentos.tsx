@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, Alert, SafeAreaView, ScrollView } from 'react-native';
-import { db } from '../../firebaseConfig';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, Alert, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
+import { db, auth } from '../../firebaseConfig';
 import { collection, addDoc, query, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 const GRUPOS_ALIMENTOS = [
     { nombre: 'Verduras', unidades: ['taza', 'pieza', 'cucharada'] },
@@ -16,6 +17,29 @@ const GRUPOS_ALIMENTOS = [
 ];
 
 export default function BibliotecaAlimentos() {
+const router = useRouter();
+  const CORREO_COACH = "inner.arth@gmail.com";
+  
+  // --- BLOQUEO DE SEGURIDAD PARA CLIENTES ---
+  const user = auth.currentUser;
+  const isCoach = user?.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim();
+
+  useEffect(() => {
+    if (!isCoach) {
+      // Si no es el coach, lo mandamos al inicio de inmediato
+      router.replace('/');
+    }
+  }, [isCoach]);
+
+  // Si no es coach, no renderizamos nada del panel para que no vea tus datos
+  if (!isCoach) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc' }}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+      </View>
+    );
+  }
+
   const [nombre, setNombre] = useState('');
   const [grupo, setGrupo] = useState(GRUPOS_ALIMENTOS[0]);
   const [unidad, setUnidad] = useState(GRUPOS_ALIMENTOS[0].unidades[0]);
