@@ -32,41 +32,45 @@ export default function TabLayout() {
     <Tabs screenOptions={{ 
       tabBarActiveTintColor: '#3b82f6', 
       headerShown: false,
-      // Si no hay usuario, escondemos la barra completa para que se vea el Login limpio
       tabBarStyle: !user ? { display: 'none' } : { display: 'flex' }
     }}>
       
-      {/* 1. MI PLAN (index) - Solo para el alumno */}
+      {/* 1. MI PLAN - Solo para Alumnos */}
       <Tabs.Screen
         name="index"
         options={{
           title: 'Mi Plan',
-          href: (user && !isCoach) ? "/" : null,
+          href: isCoach ? null : ("/" as any),
+          // Si es Coach, ocultamos el espacio de la pestaña
+          tabBarItemStyle: isCoach ? { display: 'none' } : {},
           tabBarIcon: ({ color }) => <FontAwesome5 name="clipboard-list" size={20} color={color} />,
         }}
       />
 
-      {/* 2. CLIENTES (coach) - Solo para ti */}
+      {/* 2. CLIENTES - Solo para Coach */}
       <Tabs.Screen
         name="coach"
         options={{
           title: 'Clientes',
-          href: (user && isCoach) ? "/coach" : null,
+          href: isCoach ? ("/coach" as any) : null,
+          // Si NO es Coach, ocultamos el espacio de la pestaña
+          tabBarItemStyle: !isCoach ? { display: 'none' } : {},
           tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={20} color={color} />,
         }}
       />
 
-      {/* 3. BIBLIOTECA (AdminAlimnetos) - Solo para ti */}
+      {/* 3. BIBLIOTECA - Solo para Coach */}
       <Tabs.Screen
         name="AdminAlimnetos"
         options={{
           title: 'Biblioteca',
-          href: (user && isCoach) ? "/AdminAlimnetos" : null,
+          href: isCoach ? ("/AdminAlimnetos" as any) : null,
+          // Si NO es Coach, ocultamos el espacio de la pestaña
+          tabBarItemStyle: !isCoach ? { display: 'none' } : {},
           tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
         }}
       />
 
-      {/* EXPLORE SIEMPRE OCULTO */}
       <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
