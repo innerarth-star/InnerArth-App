@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { View, ActivityIndicator } from 'react-native';
 
-export default function EntryPoint() {
+export default function Index() {
   const [loading, setLoading] = useState(true);
   const [isCoach, setIsCoach] = useState(false);
   const CORREO_COACH = "inner.arth@gmail.com";
@@ -21,14 +21,12 @@ export default function EntryPoint() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#3b82f6" />
       </View>
     );
   }
 
-  // Usamos 'as any' para saltar la validación de TypeScript que te da error
-  return isCoach 
-    ? <Redirect href={"/(admin)/coach" as any} /> 
-    : <Redirect href={"/(client)/" as any} />;
+  // @ts-ignore
+  return isCoach ? <Redirect href="/(admin)/coach" /> : <Redirect href="/(client)/" />;
 }
