@@ -17,7 +17,7 @@ export default function AuthScreen() {
   const [showPassword, setShowPassword] = useState(false); // ESTADO PARA MOSTRAR/OCULTAR
 
   // FUNCIÓN PARA LOGIN
-  const handleAuth = async () => {
+const handleAuth = async () => {
     if (!email || !password) {
       Alert.alert("Error", "Por favor llena todos los campos.");
       return;
@@ -25,33 +25,47 @@ export default function AuthScreen() {
     setLoading(true);
     try {
       if (isRegistering) {
+        // --- FLUJO DE REGISTRO ---
         const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+        // Enviamos verificación inmediatamente
         await sendEmailVerification(userCredential.user);
+        
         Alert.alert(
-          "Verifica tu correo", 
-          "Hemos enviado un enlace a tu email. Por favor verifícalo para poder entrar."
+          "Registro exitoso", 
+          "Hemos enviado un enlace a tu email. Por favor verifícalo para poder iniciar sesión."
         );
         setIsRegistering(false);
+        setPassword(''); // Limpiamos contraseña por seguridad
       } else {
+        // --- FLUJO DE LOGIN ---
         const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
-        const user = userCredential.user;
-
-        // --- SOLUCIÓN ERROR VERIFICACIÓN ---
-        await user.reload(); 
+        
+        // RECARGA CRUCIAL: Forzamos a Firebase a consultar el estado del email al servidor
+        await userCredential.user.reload();
+        
+        // Obtenemos la referencia actualizada del usuario después del reload
         const userActualizado = auth.currentUser;
 
         if (userActualizado && !userActualizado.emailVerified) {
           Alert.alert(
             "Correo no verificado", 
-            "Tu cuenta aún no está verificada. Revisa tu email. Si ya lo hiciste, cierra e intenta entrar de nuevo."
+            "Aún no has verificado tu cuenta. Revisa tu bandeja de entrada o spam."
           );
+          // Opcional: Cerrar sesión para que no entre si no está verificado
+          // await auth.signOut();
         }
       }
     } catch (error: any) {
-      let mensaje = "Ocurrió un error.";
-      if (error.code === 'auth/user-not-found') mensaje = "El correo no está registrado.";
+      console.log("Error Firebase:", error.code);
+      let mensaje = "Ocurrió un error inesperado.";
+      
+      if (error.code === 'auth/email-already-in-use') mensaje = "Este correo ya está registrado.";
+      if (error.code === 'auth/invalid-email') mensaje = "El formato del correo no es válido.";
+      if (error.code === 'auth/weak-password') mensaje = "La contraseña debe tener al menos 6 caracteres.";
+      if (error.code === 'auth/user-not-found') mensaje = "El usuario no existe.";
       if (error.code === 'auth/wrong-password') mensaje = "Contraseña incorrecta.";
-      if (error.code === 'auth/email-already-in-use') mensaje = "Este correo ya está en uso.";
+      if (error.code === 'auth/network-request-failed') mensaje = "Error de red. Revisa tu conexión.";
+      
       Alert.alert("Error", mensaje);
     }
     setLoading(false);
