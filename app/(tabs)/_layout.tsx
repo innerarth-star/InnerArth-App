@@ -13,8 +13,13 @@ export default function TabLayout() {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setIsCoach(currentUser?.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim());
+      if (currentUser) {
+        setUser(currentUser);
+        setIsCoach(currentUser.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim());
+      } else {
+        setUser(null);
+        setIsCoach(false);
+      }
       setLoading(false);
     });
     return unsub;
@@ -28,50 +33,54 @@ export default function TabLayout() {
     );
   }
 
+  // Si no hay usuario, la barra no existe
+  const tabBarStyle = !user ? { display: 'none' } : { display: 'flex' };
+
   return (
     <Tabs screenOptions={{ 
       tabBarActiveTintColor: '#3b82f6', 
       headerShown: false,
-      tabBarStyle: !user ? { display: 'none' } : { display: 'flex' }
+      tabBarStyle: tabBarStyle as any 
     }}>
       
-      {/* 1. MI PLAN - Solo para Alumnos */}
+      {/* 1. CONFIGURACIÓN PARA EL ALUMNO */}
       <Tabs.Screen
         name="index"
         options={{
           title: 'Mi Plan',
-          href: isCoach ? null : ("/" as any),
-          // Si es Coach, ocultamos el espacio de la pestaña
-          tabBarItemStyle: isCoach ? { display: 'none' } : {},
+          // EL SECRETO: Si es Coach, esta pestaña se vuelve invisible e intocable
+          href: isCoach ? null : "/",
+          tabBarButton: isCoach ? () => <View /> : undefined, 
           tabBarIcon: ({ color }) => <FontAwesome5 name="clipboard-list" size={20} color={color} />,
         }}
       />
 
-      {/* 2. CLIENTES - Solo para Coach */}
+      {/* 2. CONFIGURACIÓN PARA EL COACH (CLIENTES) */}
       <Tabs.Screen
         name="coach"
         options={{
           title: 'Clientes',
-          href: isCoach ? ("/coach" as any) : null,
-          // Si NO es Coach, ocultamos el espacio de la pestaña
-          tabBarItemStyle: !isCoach ? { display: 'none' } : {},
+          // EL SECRETO: Si NO es Coach, esta pestaña se vuelve invisible e intocable
+          href: isCoach ? "/coach" : null,
+          tabBarButton: !isCoach ? () => <View /> : undefined,
           tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={20} color={color} />,
         }}
       />
 
-      {/* 3. BIBLIOTECA - Solo para Coach */}
+      {/* 3. CONFIGURACIÓN PARA EL COACH (BIBLIOTECA) */}
       <Tabs.Screen
         name="AdminAlimnetos"
         options={{
           title: 'Biblioteca',
-          href: isCoach ? ("/AdminAlimnetos" as any) : null,
-          // Si NO es Coach, ocultamos el espacio de la pestaña
-          tabBarItemStyle: !isCoach ? { display: 'none' } : {},
+          // EL SECRETO: Si NO es Coach, esta pestaña se vuelve invisible e intocable
+          href: isCoach ? "/AdminAlimnetos" : null,
+          tabBarButton: !isCoach ? () => <View /> : undefined,
           tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
         }}
       />
 
-      <Tabs.Screen name="explore" options={{ href: null }} />
+      {/* EXPLORE SIEMPRE OCULTO */}
+      <Tabs.Screen name="explore" options={{ href: null, tabBarButton: () => <View /> }} />
     </Tabs>
   );
 }
