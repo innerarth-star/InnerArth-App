@@ -45,8 +45,9 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Mi Plan',
-          // Si es coach, el botón NO se renderiza (oculto)
-          tabBarButton: isCoach ? () => null : undefined,
+          // Si eres coach, esta pestaña no se ve en la barra
+          href: isCoach ? null : ("/" as any),
+          tabBarItemStyle: isCoach ? { display: 'none' } : {},
           tabBarIcon: ({ color }) => <FontAwesome5 name="clipboard-list" size={20} color={color} />,
         }}
       />
@@ -56,8 +57,9 @@ export default function TabLayout() {
         name="coach"
         options={{
           title: 'Clientes',
-          // Si NO es coach, el botón NO se renderiza (oculto)
-          tabBarButton: !isCoach ? () => null : undefined,
+          // Si NO eres coach, no se ve
+          href: !isCoach ? null : ("/coach" as any),
+          tabBarItemStyle: !isCoach ? { display: 'none' } : {},
           tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={20} color={color} />,
         }}
       />
@@ -67,14 +69,14 @@ export default function TabLayout() {
         name="AdminAlimnetos"
         options={{
           title: 'Biblioteca',
-          // Si NO es coach, el botón NO se renderiza (oculto)
-          tabBarButton: !isCoach ? () => null : undefined,
+          // Si NO eres coach, no se ve
+          href: !isCoach ? null : ("/AdminAlimnetos" as any),
+          tabBarItemStyle: !isCoach ? { display: 'none' } : {},
           tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
         }}
       />
 
-      {/* SIEMPRE OCULTO */}
-      <Tabs.Screen name="explore" options={{ href: null as any, tabBarButton: () => null }} />
+      <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
 }
