@@ -33,9 +33,6 @@ export default function TabLayout() {
     );
   }
 
-  // --- SOLUCIÓN PARA PANTALLA EN BLANCO ---
-  // Si no hay usuario, configuramos las pestañas para que no se vean (display: 'none')
-  // pero dejamos que Expo Router siga funcionando.
   const tabStyle = !user ? { display: 'none' } : { display: 'flex' };
 
   return (
@@ -45,41 +42,44 @@ export default function TabLayout() {
       tabBarStyle: tabStyle as any 
     }}>
       
-      {/* 1. MI PLAN (index) */}
+      {/* 1. MI PLAN (index) - Solo para alumnos */}
       <Tabs.Screen
         name="index"
         options={{
           title: 'Mi Plan',
-          // Solo se ve si NO es coach Y hay usuario
           href: (user && !isCoach) ? ("/" as any) : null,
+          // Si es Coach, borramos el botón de la barra
+          tabBarButton: isCoach ? () => null : undefined, 
           tabBarIcon: ({ color }) => <FontAwesome5 name="clipboard-list" size={20} color={color} />,
         }}
       />
 
-      {/* 2. CLIENTES (coach) */}
+      {/* 2. CLIENTES (coach) - Solo para Coach */}
       <Tabs.Screen
         name="coach"
         options={{
           title: 'Clientes',
-          // Solo se ve si ES coach
           href: (user && isCoach) ? ("/coach" as any) : null,
+          // Si NO es Coach, borramos el botón de la barra
+          tabBarButton: !isCoach ? () => null : undefined,
           tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={20} color={color} />,
         }}
       />
 
-      {/* 3. BIBLIOTECA (AdminAlimnetos) */}
+      {/* 3. BIBLIOTECA (AdminAlimnetos) - Solo para Coach */}
       <Tabs.Screen
         name="AdminAlimnetos"
         options={{
           title: 'Biblioteca',
-          // Solo se ve si ES coach
           href: (user && isCoach) ? ("/AdminAlimnetos" as any) : null,
+          // Si NO es Coach, borramos el botón de la barra
+          tabBarButton: !isCoach ? () => null : undefined,
           tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
         }}
       />
 
-      {/* EXPLORE SIEMPRE OCULTO */}
-      <Tabs.Screen name="explore" options={{ href: null }} />
+      {/* OCULTAR SIEMPRE EXPLORE */}
+      <Tabs.Screen name="explore" options={{ href: null, tabBarButton: () => null }} />
     </Tabs>
   );
 }
