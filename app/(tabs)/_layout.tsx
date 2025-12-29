@@ -32,41 +32,43 @@ export default function TabLayout() {
     <Tabs screenOptions={{ 
       tabBarActiveTintColor: '#3b82f6', 
       headerShown: false,
-      // Si no hay usuario, ocultamos la barra
       tabBarStyle: !user ? { display: 'none' } : { display: 'flex' }
     }}>
       
+      {/* 1. MI PLAN (index) */}
       <Tabs.Screen
         name="index"
         options={{
           title: 'Mi Plan',
-          // Solo se ve el icono si NO eres coach
-          tabBarItemStyle: isCoach ? { display: 'none' } : {},
+          // Si es Coach, ocultamos el botón de la barra SIN romper la ruta
+          tabBarButton: isCoach ? () => <View style={{ width: 0 }} /> : undefined,
           tabBarIcon: ({ color }) => <FontAwesome5 name="clipboard-list" size={20} color={color} />,
         }}
       />
 
+      {/* 2. CLIENTES (coach) */}
       <Tabs.Screen
         name="coach"
         options={{
           title: 'Clientes',
-          // Solo se ve el icono si ERES coach
-          tabBarItemStyle: !isCoach ? { display: 'none' } : {},
+          // Si NO es Coach, borramos el botón físicamente
+          tabBarButton: !isCoach ? () => <View style={{ width: 0 }} /> : undefined,
           tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={20} color={color} />,
         }}
       />
 
+      {/* 3. BIBLIOTECA (AdminAlimnetos) */}
       <Tabs.Screen
         name="AdminAlimnetos"
         options={{
           title: 'Biblioteca',
-          // Solo se ve el icono si ERES coach
-          tabBarItemStyle: !isCoach ? { display: 'none' } : {},
+          // SI NO ES COACH: Esta es la línea que DEBE borrar la pestaña para el cliente
+          tabBarButton: !isCoach ? () => <View style={{ width: 0 }} /> : undefined,
           tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
         }}
       />
 
-      <Tabs.Screen name="explore" options={{ href: null }} />
+      <Tabs.Screen name="explore" options={{ href: null, tabBarButton: () => <View style={{ width: 0 }} /> }} />
     </Tabs>
   );
 }
