@@ -15,8 +15,7 @@ export default function TabLayout() {
     const unsub = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        const email = currentUser.email?.toLowerCase().trim();
-        setIsCoach(email === CORREO_COACH.toLowerCase().trim());
+        setIsCoach(currentUser.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim());
       } else {
         setUser(null);
         setIsCoach(false);
@@ -38,47 +37,41 @@ export default function TabLayout() {
     <Tabs screenOptions={{ 
       tabBarActiveTintColor: '#3b82f6', 
       headerShown: false,
-      // Ocultamos la barra si no hay usuario logueado
       tabBarStyle: !user ? { display: 'none' } : { height: 60, paddingBottom: 8 }
     }}>
       
-      {/* 1. MI PLAN (Solo visible para Alumnos) */}
+      {/* 1. MI PLAN */}
       <Tabs.Screen
         name="index"
         options={{
           title: 'Mi Plan',
-          tabBarItemStyle: isCoach ? { display: 'none' } : {},
+          // USAMOS UN SOLO COMANDO PARA OCULTAR
+          tabBarButton: isCoach ? () => null : undefined,
           tabBarIcon: ({ color }) => <FontAwesome5 name="clipboard-list" size={20} color={color} />,
         }}
       />
 
-      {/* 2. CLIENTES (Solo visible para Coach) */}
+      {/* 2. CLIENTES */}
       <Tabs.Screen
         name="coach"
         options={{
           title: 'Clientes',
-          tabBarItemStyle: !isCoach ? { display: 'none' } : {},
+          tabBarButton: !isCoach ? () => null : undefined,
           tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={20} color={color} />,
         }}
       />
 
-      {/* 3. BIBLIOTECA (Solo visible para Coach) */}
+      {/* 3. BIBLIOTECA */}
       <Tabs.Screen
-        name="AdminAlimnetos"
+        name="AdminAlimnetos" // Mantengo tu nombre actual de archivo para que no de 404
         options={{
           title: 'Biblioteca',
-          // Si NO es coach, creamos un botón "fantasma" que no mide nada y es invisible
-          tabBarButton: !isCoach 
-            ? () => <View style={{ width: 0, height: 0 }} /> 
-            : undefined,
-          // Esto quita el espacio que deja el botón aunque sea invisible
-          tabBarItemStyle: !isCoach ? { display: 'none', width: 0 } : {},
+          tabBarButton: !isCoach ? () => null : undefined,
           tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
         }}
       />
 
-      {/* EXPLORE: Siempre oculto */}
-      <Tabs.Screen name="explore" options={{ href: null }} />
+      <Tabs.Screen name="explore" options={{ href: null as any }} />
     </Tabs>
   );
 }
