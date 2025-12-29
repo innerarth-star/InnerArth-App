@@ -15,7 +15,7 @@ export default function TabLayout() {
     const unsub = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        setIsCoach(currentUser.email?.toLowerCase().trim() === CORREO_COACH);
+        setIsCoach(currentUser.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim());
       } else {
         setUser(null);
         setIsCoach(false);
@@ -36,44 +36,44 @@ export default function TabLayout() {
   return (
     <Tabs screenOptions={{ 
       tabBarActiveTintColor: '#3b82f6', 
-      headerShown: false,
-      // Si no hay usuario, ocultamos la barra globalmente
-      tabBarStyle: !user ? { display: 'none' } : { display: 'flex' }
+      headerShown: false, // Esto evita que el menú se suba o se encime
+      tabBarStyle: !user ? { display: 'none' } : { display: 'flex', height: 60, paddingBottom: 8 } 
     }}>
       
-      {/* 1. MI PLAN (index) */}
+      {/* 1. MI PLAN (index) - Solo para Alumnos */}
       <Tabs.Screen
         name="index"
         options={{
           title: 'Mi Plan',
-          // EL TRUCO: Si es coach, ocultamos esta pestaña específica
-          tabBarStyle: isCoach ? { display: 'none' } : { display: 'flex' },
+          // Si es coach, href es null para que no aparezca en su barra
+          href: isCoach ? null : ("/" as any),
           tabBarIcon: ({ color }) => <FontAwesome5 name="clipboard-list" size={20} color={color} />,
         }}
       />
 
-      {/* 2. CLIENTES (coach) */}
+      {/* 2. CLIENTES (coach) - Solo para el Administrador */}
       <Tabs.Screen
         name="coach"
         options={{
           title: 'Clientes',
-          // EL TRUCO: Si NO es coach, ocultamos esta pestaña específica
-          tabBarStyle: !isCoach ? { display: 'none' } : { display: 'flex' },
+          // Si NO es coach, href es null para ocultarlo del alumno
+          href: isCoach ? ("/coach" as any) : null,
           tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={20} color={color} />,
         }}
       />
 
-      {/* 3. BIBLIOTECA (AdminAlimnetos) */}
+      {/* 3. BIBLIOTECA (AdminAlimnetos) - Solo para el Administrador */}
       <Tabs.Screen
         name="AdminAlimnetos"
         options={{
           title: 'Biblioteca',
-          // EL TRUCO: Si NO es coach, ocultamos esta pestaña específica
-          tabBarStyle: !isCoach ? { display: 'none' } : { display: 'flex' },
+          // Si NO es coach, href es null para ocultarlo del alumno
+          href: isCoach ? ("/AdminAlimnetos" as any) : null,
           tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
         }}
       />
 
+      {/* EXPLORE: Siempre oculto */}
       <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
