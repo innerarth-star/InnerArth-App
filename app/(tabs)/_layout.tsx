@@ -67,10 +67,10 @@ export default function TabLayout() {
         name="AdminAlimnetos"
         options={{
           title: 'Biblioteca',
-          // ESTA ES LA CLAVE: Si NO es coach, el botón se borra físicamente
+          // ELIMINAMOS EL HREF para que no choque
+          // Si NO es coach, el botón NO EXISTE físicamente
           tabBarButton: !isCoach ? () => null : undefined,
           tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
-          tabBarItemStyle: !isCoach ? { display: 'none' } : {}, // Doble seguridad
         }}
       />
 

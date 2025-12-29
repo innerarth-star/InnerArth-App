@@ -4,6 +4,7 @@ import { db, auth } from '../../firebaseConfig';
 import { collection, addDoc, query, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useNavigation } from 'expo-router';
 
 const GRUPOS_ALIMENTOS = [
     { nombre: 'Verduras', unidades: ['taza', 'pieza', 'cucharada'] },
@@ -17,29 +18,30 @@ const GRUPOS_ALIMENTOS = [
 ];
 
 export default function BibliotecaAlimentos() {
-const router = useRouter();
-  const CORREO_COACH = "inner.arth@gmail.com";
-  
-  // --- BLOQUEO DE SEGURIDAD PARA CLIENTES ---
-  const user = auth.currentUser;
-  const isCoach = user?.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim();
+    const router = useRouter();
+    const navigation = useNavigation();
+    const CORREO_COACH = "inner.arth@gmail.com";
+    const user = auth.currentUser;
+    const isCoach = user?.email?.toLowerCase().trim() === CORREO_COACH;
 
-  useEffect(() => {
+useEffect(() => {
     if (!isCoach) {
-      // Si no es el coach, lo mandamos al inicio de inmediato
+      // Si entra un cliente, le quitamos la barra para que no pueda picar nada
+      navigation.getParent()?.setOptions({
+        tabBarStyle: { display: 'none' }
+      });
+      // Y lo regresamos a su plan
       router.replace('/');
     }
   }, [isCoach]);
 
-  // Si no es coach, no renderizamos nada del panel para que no vea tus datos
   if (!isCoach) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#3b82f6" />
       </View>
     );
   }
-
   const [nombre, setNombre] = useState('');
   const [grupo, setGrupo] = useState(GRUPOS_ALIMENTOS[0]);
   const [unidad, setUnidad] = useState(GRUPOS_ALIMENTOS[0].unidades[0]);
