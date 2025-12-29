@@ -33,43 +33,52 @@ export default function TabLayout() {
     );
   }
 
-  // SI NO HAY SESIÓN, NO MOSTRAMOS TABS
-  if (!user) return null;
+  // --- SOLUCIÓN PARA PANTALLA EN BLANCO ---
+  // Si no hay usuario, configuramos las pestañas para que no se vean (display: 'none')
+  // pero dejamos que Expo Router siga funcionando.
+  const tabStyle = !user ? { display: 'none' } : { display: 'flex' };
 
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: '#3b82f6', headerShown: false }}>
+    <Tabs screenOptions={{ 
+      tabBarActiveTintColor: '#3b82f6', 
+      headerShown: false,
+      tabBarStyle: tabStyle as any 
+    }}>
       
-      {/* 1. MI PLAN (index.tsx) - Visible solo para alumnos */}
+      {/* 1. MI PLAN (index) */}
       <Tabs.Screen
         name="index"
         options={{
           title: 'Mi Plan',
-          href: isCoach ? null : ("/" as any),
+          // Solo se ve si NO es coach Y hay usuario
+          href: (user && !isCoach) ? ("/" as any) : null,
           tabBarIcon: ({ color }) => <FontAwesome5 name="clipboard-list" size={20} color={color} />,
         }}
       />
 
-      {/* 2. CLIENTES (coach.tsx) - Visible solo para coach */}
+      {/* 2. CLIENTES (coach) */}
       <Tabs.Screen
         name="coach"
         options={{
           title: 'Clientes',
-          href: isCoach ? ("/coach" as any) : null,
+          // Solo se ve si ES coach
+          href: (user && isCoach) ? ("/coach" as any) : null,
           tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={20} color={color} />,
         }}
       />
 
-      {/* 3. BIBLIOTECA (AdminAlimnetos.tsx) - Visible solo para coach */}
+      {/* 3. BIBLIOTECA (AdminAlimnetos) */}
       <Tabs.Screen
         name="AdminAlimnetos"
         options={{
           title: 'Biblioteca',
-          href: isCoach ? ("/AdminAlimnetos" as any) : null,
+          // Solo se ve si ES coach
+          href: (user && isCoach) ? ("/AdminAlimnetos" as any) : null,
           tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
         }}
       />
 
-      {/* OCULTAR SIEMPRE EXPLORE */}
+      {/* EXPLORE SIEMPRE OCULTO */}
       <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
