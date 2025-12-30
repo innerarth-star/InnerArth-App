@@ -31,14 +31,15 @@ export default function CoachPanel() {
   const [planSeleccionado, setPlanSeleccionado] = useState<any>(null);
 
 const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      // NO uses router aquí. Solo deja que Firebase avise al MainApp.
-      // Al quitar el 'router.replace', evitas el conflicto en iPhone.
-    } catch (error) {
-      Alert.alert("Error", "No se pudo cerrar la sesión");
-    }
-  };
+  try {
+    // En iPhone forzamos el cierre de sesión y limpiamos el historial
+    await auth.signOut();
+    // No uses router.replace, el index.tsx de arriba detectará 
+    // que user es null y pondrá el Login instantáneamente.
+  } catch (e) {
+    console.log(e);
+  }
+};
 
 
   useEffect(() => {

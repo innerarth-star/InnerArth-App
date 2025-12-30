@@ -1,8 +1,12 @@
-import { Redirect } from 'expo-router';
 import { auth } from '../firebaseConfig';
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { View, ActivityIndicator } from 'react-native';
+
+// IMPORTA TUS CARPETAS DIRECTAMENTE
+import AuthScreen from './AuthScreen'; 
+import AdminLayout from './(admin)/_layout'; 
+import ClientLayout from './(client)/_layout';
 
 export default function Index() {
   const [user, setUser] = useState<any>(null);
@@ -10,26 +14,23 @@ export default function Index() {
   const CORREO_COACH = "inner.arth@gmail.com";
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
+    return onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
     });
-    return unsub;
   }, []);
 
-  if (loading) return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <ActivityIndicator size="large" color="#3b82f6" />
-    </View>
-  );
+  if (loading) return <View style={{flex:1, justifyContent:'center'}}><ActivityIndicator/></View>;
 
-  // ESTA LÍNEA ES LA QUE QUITA EL RECUADRO DE "MI PLAN"
-  // Si no hay usuario, manda a login y NO LEE lo que sigue abajo.
-  if (!user) return <Redirect href="/AuthScreen" />;
+  // --- LÓGICA DE HIERRO PARA IPHONE ---
+  
+  // Si no hay usuario, SOLO existe AuthScreen. 
+  // Esto hace IMPOSIBLE que se vea "Mi Plan" porque ClienteLayout ni siquiera se carga.
+  if (!user) return <AuthScreen />;
 
   const isCoach = user.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim();
 
-  if (isCoach) return <Redirect href="/(admin)/coach" />;
+  if (isCoach) return <AdminLayout />;
   
-  return <Redirect href="/(client)" />;
+  return <ClientLayout />;
 }
