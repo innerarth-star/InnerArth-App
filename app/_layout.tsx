@@ -5,34 +5,46 @@ import { View, Text, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 
 export default function Index() {
-  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const CORREO_COACH = "inner.arth@gmail.com";
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
+    // 1. Temporizador de seguridad: si en 4 segundos no responde Firebase, manda al Login
+    const timer = setTimeout(() => {
+      if (loading) {
+        console.log("Firebase lento, forzando AuthScreen");
+        router.replace('/AuthScreen' as any);
+      }
+    }, 4000);
+
+    // 2. Escuchar a Firebase
+    const unsub = onAuthStateChanged(auth, (user) => {
       setLoading(false);
-    });
-    return unsub;
-  }, []);
+      clearTimeout(timer); // Cancelar el temporizador si Firebase responde
 
-  // Efecto para navegar cuando ya sabemos quién es el usuario
-  useEffect(() => {
-    if (!loading) {
       if (!user) {
         router.replace('/AuthScreen' as any);
       } else {
-        // Por ahora, vamos a mandar a todos a (client) para probar que cargue
-        router.replace('/(client)' as any);
+        const isCoach = user.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim();
+        if (isCoach) {
+          router.replace('/(admin)/coach' as any);
+        } else {
+          router.replace('/(client)' as any);
+        }
       }
-    }
-  }, [user, loading]);
+    });
+
+    return () => {
+      unsub();
+      clearTimeout(timer);
+    };
+  }, []);
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9' }}>
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
       <ActivityIndicator size="large" color="#3b82f6" />
-      <Text style={{ marginTop: 10, color: '#64748b' }}>Cargando aplicación...</Text>
+      <Text style={{ marginTop: 15, color: '#64748b', fontSize: 12 }}>Iniciando sesión segura...</Text>
     </View>
   );
 }
