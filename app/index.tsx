@@ -10,7 +10,9 @@ export default function Index() {
   const CORREO_COACH = "inner.arth@gmail.com";
 
   useEffect(() => {
+    // Escuchamos el cambio de estado de Firebase
     const unsub = onAuthStateChanged(auth, (u) => {
+      console.log("Usuario detectado:", u?.email); // Verás esto en tu terminal de VS Code
       setUser(u);
       setLoading(false);
     });
@@ -25,18 +27,17 @@ export default function Index() {
     );
   }
 
-  // Si no hay usuario, manda al login. 
+  // SI NO HAY USUARIO: Manda al login
   if (!user) {
     return <Redirect href={"/AuthScreen" as any} />;
   }
 
+  // SI HAY USUARIO: Decidimos a dónde va
   const isCoach = user.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim();
 
-  // Redirección definitiva
   if (isCoach) {
     return <Redirect href={"/(admin)/coach" as any} />;
   } else {
-    // Quitamos la "/" final para que no marque el error de "¿Quería decir (client)?"
     return <Redirect href={"/(client)" as any} />;
   }
 }
