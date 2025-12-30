@@ -88,13 +88,13 @@ const handleAuth = async () => {
     <View style={styles.container}>
       <Text style={styles.title}>{isRegistering ? 'Crear Cuenta' : 'Iniciar Sesión'}</Text>
       
-      <TextInput 
-        style={styles.input} 
-        placeholder="Correo electrónico" 
-        value={email} 
-        onChangeText={setEmail}
-        autoCapitalize="none"
+      <TextInput
+        placeholder="Correo electrónico"
+        value={email} // ESTO ES VITAL: El valor debe venir del estado
+        onChangeText={(text) => setEmail(text)} // Actualiza el estado al escribir
         keyboardType="email-address"
+        autoCapitalize="none"
+        style={styles.input} // Tu estilo actual
       />
       
       {/* CONTENEDOR DE CONTRASEÑA CON OJO */}

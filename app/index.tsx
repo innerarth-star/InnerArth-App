@@ -5,25 +5,38 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { View, ActivityIndicator } from 'react-native';
 
 export default function Index() {
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [isCoach, setIsCoach] = useState(false);
-  const CORREO_COACH = "inner.arth@gmail.com"; // Asegúrate que sea este
+  const CORREO_COACH = "inner.arth@gmail.com";
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      if (user && user.email) {
-        // Limpiamos espacios y pasamos a minúsculas para comparar
-        const emailLimpio = user.email.toLowerCase().trim();
-        setIsCoach(emailLimpio === CORREO_COACH.toLowerCase().trim());
-      }
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
       setLoading(false);
     });
     return unsub;
   }, []);
 
-  if (loading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator size="large" color="#3b82f6" /></View>;
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+      </View>
+    );
+  }
 
-  // LA MAGIA: Si eres coach, te manda a (admin), si no a (client)
-  // @ts-ignore
-  return isCoach ? <Redirect href="/(admin)/coach" /> : <Redirect href="/(client)/" />;
+  // Si no hay usuario, manda al login. 
+  if (!user) {
+    return <Redirect href={"/AuthScreen" as any} />;
+  }
+
+  const isCoach = user.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim();
+
+  // Redirección definitiva
+  if (isCoach) {
+    return <Redirect href={"/(admin)/coach" as any} />;
+  } else {
+    // Quitamos la "/" final para que no marque el error de "¿Quería decir (client)?"
+    return <Redirect href={"/(client)" as any} />;
+  }
 }
