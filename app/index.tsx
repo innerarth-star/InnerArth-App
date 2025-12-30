@@ -1,21 +1,25 @@
+import { Redirect } from 'expo-router';
 import { auth } from '../firebaseConfig';
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { View, ActivityIndicator } from 'react-native';
 
-// IMPORTAMOS TUS PANTALLAS (Asegúrate de que estas rutas sean las correctas)
-import AuthScreen from './AuthScreen'; 
-import CoachPanel from './(admin)/coach';
-import ClienteScreen from './(client)/index'; // <--- Tu archivo de cliente con todos sus menús
-
 export default function Index() {
   const [user, setUser] = useState<any>(null);
+  const [role, setRole] = useState<'coach' | 'alumno' | null>(null);
   const [loading, setLoading] = useState(true);
   const CORREO_COACH = "inner.arth@gmail.com";
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
+      if (u) {
+        setUser(u);
+        const isCoach = u.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim();
+        setRole(isCoach ? 'coach' : 'alumno');
+      } else {
+        setUser(null);
+        setRole(null);
+      }
       setLoading(false);
     });
     return unsub;
@@ -29,18 +33,16 @@ export default function Index() {
     );
   }
 
-  // 1. SI NO HAY USUARIO: Login (Aquí se quita el recuadro fantasma)
+  // 1. SI NO HAY USUARIO: Login
   if (!user) {
-    return <AuthScreen />;
+    return <Redirect href="/AuthScreen" />;
   }
 
-  // 2. VERIFICAR ROL
-  const isCoach = user.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim();
+  // 2. SI ES COACH: Manda a la carpeta admin (donde están tus menús de coach)
+  if (role === 'coach') {
+    return <Redirect href="/(admin)/coach" />;
+  } 
 
-  // 3. RETORNAR LA PANTALLA COMPLETA (Sin pasar 'user' para evitar el error de TypeScript)
-  if (isCoach) {
-    return <CoachPanel />; 
-  } else {
-    return <ClienteScreen />;
-  }
+  // 3. SI ES ALUMNO: Manda a la carpeta client (donde están tus menús de cliente)
+  return <Redirect href="/(client)" />;
 }
