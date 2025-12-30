@@ -1,8 +1,12 @@
-import { Redirect } from 'expo-router';
 import { auth } from '../firebaseConfig';
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { View, ActivityIndicator } from 'react-native';
+
+// IMPORTA TUS PANTALLAS DIRECTAMENTE
+import AuthScreen from './AuthScreen'; 
+import CoachPanel from './(admin)/coach';
+import ClienteScreen from './(client)'; // O como se llame tu pantalla de cliente
 
 export default function Index() {
   const [user, setUser] = useState<any>(null);
@@ -10,9 +14,7 @@ export default function Index() {
   const CORREO_COACH = "inner.arth@gmail.com";
 
   useEffect(() => {
-    // Escuchamos el cambio de estado de Firebase
     const unsub = onAuthStateChanged(auth, (u) => {
-      console.log("Usuario detectado:", u?.email); // Verás esto en tu terminal de VS Code
       setUser(u);
       setLoading(false);
     });
@@ -27,17 +29,18 @@ export default function Index() {
     );
   }
 
-  // SI NO HAY USUARIO: Manda al login
+  // 1. SI NO HAY USUARIO: Login (Esto quita el recuadro de Mi Plan al instante)
   if (!user) {
-    return <Redirect href={"/AuthScreen" as any} />;
+    return <AuthScreen />;
   }
 
-  // SI HAY USUARIO: Decidimos a dónde va
+  // 2. SI HAY USUARIO: Verificamos si es Coach
   const isCoach = user.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim();
 
   if (isCoach) {
-    return <Redirect href={"/(admin)/coach" as any} />;
-  } else {
-    return <Redirect href={"/(client)" as any} />;
-  }
+    return <CoachPanel />;
+  } 
+
+  // 3. SI NO ES COACH: Es cliente
+  return <ClienteScreen />;
 }

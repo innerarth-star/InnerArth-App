@@ -6,8 +6,12 @@ import { signOut } from 'firebase/auth';
 import { FontAwesome5, Ionicons, FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import { useRouter } from 'expo-router';
+import { Platform } from 'react-native';
+
 
 export default function CoachPanel() {
+  const router = useRouter();
   const [alumnos, setAlumnos] = useState<any[]>([]);
   const [cargando, setCargando] = useState(true);
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState<any>(null);
@@ -25,6 +29,17 @@ export default function CoachPanel() {
   const [historialPlanes, setHistorialPlanes] = useState<any[]>([]);
   const [esPlanHistorico, setEsPlanHistorico] = useState(false);
   const [planSeleccionado, setPlanSeleccionado] = useState<any>(null);
+
+const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      // NO uses router aquí. Solo deja que Firebase avise al MainApp.
+      // Al quitar el 'router.replace', evitas el conflicto en iPhone.
+    } catch (error) {
+      Alert.alert("Error", "No se pudo cerrar la sesión");
+    }
+  };
+
 
   useEffect(() => {
     const q = query(collection(db, "revisiones_pendientes"));
