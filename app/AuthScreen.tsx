@@ -77,14 +77,17 @@ export default function AuthScreen() {
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>{isRegistering ? 'Crear Cuenta' : 'Iniciar Sesión'}</Text>
         
-        <TextInput
-          placeholder="Correo electrónico"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          style={styles.input}
-        />
+    <TextInput
+      placeholder="Correo electrónico"
+      value={email}
+      onChangeText={setEmail}
+      keyboardType="email-address"
+      autoCapitalize="none"
+      // Añade esto para Android:
+      disableFullscreenUI={true} 
+      autoCorrect={false}
+      style={styles.input}
+    />
         
         <View style={styles.passwordContainer}>
           <TextInput 

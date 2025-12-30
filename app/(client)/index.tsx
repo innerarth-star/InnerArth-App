@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Alert, Modal, ActivityIndicator, StatusBar } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Alert, Modal, ActivityIndicator, StatusBar, Platform } from 'react-native';
 import { db, auth } from '../../firebaseConfig'; 
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore'; 
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { FontAwesome5, MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
 import SignatureScreen from 'react-native-signature-canvas';
 import AuthScreen from '../AuthScreen'; 
-import CoachPanel from '../(admin)/coach'; 
+import CoachPanel from '../(admin)/coach';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ENFERMEDADES_BASE = ["Diabetes", "Hipertensión", "Obesidad", "Hipotiroidismo", "Cáncer", "Cardiopatías", "Asma", "Ninguna", "Otra"];
 const ANTICONCEPTIVOS = ["Pastillas", "Inyección", "DIU", "Implante", "Parche", "Ninguno"];
@@ -107,6 +108,9 @@ function ClienteScreen({ user }: { user: any }) {
   const [objetivo, setObjetivo] = useState('');
   const [frecuenciaAlimentos, setFrecuenciaAlimentos] = useState<any>({});
 
+
+  
+
   // VERIFICAR SI YA EXISTE UN ENVÍO PREVIO
   useEffect(() => {
     const checkStatus = async () => {
@@ -156,12 +160,19 @@ function ClienteScreen({ user }: { user: any }) {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={styles.header}>Check-in FitTech</Text>
+      
+      {/* BARRA SUPERIOR PARA ANDROID Y CIERRE DE SESIÓN */}
+      <View style={styles.headerBar}>
+        <Text style={styles.headerTitle}>Check-in FitTech</Text>
+        <TouchableOpacity onPress={() => signOut(auth)} style={styles.logoutBtn}>
+          <FontAwesome5 name="sign-out-alt" size={18} color="#ef4444" />
+        </TouchableOpacity>
+      </View>
 
-        <Section num={1} title="Datos Personales" color="#3b82f6" icon="user" activa={seccionActiva} setActiva={setSeccionActiva}>
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+         <Section num={1} title="Datos Personales" color="#3b82f6" icon="user" activa={seccionActiva} setActiva={setSeccionActiva}>
           <TextInput style={styles.input} placeholder="Nombre Completo" value={nombre} onChangeText={setNombre} />
           <TextInput 
             style={styles.input} 
@@ -170,6 +181,7 @@ function ClienteScreen({ user }: { user: any }) {
             onChangeText={(v) => { if (v.length <= 10) setTelefono(v.replace(/[^0-9]/g, '')) }} 
             keyboardType="numeric" 
             maxLength={10}
+            disableFullscreenUI={true}
           />
           <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Peso (kg)" value={peso} keyboardType="numeric" onChangeText={setPeso} /><TextInput style={[styles.input, {flex:1, marginLeft:5}]} placeholder="Altura (cm)" value={altura} keyboardType="numeric" onChangeText={setAltura} /></View>
           <TextInput style={styles.input} placeholder="Edad" value={edad} keyboardType="numeric" onChangeText={setEdad} />
@@ -280,7 +292,7 @@ function ClienteScreen({ user }: { user: any }) {
       <Modal visible={modalFirma} animationType="slide">
         <View style={{flex:1, backgroundColor:'#fff', paddingTop:50}}><SignatureScreen onOK={s=>{setFirma(s); setModalFirma(false);}} descriptionText="Firma"/><TouchableOpacity onPress={() => setModalFirma(false)} style={{padding:20, alignItems:'center'}}><Text style={{color:'red'}}>Cancelar</Text></TouchableOpacity></View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -296,6 +308,9 @@ const Section = ({ num, title, color, icon, activa, setActiva, children }: any) 
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f1f5f9' },
+  headerBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0', paddingTop: Platform.OS === 'android' ? 10 : 0 },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#1e293b' },
+  logoutBtn: { padding: 8, backgroundColor: '#fee2e2', borderRadius: 8 },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginTop: 50 },
   userEmail: { fontSize: 10, color: '#94a3b8' },
   scroll: { padding: 15, paddingBottom: 60 },
