@@ -12,14 +12,17 @@ export default function Index() {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
-      if (u) {
-        setUser(u);
-        const isCoach = u.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim();
-        setRole(isCoach ? 'coach' : 'alumno');
-      } else {
+      if (!u) {
+        // Si el usuario se va, limpiamos y paramos todo
         setUser(null);
         setRole(null);
+        setLoading(false);
+        return; 
       }
+      
+      setUser(u);
+      const isCoach = u.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim();
+      setRole(isCoach ? 'coach' : 'alumno');
       setLoading(false);
     });
     return unsub;
