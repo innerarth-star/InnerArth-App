@@ -1,12 +1,13 @@
-import { Redirect } from 'expo-router';
 import { auth } from '../firebaseConfig';
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { View, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
 
 export default function Index() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -16,12 +17,22 @@ export default function Index() {
     return unsub;
   }, []);
 
-  if (loading) return <View style={{flex:1, justifyContent:'center', alignItems:'center'}}><ActivityIndicator size="large" color="#3b82f6" /></View>;
+  // Efecto para navegar cuando ya sabemos quién es el usuario
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        router.replace('/AuthScreen' as any);
+      } else {
+        // Por ahora, vamos a mandar a todos a (client) para probar que cargue
+        router.replace('/(client)' as any);
+      }
+    }
+  }, [user, loading]);
 
-  // SI NO HAY USUARIO -> LOGIN
-  if (!user) return <Redirect href="/AuthScreen" />;
-
-  // SI HAY USUARIO -> QUE EXPO ROUTER DECIDA SEGÚN LAS CARPETAS
-  // Esto evita la pantalla en blanco porque no forzamos una ruta manual
-  return <Redirect href="/(client)" />; 
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9' }}>
+      <ActivityIndicator size="large" color="#3b82f6" />
+      <Text style={{ marginTop: 10, color: '#64748b' }}>Cargando aplicación...</Text>
+    </View>
+  );
 }
