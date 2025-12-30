@@ -7,7 +7,6 @@ import { View, ActivityIndicator } from 'react-native';
 export default function Index() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const CORREO_COACH = "inner.arth@gmail.com";
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -17,28 +16,12 @@ export default function Index() {
     return unsub;
   }, []);
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-        <ActivityIndicator size="large" color="#3b82f6" />
-      </View>
-    );
-  }
+  if (loading) return <View style={{flex:1, justifyContent:'center', alignItems:'center'}}><ActivityIndicator size="large" color="#3b82f6" /></View>;
 
-  // --- LÓGICA DE NAVEGACIÓN ---
+  // SI NO HAY USUARIO -> LOGIN
+  if (!user) return <Redirect href="/AuthScreen" />;
 
-  // 1. Si no hay usuario: LOGIN
-  if (!user) {
-    return <Redirect href="/AuthScreen" />;
-  }
-
-  // 2. Si hay usuario: Verificar Rol
-  const isCoach = user.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim();
-
-  if (isCoach) {
-    return <Redirect href="/(admin)/coach" />;
-  }
-
-  // 3. Por defecto: CLIENTE
-  return <Redirect href="/(client)" />;
+  // SI HAY USUARIO -> QUE EXPO ROUTER DECIDA SEGÚN LAS CARPETAS
+  // Esto evita la pantalla en blanco porque no forzamos una ruta manual
+  return <Redirect href="/(client)" />; 
 }
