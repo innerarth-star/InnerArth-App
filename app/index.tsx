@@ -3,10 +3,10 @@ import { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { View, ActivityIndicator } from 'react-native';
 
-// IMPORTA TUS PANTALLAS DIRECTAMENTE
+// IMPORTAMOS TUS PANTALLAS (Asegúrate de que estas rutas sean las correctas)
 import AuthScreen from './AuthScreen'; 
 import CoachPanel from './(admin)/coach';
-import ClienteScreen from './(client)'; // O como se llame tu pantalla de cliente
+import ClienteScreen from './(client)/index'; // <--- Tu archivo de cliente con todos sus menús
 
 export default function Index() {
   const [user, setUser] = useState<any>(null);
@@ -29,18 +29,18 @@ export default function Index() {
     );
   }
 
-  // 1. SI NO HAY USUARIO: Login (Esto quita el recuadro de Mi Plan al instante)
+  // 1. SI NO HAY USUARIO: Login (Aquí se quita el recuadro fantasma)
   if (!user) {
     return <AuthScreen />;
   }
 
-  // 2. SI HAY USUARIO: Verificamos si es Coach
+  // 2. VERIFICAR ROL
   const isCoach = user.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim();
 
+  // 3. RETORNAR LA PANTALLA COMPLETA (Sin pasar 'user' para evitar el error de TypeScript)
   if (isCoach) {
-    return <CoachPanel />;
-  } 
-
-  // 3. SI NO ES COACH: Es cliente
-  return <ClienteScreen />;
+    return <CoachPanel />; 
+  } else {
+    return <ClienteScreen />;
+  }
 }
