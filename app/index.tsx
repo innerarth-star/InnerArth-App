@@ -47,7 +47,7 @@ export default function Index() {
       <Animated.View style={{ opacity: fadeAnim, alignItems: 'center' }}>
         <Image 
           // Asegúrate de que el nombre coincida con tu archivo en assets
-          source={require('../assets/logo.png')} 
+          source={require('../assets/images/splash-icon.png')} 
           style={styles.logo}
           resizeMode="contain"
         />
