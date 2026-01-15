@@ -27,7 +27,7 @@ export default function AuthScreen() {
         const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
         await sendEmailVerification(userCredential.user);
         const msg = "Verifica tu email antes de iniciar sesión.";
-        Platform.OS === 'web' ? alert(msg) : Alert.alert("Registro exitoso", msg);
+        if (Platform.OS === 'web') alert(msg); else Alert.alert("Registro exitoso", msg);
         setIsRegistering(false);
         setPassword('');
       } else {
@@ -37,7 +37,7 @@ export default function AuthScreen() {
 
         if (userActualizado && !userActualizado.emailVerified) {
           const msg = "Por favor revisa tu bandeja de entrada.";
-          Platform.OS === 'web' ? alert(msg) : Alert.alert("Correo no verificado", msg);
+          if (Platform.OS === 'web') alert(msg); else Alert.alert("Correo no verificado", msg);
           setLoading(false);
           return;
         }
@@ -49,7 +49,7 @@ export default function AuthScreen() {
       if (error.code === 'auth/invalid-email') mensaje = "El formato del correo no es válido.";
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') mensaje = "Credenciales incorrectas.";
       
-      Platform.OS === 'web' ? alert(mensaje) : Alert.alert("Error", mensaje);
+      if (Platform.OS === 'web') alert(mensaje); else Alert.alert("Error", mensaje);
     }
     setLoading(false);
   };
@@ -73,9 +73,7 @@ export default function AuthScreen() {
       style={styles.container}
     >
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-        {/* TARJETA DE LOGIN CENTRAL */}
         <View style={styles.card}>
-          {/* Logo para impacto visual */}
           <Image 
             source={require('../assets/images/splash-icon.png')} 
             style={styles.logo}
@@ -91,8 +89,8 @@ export default function AuthScreen() {
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
-            disableFullscreenUI={true} 
             autoCorrect={false}
+            placeholderTextColor="#94a3b8"
             style={styles.input}
           />
           
@@ -103,6 +101,7 @@ export default function AuthScreen() {
               value={password} 
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
+              placeholderTextColor="#94a3b8"
             />
             <TouchableOpacity 
               style={styles.eyeIcon} 
@@ -117,7 +116,7 @@ export default function AuthScreen() {
           </View>
 
           {loading ? (
-            <ActivityIndicator size="large" color="#3b82f6" />
+            <ActivityIndicator size="large" color="#3b82f6" style={{ marginVertical: 20 }} />
           ) : (
             <>
               <TouchableOpacity style={styles.button} onPress={handleAuth}>
@@ -146,12 +145,12 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#000000' // Fondo oscuro para impacto visual
+    backgroundColor: '#000000' 
   },
   scrollContainer: { 
     flexGrow: 1, 
     justifyContent: 'center', 
-    alignItems: 'center', // Centra la tarjeta en Web
+    alignItems: 'center', 
     padding: 20 
   },
   card: {
@@ -159,19 +158,17 @@ const styles = StyleSheet.create({
     padding: 30,
     borderRadius: 20,
     width: '100%',
-    // MAGIA DE LA WEB: Ancho máximo para que no se estire
     maxWidth: 420,
     alignSelf: 'center',
-    // Sombra para efecto de elevación
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 10 },
       android: { elevation: 5 },
-      web: { boxShadow: '0px 10px 25px rgba(0,0,0,0.2)', marginTop: 50 }
+      web: { boxShadow: '0px 10px 25px rgba(0,0,0,0.2)' }
     })
   },
   logo: {
-    width: Platform.OS === 'web' ? 150 : 100,
-    height: Platform.OS === 'web' ? 150 : 100,
+    width: Platform.OS === 'web' ? 120 : 90,
+    height: Platform.OS === 'web' ? 120 : 90,
     alignSelf: 'center',
     marginBottom: 20
   },
@@ -184,7 +181,8 @@ const styles = StyleSheet.create({
     marginBottom: 15, 
     borderWidth: 1, 
     borderColor: '#e2e8f0',
-    fontSize: 16
+    fontSize: 16,
+    color: '#000'
   },
   passwordContainer: {
     flexDirection: 'row',
@@ -194,20 +192,33 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     borderWidth: 1,
     borderColor: '#e2e8f0',
+    overflow: 'hidden',
   },
-  inputPassword: { flex: 1, padding: 15, fontSize: 16 },
-  eyeIcon: { position: 'absolute', right: 0, height: '100%', justifyContent: 'center', paddingHorizontal: 15, zIndex: 10, },
+  inputPassword: { 
+    flex: 1, 
+    padding: 15, 
+    fontSize: 16,
+    color: '#000',
+    // Usamos cast para evitar que TS se queje de propiedades web
+    ...Platform.select({
+      web: { outlineStyle: 'none' } as any
+    })
+  },
+  eyeIcon: { 
+    paddingHorizontal: 15,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Platform.select({
+      web: { cursor: 'pointer' } as any
+    })
+  },
   button: { 
     backgroundColor: '#3b82f6', 
     padding: 16, 
     borderRadius: 12, 
     alignItems: 'center', 
-    marginTop: 10,
-    // Efecto de brillo en el botón
-    shadowColor: '#3b82f6',
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 3
+    marginTop: 10
   },
   buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   secondaryBtn: { marginTop: 20, alignItems: 'center' },
