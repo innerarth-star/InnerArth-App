@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     width: '100%',
     // MAGIA DE LA WEB: Ancho máximo para que no se estire
     maxWidth: 420,
-    alignSelf: 'center'
+    alignSelf: 'center',
     // Sombra para efecto de elevación
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 10 },
