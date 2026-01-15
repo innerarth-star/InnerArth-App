@@ -107,6 +107,13 @@ export default function AuthScreen() {
               style={styles.eyeIcon} 
               onPress={() => setShowPassword(!showPassword)}
             >
+              <View style={{ minWidth: 24, minHeight: 24, justifyContent: 'center', alignItems: 'center' }}>
+                <Ionicons
+                  name={showPassword ? "eye-off" : "eye"}
+                  size={24}
+                  color="#000000" // Cambiado a negro sólido para máxima visibilidad
+                /> 
+              </View>
               <Ionicons 
                 name={showPassword ? "eye-off" : "eye"} 
                 size={22} 
@@ -209,8 +216,10 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 999,
+    minWidth: 50,
     ...Platform.select({
-      web: { cursor: 'pointer' } as any
+      web: { cursor: 'pointer', display: 'flex' } as any
     })
   },
   button: { 
