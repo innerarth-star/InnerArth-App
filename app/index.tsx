@@ -1,55 +1,60 @@
-import { Redirect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { auth } from '../firebaseConfig';
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { View, ActivityIndicator, Image, StyleSheet, Animated } from 'react-native';
 
 export default function Index() {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [fadeAnim] = useState(new Animated.Value(0)); // Para una entrada suave del logo
+  const [loadingAuth, setLoadingAuth] = useState(true);
+  const [showContent, setShowContent] = useState(true);
+  const fadeAnim = useState(new Animated.Value(0))[0];
+  const router = useRouter();
   const CORREO_COACH = "inner.arth@gmail.com";
 
   useEffect(() => {
-    // Animación del logo al iniciar
+    // 1. Animación de entrada
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 1000,
+      duration: 800,
       useNativeDriver: true,
     }).start();
 
-    const unsub = onAuthStateChanged(auth, (u) => {
-      // Damos un pequeño delay de 1.5s para que alcancen a ver tu marca/logo
+    // 2. Escuchar Firebase
+    const unsub = onAuthStateChanged(auth, (user) => {
+      // Forzamos a que el logo se vea al menos 2.5 segundos para impacto visual
       setTimeout(() => {
-        setUser(u);
-        setLoading(false);
-      }, 1500); 
+        if (!user) {
+          router.replace('/AuthScreen');
+        } else {
+          const isCoach = user.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim();
+          if (isCoach) {
+            router.replace('/(admin)/coach');
+          } else {
+            router.replace('/(client)');
+          }
+        }
+        // Solo ocultamos la carga después de intentar navegar
+        setLoadingAuth(false);
+      }, 2500); 
     });
+
     return unsub;
   }, []);
 
-  // MIENTRAS CARGA O VERIFICA: Mostramos el Logo con diseño
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <Animated.View style={{ opacity: fadeAnim, alignItems: 'center' }}>
-          {/* REEMPLAZA ESTE URL POR TU LOGO LOCAL O REMOTO */}
-          <Image 
-            source={{ uri: 'https://tu-sitio-web.com/logo.png' }} 
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <ActivityIndicator size="small" color="#3b82f6" style={{ marginTop: 20 }} />
-        </Animated.View>
-      </View>
-    );
-  }
-
-  // REGLAS DE REDIRECCIÓN (Igual que tu lógica original)
-  if (!user) return <Redirect href="/AuthScreen" />;
-  
-  const isCoach = user.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim();
-  return isCoach ? <Redirect href="/(admin)/coach" /> : <Redirect href="/(client)" />;
+  // Esta es la vista que DEBE aparecer
+  return (
+    <View style={styles.container}>
+      <Animated.View style={{ opacity: fadeAnim, alignItems: 'center' }}>
+        <Image 
+          // Asegúrate de que el nombre coincida con tu archivo en assets
+          source={require('../assets/logo.png')} 
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <ActivityIndicator size="large" color="#3b82f6" style={{ marginTop: 30 }} />
+      </Animated.View>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -57,11 +62,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000', // Un fondo oscuro da más impacto y elegancia
+    backgroundColor: '#000000', // Fondo negro para que no se vea blanco
   },
   logo: {
-    width: 200,   // Ajusta el tamaño según tu logo
-    height: 200,
-    borderRadius: 20, // Opcional por si el logo es cuadrado
+    width: 250, 
+    height: 250,
   },
 });
