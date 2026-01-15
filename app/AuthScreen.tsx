@@ -161,16 +161,17 @@ const styles = StyleSheet.create({
     width: '100%',
     // MAGIA DE LA WEB: Ancho máximo para que no se estire
     maxWidth: 420,
+    alignSelf: 'center'
     // Sombra para efecto de elevación
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 10 },
       android: { elevation: 5 },
-      web: { boxShadow: '0px 10px 25px rgba(0,0,0,0.2)' }
+      web: { boxShadow: '0px 10px 25px rgba(0,0,0,0.2)', marginTop: 50 }
     })
   },
   logo: {
-    width: 80,
-    height: 80,
+    width: Platform.OS === 'web' ? 150 : 100,
+    height: Platform.OS === 'web' ? 150 : 100,
     alignSelf: 'center',
     marginBottom: 20
   },
@@ -195,7 +196,7 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
   },
   inputPassword: { flex: 1, padding: 15, fontSize: 16 },
-  eyeIcon: { paddingHorizontal: 15 },
+  eyeIcon: { position: 'absolute', right: 0, height: '100%', justifyContent: 'center', paddingHorizontal: 15, zIndex: 10, },
   button: { 
     backgroundColor: '#3b82f6', 
     padding: 16, 
