@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Keyboard, Image } from 'react-native';
 import { auth } from '../firebaseConfig';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification } from 'firebase/auth';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 export default function AuthScreen() {
@@ -48,7 +47,6 @@ export default function AuthScreen() {
       if (error.code === 'auth/email-already-in-use') mensaje = "Este correo ya está registrado.";
       if (error.code === 'auth/invalid-email') mensaje = "El formato del correo no es válido.";
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') mensaje = "Credenciales incorrectas.";
-      
       if (Platform.OS === 'web') alert(mensaje); else Alert.alert("Error", mensaje);
     }
     setLoading(false);
@@ -107,18 +105,7 @@ export default function AuthScreen() {
               style={styles.eyeIcon} 
               onPress={() => setShowPassword(!showPassword)}
             >
-              <View style={{ minWidth: 24, minHeight: 24, justifyContent: 'center', alignItems: 'center' }}>
-                <Ionicons
-                  name={showPassword ? "eye-off" : "eye"}
-                  size={24}
-                  color="#000000" // Cambiado a negro sólido para máxima visibilidad
-                /> 
-              </View>
-              <Ionicons 
-                name={showPassword ? "eye-off" : "eye"} 
-                size={22} 
-                color="#64748b" 
-              />
+              <Text style={{fontSize: 22}}>{showPassword ? "🙈" : "👁️"}</Text>
             </TouchableOpacity>
           </View>
 
@@ -150,16 +137,8 @@ export default function AuthScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#000000' 
-  },
-  scrollContainer: { 
-    flexGrow: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    padding: 20 
-  },
+  container: { flex: 1, backgroundColor: '#000000' },
+  scrollContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   card: {
     backgroundColor: '#ffffff',
     padding: 30,
@@ -206,7 +185,6 @@ const styles = StyleSheet.create({
     padding: 15, 
     fontSize: 16,
     color: '#000',
-    // Usamos cast para evitar que TS se queje de propiedades web
     ...Platform.select({
       web: { outlineStyle: 'none' } as any
     })
@@ -217,18 +195,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 999,
-    minWidth: 50,
     ...Platform.select({
-      web: { cursor: 'pointer', display: 'flex' } as any
+      web: { cursor: 'pointer' } as any
     })
   },
-  button: { 
-    backgroundColor: '#3b82f6', 
-    padding: 16, 
-    borderRadius: 12, 
-    alignItems: 'center', 
-    marginTop: 10
-  },
+  button: { backgroundColor: '#3b82f6', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 },
   buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   secondaryBtn: { marginTop: 20, alignItems: 'center' },
   secondaryText: { color: '#3b82f6', fontWeight: '600' },
