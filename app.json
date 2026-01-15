@@ -23,7 +23,8 @@
       "package": "com.arturo12.seguimientorecomposicion"
     },
     "web": {
-      "output": "static",
+      "bundler": "metro",
+      "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
