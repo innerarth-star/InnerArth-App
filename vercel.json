@@ -1,4 +1,7 @@
 {
+  "version": 2,
+  "public": true,
+  "framework": "expo",
   "rewrites": [
     {
       "source": "/(.*)",
