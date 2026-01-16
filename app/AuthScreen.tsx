@@ -156,7 +156,12 @@ export default function AuthScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000000' },
-  scrollContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  scrollContainer: { 
+    flexGrow: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    padding: 20 
+  },
   card: {
     backgroundColor: '#ffffff',
     padding: 30,
@@ -164,11 +169,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 420,
     alignSelf: 'center',
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 10 },
-      android: { elevation: 5 },
-      web: { boxShadow: '0px 10px 25px rgba(0,0,0,0.2)' }
-    })
+    // Eliminamos flex: 1 aquí si existiera para que no se estire
   },
   logo: {
     width: Platform.OS === 'web' ? 120 : 90,
@@ -186,7 +187,8 @@ const styles = StyleSheet.create({
     borderWidth: 1, 
     borderColor: '#e2e8f0',
     fontSize: 16,
-    color: '#000'
+    color: '#000',
+    height: 55 // Altura fija añadida
   },
   passwordContainer: {
     flexDirection: 'row',
@@ -197,12 +199,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e2e8f0',
     overflow: 'hidden',
+    height: 55, // Altura fija añadida para evitar que ocupe toda la pantalla
   },
   inputPassword: { 
     flex: 1, 
-    padding: 15, 
+    paddingHorizontal: 15, // Cambiado de padding general para no afectar la altura
     fontSize: 16,
     color: '#000',
+    height: '100%', // Que ocupe solo el contenedor de 55
     ...Platform.select({
       web: { outlineStyle: 'none' } as any
     })
@@ -212,9 +216,6 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    ...Platform.select({
-      web: { cursor: 'pointer' } as any
-    })
   },
   button: { backgroundColor: '#3b82f6', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 },
   buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },

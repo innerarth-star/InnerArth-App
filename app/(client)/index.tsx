@@ -230,10 +230,10 @@ function ClienteScreen({ user }: { user: any }) {
                 <View style={styles.rowWrap}>{ENFERMEDADES_BASE.map(e => <TouchableOpacity key={e} style={[styles.chip, enfPers.includes(e) && styles.chipActive]} onPress={()=>{let n = enfPers.includes(e)?enfPers.filter(i=>i!==e):[...enfPers,e]; setEnfPers(n)}}><Text style={enfPers.includes(e)?styles.txtW:styles.txtB}>{e}</Text></TouchableOpacity>)}</View>
                 <Text style={styles.labelSub}>¿Lesión?</Text>
                 <View style={styles.row}><TouchableOpacity style={[styles.btnG, lesion==='si' && styles.btnActive]} onPress={()=>setLesion('si')}><Text style={lesion==='si'?styles.txtW:styles.txtB}>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, lesion==='no' && styles.btnActive]} onPress={()=>setLesion('no')}><Text style={lesion==='no'?styles.txtW:styles.txtB}>NO</Text></TouchableOpacity></View>
-                {lesion==='si' && <TextInput style={styles.input} placeholder="Detalle..." value={detalleLesion} onChangeText={setDetalleLesion} />}
+                {lesion==='si' && <TextInput style={styles.input} placeholder="Describe tu lesion..." value={detalleLesion} onChangeText={setDetalleLesion} />}
                 <Text style={styles.labelSub}>¿Operación?</Text>
                 <View style={styles.row}><TouchableOpacity style={[styles.btnG, operacion==='si' && styles.btnActive]} onPress={()=>setOperacion('si')}><Text style={operacion==='si'?styles.txtW:styles.txtB}>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, operacion==='no' && styles.btnActive]} onPress={()=>setOperacion('no')}><Text style={operacion==='no'?styles.txtW:styles.txtB}>NO</Text></TouchableOpacity></View>
-                {operacion==='si' && <TextInput style={styles.input} placeholder="Detalle..." value={detalleOperacion} onChangeText={setDetalleOperacion} />}                
+                {operacion==='si' && <TextInput style={styles.input} placeholder="Describe tu operacion" value={detalleOperacion} onChangeText={setDetalleOperacion} />}                
                 <Text style={styles.labelSub}>FCR:</Text>
                 <View style={styles.helperBox}><Text style={styles.helperTxt}>💡 Para medir tu frecuencia cardíaca, palpa el pulso en tu muñeca o cuello con los dedos índice y medio, cuenta los latidos durante 15 seg y luego multiplícalos por 4 para obtener los latidos por minuto, hazlo en reposo.</Text></View>
                 <TextInput style={styles.input} placeholder="Ej: 70 lpm" value={frecuenciaCardiaca} keyboardType="numeric" onChangeText={setFrecuenciaCardiaca} />
@@ -272,8 +272,14 @@ function ClienteScreen({ user }: { user: any }) {
                 <TextInput style={[styles.input, {height: 80}]} multiline placeholder="Describeme un dia todo lo que comes" value={descAct} onChangeText={setDescAct} />
                 <Text style={styles.labelSub}>¿Alcohol?</Text>
                 <View style={styles.row}><TouchableOpacity style={[styles.btnG, alcohol==='si' && styles.btnActive]} onPress={()=>setAlcohol('si')}><Text style={alcohol==='si'?styles.txtW:styles.txtB}>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, alcohol==='no' && styles.btnActive]} onPress={()=>setAlcohol('no')}><Text style={alcohol==='no'?styles.txtW:styles.txtB}>NO</Text></TouchableOpacity></View>
-                <Text style={styles.labelSub}>¿Sustancias toxicofílicas?</Text>
+                  {alcohol === 'si' && (
+                    <View style={styles.rowWrap}>{["Diario", "Semanal", "Mensual", "Social"].map(f => <TouchableOpacity key={f} style={[styles.chip, alcoholFreq === f && styles.chipActive]} onPress={()=>setAlcoholFreq(f)}><Text style={alcoholFreq === f ? styles.txtW : styles.txtB}>{f}</Text></TouchableOpacity>)}</View>
+                  )}
+                <Text style={styles.labelSub}>¿Sustancias toxicologicas / fumas?</Text>
                 <View style={styles.row}><TouchableOpacity style={[styles.btnG, sust==='si' && styles.btnActive]} onPress={()=>setSust('si')}><Text style={sust==='si'?styles.txtW:styles.txtB}>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, sust==='no' && styles.btnActive]} onPress={()=>setSust('no')}><Text style={sust==='no'?styles.txtW:styles.txtB}>NO</Text></TouchableOpacity></View>
+                  {sust === 'si' && (
+                  <View style={styles.rowWrap}>{["Diario", "Semanal", "Mensual", "Social"].map(f => <TouchableOpacity key={f} style={[styles.chip, sustFreq === f && styles.chipActive]} onPress={()=>setSustFreq(f)}><Text style={sustFreq === f ? styles.txtW : styles.txtB}>{f}</Text></TouchableOpacity>)}</View>
+                  )} 
                 <Text style={styles.labelSub}>Comidas deseas en plan:</Text>
                 <View style={styles.rowWrap}>{["3", "4", "5", "6"].map(n => <TouchableOpacity key={n} style={[styles.chip, comidasDes === n && styles.chipActive]} onPress={()=>setComidasDes(n)}><Text style={comidasDes === n ? styles.txtW : styles.txtB}>{n}</Text></TouchableOpacity>)}</View>
                 <Text style={styles.labelSub}>Días de entrenamiento:</Text>
