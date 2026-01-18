@@ -14,16 +14,24 @@ export default function CoachPanel() {
     // FILTRO: Solo trae los que NO han sido procesados aún
     const q = query(
       collection(db, "revisiones_pendientes"), 
-      where("status", "==", "pendiente") 
+      
     );
 
-    const unsub = onSnapshot(q, (snapshot) => {
-      const lista = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setPendientes(lista);
-      setCargando(false);
+const unsub = onSnapshot(q, (snapshot) => {
+    const lista = snapshot.docs.map(doc => {
+      const data = doc.data();
+      // Si el registro NO tiene status, le ponemos "pendiente" por defecto
+      return { id: doc.id, ...data, status: data.status || "pendiente" };
     });
-    return () => unsub();
-  }, []);
+
+// Filtramos en el código para solo ver los que faltan por aprobar
+    const soloPendientes = lista.filter(a => a.status === "pendiente");
+    setPendientes(soloPendientes);
+    setCargando(false);
+  });
+  return () => unsub();
+}, []);
+
 
   const gestionarSolicitud = async (id: string, accion: 'aprobar' | 'rechazar') => {
     try {
