@@ -38,7 +38,7 @@ export default function CoachPanel() {
     } catch (e) {
       Alert.alert("Error", "No se pudo procesar la acción.");
     }
-  };
+  }; 
 
   if (cargando) return <ActivityIndicator size="large" color="#3b82f6" style={{flex:1}} />;
 
