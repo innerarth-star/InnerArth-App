@@ -18,64 +18,96 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
   if (!alumno) return null;
 
   // FUNCIÓN PARA GENERAR Y DESCARGAR EL PDF
-  const imprimirPDF = async () => {
-    const html = `
+const imprimirPDF = async () => {
+    // 1. Generamos las filas de alimentos
+    const filasAlimentos = alumno.frecuenciaAlimentos 
+      ? Object.entries(alumno.frecuenciaAlimentos)
+          .map(([ali, op]) => `<tr><td style="color:#64748b">${ali}</td><td style="text-align:right"><b>${op}</b></td></tr>`)
+          .join('')
+      : '<tr><td>No especificado</td></tr>';
+
+    // 2. Generamos las filas del PAR-Q
+    const filasParq = Object.keys(PREGUNTAS_TEXTO)
+      .map(key => `
+        <tr>
+          <td style="font-size:10px">${PREGUNTAS_TEXTO[key]}</td>
+          <td style="text-align:right; color:${alumno.salud?.parq?.[key] === 'si' ? '#ef4444' : '#10b981'}">
+            <b>${alumno.salud?.parq?.[key]?.toUpperCase() || 'N/A'}</b>
+          </td>
+        </tr>`)
+      .join('');
+
+    // 3. Definimos la variable HTML (Asegúrate de que esta variable esté antes del Print)
+    const contenidoHtml = `
       <html>
         <head>
           <style>
-            body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #334155; }
-            h1 { color: #3b82f6; text-align: center; margin-bottom: 5px; }
-            h2 { color: #64748b; text-align: center; font-size: 16px; margin-bottom: 30px; }
-            .section { margin-bottom: 20px; border: 1px solid #e2e8f0; padding: 15px; border-radius: 10px; }
-            .section-title { font-weight: bold; color: #3b82f6; font-size: 13px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px; text-transform: uppercase; }
-            .row { display: flex; flex-wrap: wrap; margin-bottom: 8px; }
-            .item { width: 50%; margin-bottom: 5px; }
-            .label { font-weight: bold; font-size: 10px; color: #94a3b8; text-transform: uppercase; }
-            .value { font-size: 12px; display: block; }
-            .full { width: 100%; }
+            body { font-family: 'Helvetica', sans-serif; padding: 20px; color: #1e293b; }
+            .header { text-align: center; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; margin-bottom: 20px; }
+            .section { margin-bottom: 15px; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; page-break-inside: avoid; }
+            .section-title { font-weight: bold; color: #3b82f6; font-size: 12px; margin-bottom: 8px; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; }
+            table { width: 100%; border-collapse: collapse; }
+            td { padding: 4px; font-size: 11px; border-bottom: 1px solid #f8fafc; }
+            .label { color: #94a3b8; font-weight: bold; font-size: 9px; }
+            .firma { text-align: center; margin-top: 30px; }
           </style>
         </head>
         <body>
-          <h1>Expediente de Recomposición</h1>
-          <h2>Cliente: ${alumno.nombre}</h2>
+          <div class="header">
+            <h1>EXPEDIENTE DE RECOMPOSICIÓN</h1>
+            <p><b>Cliente:</b> ${alumno.nombre} | <b>Email:</b> ${alumno.email}</p>
+          </div>
 
           <div class="section">
-            <div class="section-title">1. Datos Personales</div>
-            <div class="row">
-              <div class="item"><span class="label">Email</span><span class="value">${alumno.email}</span></div>
-              <div class="item"><span class="label">Teléfono</span><span class="value">${alumno.telefono}</span></div>
-              <div class="item"><span class="label">Edad</span><span class="value">${alumno.datosFisicos?.edad} años</span></div>
-              <div class="item"><span class="label">Peso/Talla</span><span class="value">${alumno.datosFisicos?.peso}kg / ${alumno.datosFisicos?.altura}cm</span></div>
-            </div>
+            <div class="section-title">1. Datos Personales y Antropometría</div>
+            <table>
+              <tr><td>Edad: <b>${alumno.datosFisicos?.edad} años</b></td><td>Género: <b>${alumno.datosFisicos?.genero}</b></td></tr>
+              <tr><td>Peso: <b>${alumno.datosFisicos?.weight || alumno.datosFisicos?.peso} kg</b></td><td>Altura: <b>${alumno.datosFisicos?.altura} cm</b></td></tr>
+            </table>
           </div>
 
           <div class="section">
             <div class="section-title">2. Medidas Corporales</div>
-            <div class="row">
-              <div class="item"><span class="label">Cuello</span><span class="value">${alumno.medidas?.cuello}cm</span></div>
-              <div class="item"><span class="label">Pecho</span><span class="value">${alumno.medidas?.pecho}cm</span></div>
-              <div class="item"><span class="label">Cintura</span><span class="value">${alumno.medidas?.cintura}cm</span></div>
-              <div class="item"><span class="label">Cadera</span><span class="value">${alumno.medidas?.cadera}cm</span></div>
-            </div>
+            <table>
+              <tr><td>Cuello: ${alumno.medidas?.cuello}</td><td>Pecho: ${alumno.medidas?.pecho}</td></tr>
+              <tr><td>Cintura: ${alumno.medidas?.cintura}</td><td>Cadera: ${alumno.medidas?.cadera}</td></tr>
+              <tr><td>Brazo R/F: ${alumno.medidas?.brazoR}/${alumno.medidas?.brazoF}</td><td>Muslo/Pierna: ${alumno.medidas?.muslo}/${alumno.medidas?.pierna}</td></tr>
+            </table>
           </div>
 
           <div class="section">
-            <div class="section-title">Salud y Nutrición</div>
-            <div class="row">
-              <div class="full"><span class="label">Enfermedades</span><span class="value">${alumno.salud?.enfPers?.join(", ") || 'Ninguna'}</span></div>
-              <div class="full"><span class="label">Objetivo</span><span class="value">${alumno.nutricion?.objetivo}</span></div>
-            </div>
+            <div class="section-title">3. Historial de Salud y Riesgos (PAR-Q)</div>
+            <p style="font-size:10px"><b>FCR:</b> ${alumno.salud?.frecuenciaCardiaca} lpm</p>
+            <table>${filasParq}</table>
           </div>
 
-          <p style="font-size: 10px; color: #94a3b8; text-align: center; margin-top: 50px;">Documento generado por InnerArth Recomposición Personal</p>
+          <div class="section">
+            <div class="section-title">4. Nutrición y Hábitos</div>
+            <p style="font-size:11px"><b>Dieta actual:</b> ${alumno.nutricion?.descAct}</p>
+            <p style="font-size:11px"><b>Alcohol:</b> ${alumno.nutricion?.alcohol === 'si' ? alumno.nutricion?.alcoholFreq : 'No'}</p>
+            <p style="font-size:11px"><b>Días Entreno:</b> ${alumno.nutricion?.entrenos} | <b>Objetivo:</b> ${alumno.nutricion?.objetivo}</p>
+          </div>
+
+          <div class="section">
+            <div class="section-title">5. Frecuencia de Alimentos</div>
+            <table>${filasAlimentos}</table>
+          </div>
+
+          <div class="firma">
+            <p class="label">Firma del Cliente</p>
+            ${alumno.firma?.startsWith('data:image') 
+              ? `<img src="${alumno.firma}" style="width:200px; height:80px;" />` 
+              : `<h3>${alumno.firma}</h3>`}
+          </div>
         </body>
       </html>
     `;
 
     try {
-      const { uri } = await Print.printToFileAsync({ html });
-      await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+      // AQUÍ ESTÁ EL CAMBIO: Usamos 'html: contenidoHtml' para que coincida con el nombre de nuestra variable
+      await Print.printAsync({ html: contenidoHtml }); 
     } catch (error) {
+      console.error(error);
       Alert.alert("Error", "No se pudo generar el PDF");
     }
   };
