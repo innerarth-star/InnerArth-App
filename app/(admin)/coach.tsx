@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-// Importa aquí tu configuración de firebase
-import { db } from '../../firebaseConfig'; 
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../../firebaseConfig'; // Ajusta esta ruta a tu archivo real
+import { collection, onSnapshot, query } from 'firebase/firestore';
 import ExpedienteDetalle from './ExpedienteDetalle';
 
 export default function CoachPanel() {
@@ -11,18 +10,20 @@ export default function CoachPanel() {
   const [alumnos, setAlumnos] = useState<any[]>([]);
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState<any>(null);
 
-  // ESCUCHA EN TIEMPO REAL: Trae a los usuarios que ya mandaron cuestionario
   useEffect(() => {
-    // Ajusta 'usuarios' por el nombre de tu colección
-    // Filtramos por los que tienen el cuestionario lleno (o status 'pendiente')
-    const q = query(collection(db, 'usuarios'), where('role', '==', 'client'));
+    // IMPORTANTE: Asegúrate que 'usuarios' sea el nombre exacto de tu colección en Firebase
+    const q = query(collection(db, 'usuarios'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const docs = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
+      console.log("Datos recibidos:", docs.length); // Ver en consola cuántos llegan
       setAlumnos(docs);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error en Firebase:", error);
       setLoading(false);
     });
 
@@ -31,24 +32,23 @@ export default function CoachPanel() {
 
   if (loading) {
     return (
-      <View style={styles.center}><ActivityIndicator size="large" color="#3b82f6" /></View>
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+        <Text style={{ marginTop: 10 }}>Cargando clientes reales...</Text>
+      </View>
     );
   }
 
-  // Si el coach selecciona a un alumno de la lista real, abrimos su expediente
   if (alumnoSeleccionado) {
     return (
       <ExpedienteDetalle 
         alumno={alumnoSeleccionado}
         onClose={() => setAlumnoSeleccionado(null)}
         onAccept={() => {
-          // Aquí pondremos la lógica para cambiar status a 'aceptado' y abrir plan
-          console.log("Aceptando a:", alumnoSeleccionado.nombre);
+          alert("Abriendo editor de planes para " + alumnoSeleccionado.nombre);
+          setAlumnoSeleccionado(null);
         }}
-        onReject={() => {
-          // Aquí lógica para pedir que repita el cuestionario
-          console.log("Rechazando a:", alumnoSeleccionado.nombre);
-        }}
+        onReject={() => setAlumnoSeleccionado(null)}
       />
     );
   }
@@ -56,29 +56,27 @@ export default function CoachPanel() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Clientes Registrados</Text>
-        <Text style={styles.subtitle}>{alumnos.length} personas en total</Text>
+        <Text style={styles.title}>Clientes en el Sistema</Text>
       </View>
       
       <FlatList
         data={alumnos}
         keyExtractor={(item) => item.id}
+        contentContainerStyle={{ padding: 16 }}
         renderItem={({ item }) => (
           <TouchableOpacity 
-            style={styles.clienteCard}
+            style={styles.card} 
             onPress={() => setAlumnoSeleccionado(item)}
           >
-            <View style={styles.info}>
-              <Text style={styles.clienteNombre}>{item.nombre || 'Sin nombre'}</Text>
-              <Text style={styles.clienteDetalle}>
-                {item.datosFisicos?.edad ? `${item.datosFisicos.edad} años` : 'Sin edad'} • {item.objetivo || 'Cuestionario pendiente'}
-              </Text>
+            <View>
+              <Text style={styles.name}>{item.nombre || item.displayName || 'Usuario sin nombre'}</Text>
+              <Text style={styles.sub}>{item.email || 'Sin correo registrado'}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
           </TouchableOpacity>
         )}
         ListEmptyComponent={
-          <Text style={styles.empty}>No hay clientes registrados aún.</Text>
+          <View style={styles.center}><Text>No hay datos en la colección 'usuarios'</Text></View>
         }
       />
     </SafeAreaView>
@@ -86,24 +84,20 @@ export default function CoachPanel() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { padding: 25, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#e2e8f0' },
-  title: { fontSize: 22, fontWeight: 'bold', color: '#1e293b' },
-  subtitle: { fontSize: 14, color: '#64748b', marginTop: 4 },
-  clienteCard: { 
+  container: { flex: 1, backgroundColor: '#f1f5f9' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  header: { padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#e2e8f0' },
+  title: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
+  card: { 
     backgroundColor: '#fff', 
-    marginHorizontal: 16, 
-    marginTop: 12, 
-    padding: 20, 
-    borderRadius: 16, 
+    padding: 18, 
+    borderRadius: 12, 
+    marginBottom: 10, 
     flexDirection: 'row', 
+    justifyContent: 'space-between', 
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5
+    elevation: 1
   },
-  info: { flex: 1 },
-  clienteNombre: { fontSize: 16, fontWeight: 'bold', color: '#334155' },
-  clienteDetalle: { fontSize: 13, color: '#94a3b8', marginTop: 4 },
-  empty: { textAlign: 'center', marginTop: 50, color: '#94a3b8' }
+  name: { fontSize: 15, fontWeight: 'bold', color: '#334155' },
+  sub: { fontSize: 12, color: '#94a3b8', marginTop: 2 }
 });
