@@ -1,6 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, Image } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, Image, Alert } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 const PREGUNTAS_TEXTO: any = {
   p1: "¿Problema cardíaco?",
@@ -15,6 +17,69 @@ const PREGUNTAS_TEXTO: any = {
 export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject }: any) {
   if (!alumno) return null;
 
+  // FUNCIÓN PARA GENERAR Y DESCARGAR EL PDF
+  const imprimirPDF = async () => {
+    const html = `
+      <html>
+        <head>
+          <style>
+            body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #334155; }
+            h1 { color: #3b82f6; text-align: center; margin-bottom: 5px; }
+            h2 { color: #64748b; text-align: center; font-size: 16px; margin-bottom: 30px; }
+            .section { margin-bottom: 20px; border: 1px solid #e2e8f0; padding: 15px; border-radius: 10px; }
+            .section-title { font-weight: bold; color: #3b82f6; font-size: 13px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px; text-transform: uppercase; }
+            .row { display: flex; flex-wrap: wrap; margin-bottom: 8px; }
+            .item { width: 50%; margin-bottom: 5px; }
+            .label { font-weight: bold; font-size: 10px; color: #94a3b8; text-transform: uppercase; }
+            .value { font-size: 12px; display: block; }
+            .full { width: 100%; }
+          </style>
+        </head>
+        <body>
+          <h1>Expediente de Recomposición</h1>
+          <h2>Cliente: ${alumno.nombre}</h2>
+
+          <div class="section">
+            <div class="section-title">1. Datos Personales</div>
+            <div class="row">
+              <div class="item"><span class="label">Email</span><span class="value">${alumno.email}</span></div>
+              <div class="item"><span class="label">Teléfono</span><span class="value">${alumno.telefono}</span></div>
+              <div class="item"><span class="label">Edad</span><span class="value">${alumno.datosFisicos?.edad} años</span></div>
+              <div class="item"><span class="label">Peso/Talla</span><span class="value">${alumno.datosFisicos?.peso}kg / ${alumno.datosFisicos?.altura}cm</span></div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">2. Medidas Corporales</div>
+            <div class="row">
+              <div class="item"><span class="label">Cuello</span><span class="value">${alumno.medidas?.cuello}cm</span></div>
+              <div class="item"><span class="label">Pecho</span><span class="value">${alumno.medidas?.pecho}cm</span></div>
+              <div class="item"><span class="label">Cintura</span><span class="value">${alumno.medidas?.cintura}cm</span></div>
+              <div class="item"><span class="label">Cadera</span><span class="value">${alumno.medidas?.cadera}cm</span></div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Salud y Nutrición</div>
+            <div class="row">
+              <div class="full"><span class="label">Enfermedades</span><span class="value">${alumno.salud?.enfPers?.join(", ") || 'Ninguna'}</span></div>
+              <div class="full"><span class="label">Objetivo</span><span class="value">${alumno.nutricion?.objetivo}</span></div>
+            </div>
+          </div>
+
+          <p style="font-size: 10px; color: #94a3b8; text-align: center; margin-top: 50px;">Documento generado por InnerArth Recomposición Personal</p>
+        </body>
+      </html>
+    `;
+
+    try {
+      const { uri } = await Print.printToFileAsync({ html });
+      await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+    } catch (error) {
+      Alert.alert("Error", "No se pudo generar el PDF");
+    }
+  };
+
   const InfoItem = ({ label, value, full }: any) => (
     <View style={[styles.infoItem, full ? { width: '100%' } : { width: '48%' }]}>
       <Text style={styles.label}>{label}</Text>
@@ -28,14 +93,16 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
         <View style={styles.webContainerRow}>
           <TouchableOpacity onPress={onClose}><Ionicons name="close-circle" size={28} color="#1e293b" /></TouchableOpacity>
           <Text style={styles.headerTitle}>EXPEDIENTE COMPLETO</Text>
-          <TouchableOpacity><Ionicons name="print-outline" size={24} color="#3b82f6" /></TouchableOpacity>
+          {/* BOTÓN DE IMPRESIÓN HABILITADO */}
+          <TouchableOpacity onPress={imprimirPDF}>
+            <Ionicons name="print-outline" size={24} color="#3b82f6" />
+          </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.webWrapper}>
           
-          {/* BLOQUE 1: Icono corregido a account */}
           <Section title="1. Datos Personales" color="#3b82f6" icon="account">
             <View style={styles.grid}>
               <InfoItem label="Nombre" value={alumno.nombre} full />
@@ -69,7 +136,6 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
             </Section>
           )}
 
-          {/* BLOQUE 4: Agregado campo de operaciones */}
           <Section title="4. Historial Salud" color="#ef4444" icon="heart-pulse">
             <InfoItem label="Enf. Familiares" value={alumno.salud?.enfFam?.join(", ")} full />
             <InfoItem label="Enf. Propias" value={alumno.salud?.enfPers?.join(", ")} full />
@@ -98,7 +164,6 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
             ))}
           </Section>
 
-          {/* BLOQUE 7: Agregado Alcohol, Sustancias, Comidas deseadas y Entrenos */}
           <Section title="7. Nutrición y Hábitos" color="#8b5cf6" icon="food-apple">
             <InfoItem label="Comidas Actuales" value={alumno.nutricion?.comidasAct} />
             <InfoItem label="Descripción Dieta" value={alumno.nutricion?.descAct} full />
