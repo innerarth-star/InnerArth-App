@@ -9,6 +9,9 @@ import AuthScreen from '../AuthScreen';
 import CoachPanel from '../(admin)/coach';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+// ELIMINAMOS LA IMPORTACIÓN QUE CAUSA EL ERROR
+// ELIMINAMOS EL TRUCO INVISIBLE QUE NO FUNCIONÓ
+
 const ENFERMEDADES_BASE = ["Diabetes", "Hipertensión", "Obesidad", "Hipotiroidismo", "Cáncer", "Cardiopatías", "Asma", "Ninguna", "Otra"];
 const ANTICONCEPTIVOS = ["Pastillas", "Inyección", "DIU", "Implante", "Parche", "Ninguno"];
 const TIPOS_CICLO = ["Regular", "Irregular", "Menopausia"];
@@ -233,7 +236,7 @@ function ClienteScreen({ user }: { user: any }) {
                 {lesion==='si' && <TextInput style={styles.input} placeholder="Describe tu lesion..." value={detalleLesion} onChangeText={setDetalleLesion} />}
                 <Text style={styles.labelSub}>¿Operación?</Text>
                 <View style={styles.row}><TouchableOpacity style={[styles.btnG, operacion==='si' && styles.btnActive]} onPress={()=>setOperacion('si')}><Text style={operacion==='si'?styles.txtW:styles.txtB}>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, operacion==='no' && styles.btnActive]} onPress={()=>setOperacion('no')}><Text style={operacion==='no'?styles.txtW:styles.txtB}>NO</Text></TouchableOpacity></View>
-                {operacion==='si' && <TextInput style={styles.input} placeholder="Describe tu operacion" value={detalleOperacion} onChangeText={setDetalleOperacion} />}                
+                {operacion==='si' && <TextInput style={styles.input} placeholder="Describe tu operacion" value={detalleOperacion} onChangeText={setDetalleOperacion} />}                 
                 <Text style={styles.labelSub}>FCR:</Text>
                 <View style={styles.helperBox}><Text style={styles.helperTxt}>💡 Para medir tu frecuencia cardíaca, palpa el pulso en tu muñeca o cuello con los dedos índice y medio, cuenta los latidos durante 15 seg y luego multiplícalos por 4 para obtener los latidos por minuto, hazlo en reposo.</Text></View>
                 <TextInput style={styles.input} placeholder="Ej: 70 lpm" value={frecuenciaCardiaca} keyboardType="numeric" onChangeText={setFrecuenciaCardiaca} />
@@ -342,7 +345,6 @@ function ClienteScreen({ user }: { user: any }) {
         </View>
       </ScrollView>
 
-      {/* MODAL DE FIRMA CORREGIDO VISUALMENTE PARA WEB */}
       <Modal visible={modalFirma} animationType="fade" transparent={true}>
         <View style={styles.webModalOverlay}>
             <View style={styles.webModalCard}>
@@ -466,7 +468,6 @@ const styles = StyleSheet.create({
   esperaTitle: { fontSize: 26, fontWeight: 'bold', color: '#1e293b', textAlign: 'center', marginTop: 20 },
   esperaSub: { fontSize: 15, color: '#64748b', textAlign: 'center', marginTop: 10, lineHeight: 22 },
   logoutBtnLarge: { marginTop: 30, backgroundColor: '#ef4444', padding: 15, borderRadius: 12, width: '100%', alignItems: 'center' },
-  // ESTILOS NUEVOS PARA EL MODAL WEB
   webModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   webModalCard: { backgroundColor: '#fff', width: '100%', maxWidth: 450, padding: 25, borderRadius: 20, elevation: 5 },
   webModalTitle: { fontSize: 20, fontWeight: 'bold', color: '#1e293b', textAlign: 'center', marginBottom: 10 },
