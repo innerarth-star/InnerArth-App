@@ -2,7 +2,6 @@ import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, Image } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
-// Diccionario de preguntas PAR-Q para mostrar el texto real
 const PREGUNTAS_TEXTO: any = {
   p1: "¿Problema cardíaco?",
   p2: "¿Dolor pecho ejercicio?",
@@ -36,7 +35,8 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.webWrapper}>
           
-          <Section title="1. Datos Personales" color="#3b82f6" icon="person">
+          {/* BLOQUE 1: Icono corregido a account */}
+          <Section title="1. Datos Personales" color="#3b82f6" icon="account">
             <View style={styles.grid}>
               <InfoItem label="Nombre" value={alumno.nombre} full />
               <InfoItem label="Email" value={alumno.email} full />
@@ -47,7 +47,6 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
             </View>
           </Section>
 
-          {/* Icono corregido a MaterialCommunityIcons para mejor visibilidad */}
           <Section title="2. Medidas Corporales (cm)" color="#10b981" icon="ruler-square">
             <View style={styles.grid}>
               <InfoItem label="Cuello" value={alumno.medidas?.cuello} />
@@ -70,10 +69,12 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
             </Section>
           )}
 
+          {/* BLOQUE 4: Agregado campo de operaciones */}
           <Section title="4. Historial Salud" color="#ef4444" icon="heart-pulse">
             <InfoItem label="Enf. Familiares" value={alumno.salud?.enfFam?.join(", ")} full />
             <InfoItem label="Enf. Propias" value={alumno.salud?.enfPers?.join(", ")} full />
             <InfoItem label="¿Lesión?" value={alumno.salud?.lesion === 'si' ? alumno.salud?.detalleLesion : 'No'} full />
+            <InfoItem label="¿Operación?" value={alumno.salud?.operacion === 'si' ? alumno.salud?.detalleOperacion : 'No'} full />
             <InfoItem label="FCR" value={`${alumno.salud?.frecuenciaCardiaca} lpm`} />
           </Section>
 
@@ -86,7 +87,6 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
             </View>
           </Section>
 
-          {/* BLOQUE PAR-Q CORREGIDO CON PREGUNTAS INDIVIDUALES */}
           <Section title="6. Riesgos PAR-Q" color="#0ea5e9" icon="clipboard-pulse">
             {Object.keys(PREGUNTAS_TEXTO).map((key) => (
               <View key={key} style={styles.parqRow}>
@@ -98,9 +98,16 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
             ))}
           </Section>
 
+          {/* BLOQUE 7: Agregado Alcohol, Sustancias, Comidas deseadas y Entrenos */}
           <Section title="7. Nutrición y Hábitos" color="#8b5cf6" icon="food-apple">
             <InfoItem label="Comidas Actuales" value={alumno.nutricion?.comidasAct} />
             <InfoItem label="Descripción Dieta" value={alumno.nutricion?.descAct} full />
+            <InfoItem label="¿Bebe Alcohol?" value={alumno.nutricion?.alcohol === 'si' ? `SÍ (${alumno.nutricion?.alcoholFreq})` : 'No'} full />
+            <InfoItem label="¿Sustancias / Fuma?" value={alumno.nutricion?.sust === 'si' ? `SÍ (${alumno.nutricion?.sustFreq})` : 'No'} full />
+            <View style={styles.grid}>
+                <InfoItem label="Comidas deseadas" value={alumno.nutricion?.comidasDes} />
+                <InfoItem label="Días de Entreno" value={alumno.nutricion?.entrenos} />
+            </View>
             <InfoItem label="Objetivo" value={alumno.nutricion?.objetivo} full />
           </Section>
 
@@ -159,7 +166,6 @@ const styles = StyleSheet.create({
   infoItem: { marginBottom: 15 },
   label: { fontSize: 9, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 2, fontWeight: 'bold' },
   val: { fontSize: 14, color: '#334155' },
-  valMini: { fontSize: 12, color: '#64748b', marginBottom: 10 },
   parqRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
   parqText: { fontSize: 12, color: '#475569', flex: 0.8 },
   parqVal: { fontSize: 12, fontWeight: 'bold' },
