@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { db } from '../../firebaseConfig'; // Ajusta esta ruta a tu archivo real
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { db } from '../../firebaseConfig'; 
+import { collection, onSnapshot, query, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import ExpedienteDetalle from './ExpedienteDetalle';
 
 export default function CoachPanel() {
@@ -11,15 +11,14 @@ export default function CoachPanel() {
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState<any>(null);
 
   useEffect(() => {
-    // IMPORTANTE: Asegúrate que 'usuarios' sea el nombre exacto de tu colección en Firebase
-    const q = query(collection(db, 'usuarios'));
+    // CONEXIÓN A TU COLECCIÓN REAL
+    const q = query(collection(db, 'revisiones_pendientes'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const docs = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
-      console.log("Datos recibidos:", docs.length); // Ver en consola cuántos llegan
       setAlumnos(docs);
       setLoading(false);
     }, (error) => {
@@ -30,11 +29,25 @@ export default function CoachPanel() {
     return () => unsubscribe();
   }, []);
 
+  const handleAccept = async (alumno: any) => {
+    try {
+      // 1. Aquí podrías actualizar el status del usuario o moverlo de colección
+      // Ejemplo: Marcar como revisado
+      const alumnoRef = doc(db, 'revisiones_pendientes', alumno.id);
+      await updateDoc(alumnoRef, { status: 'aceptado' });
+      
+      Alert.alert("Éxito", `Has aceptado a ${alumno.nombre}. Ahora puedes crear su plan.`);
+      setAlumnoSeleccionado(null);
+    } catch (error) {
+      Alert.alert("Error", "No se pudo actualizar el estatus.");
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#3b82f6" />
-        <Text style={{ marginTop: 10 }}>Cargando clientes reales...</Text>
+        <Text style={{ marginTop: 10 }}>Consultando revisiones pendientes...</Text>
       </View>
     );
   }
@@ -44,10 +57,7 @@ export default function CoachPanel() {
       <ExpedienteDetalle 
         alumno={alumnoSeleccionado}
         onClose={() => setAlumnoSeleccionado(null)}
-        onAccept={() => {
-          alert("Abriendo editor de planes para " + alumnoSeleccionado.nombre);
-          setAlumnoSeleccionado(null);
-        }}
+        onAccept={() => handleAccept(alumnoSeleccionado)}
         onReject={() => setAlumnoSeleccionado(null)}
       />
     );
@@ -56,7 +66,8 @@ export default function CoachPanel() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Clientes en el Sistema</Text>
+        <Text style={styles.title}>Cuestionarios Pendientes</Text>
+        <Text style={styles.subtitle}>{alumnos.length} por revisar</Text>
       </View>
       
       <FlatList
@@ -68,15 +79,23 @@ export default function CoachPanel() {
             style={styles.card} 
             onPress={() => setAlumnoSeleccionado(item)}
           >
-            <View>
-              <Text style={styles.name}>{item.nombre || item.displayName || 'Usuario sin nombre'}</Text>
-              <Text style={styles.sub}>{item.email || 'Sin correo registrado'}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.name}>{item.nombre || 'Cliente sin nombre'}</Text>
+              <Text style={styles.sub}>
+                Enviado: {item.fechaEnvio || 'Recientemente'}
+              </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
+            <View style={styles.badge}>
+                <Text style={styles.badgeText}>REVISAR</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#cbd5e1" style={{ marginLeft: 10 }} />
           </TouchableOpacity>
         )}
         ListEmptyComponent={
-          <View style={styles.center}><Text>No hay datos en la colección 'usuarios'</Text></View>
+          <View style={styles.center}>
+            <Ionicons name="checkmark-circle-outline" size={50} color="#cbd5e1" />
+            <Text style={styles.emptyText}>No hay revisiones pendientes por ahora.</Text>
+          </View>
         }
       />
     </SafeAreaView>
@@ -84,20 +103,24 @@ export default function CoachPanel() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f1f5f9' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  header: { padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#e2e8f0' },
-  title: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
+  header: { padding: 25, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#e2e8f0' },
+  title: { fontSize: 20, fontWeight: 'bold', color: '#1e293b' },
+  subtitle: { fontSize: 13, color: '#64748b', marginTop: 4 },
   card: { 
     backgroundColor: '#fff', 
     padding: 18, 
-    borderRadius: 12, 
-    marginBottom: 10, 
+    borderRadius: 16, 
+    marginBottom: 12, 
     flexDirection: 'row', 
-    justifyContent: 'space-between', 
     alignItems: 'center',
-    elevation: 1
+    elevation: 3,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5
   },
-  name: { fontSize: 15, fontWeight: 'bold', color: '#334155' },
-  sub: { fontSize: 12, color: '#94a3b8', marginTop: 2 }
+  name: { fontSize: 16, fontWeight: 'bold', color: '#334155' },
+  sub: { fontSize: 12, color: '#94a3b8', marginTop: 4 },
+  badge: { backgroundColor: '#eff6ff', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  badgeText: { color: '#3b82f6', fontSize: 10, fontWeight: 'bold' },
+  emptyText: { color: '#94a3b8', marginTop: 10, textAlign: 'center' }
 });
