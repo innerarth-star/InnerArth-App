@@ -67,7 +67,7 @@ export default function CoachPanel() {
       <View style={styles.acciones}>
         <Pressable 
           style={styles.btnRevisar} 
-          onPress={() => alert('Entrando al expediente de: ' + item.nombre)}
+          onPress={() => navigation.navigate('ExpedienteDetalle', { cliente: item })}
         >
           <FontAwesome5 name="eye" size={16} color="#fff" />
         </Pressable>

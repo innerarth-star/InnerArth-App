@@ -1,210 +1,118 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, Image, Alert, Dimensions } from 'react-native';
-import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Platform, Image } from 'react-native';
+import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 
-const { width } = Dimensions.get('window');
+export default function ExpedienteDetalle({ route, navigation }: any) {
+  // Recibimos el cliente desde la navegación
+  const { cliente } = route.params;
 
-const PREGUNTAS_PARQ: any = {
-  p1: "¿Alguna vez un médico le ha dicho que tiene un problema cardíaco?",
-  p2: "¿Siente dolor en el pecho cuando realiza actividad física?",
-  p3: "¿En el último mes, ha sentido dolor en el pecho sin actividad física?",
-  p4: "¿Pierde el equilibrio debido a mareos o pérdida de conocimiento?",
-  p5: "¿Tiene algún problema óseo o articular que podría empeorar?",
-  p6: "¿Le receta actualmente medicamentos para la presión o corazón?",
-  p7: "¿Sabe de alguna otra razón por la cual no debería hacer ejercicio?"
-};
-
-export default function ExpedienteDetalle({ alumno, onClose, onAccept }: any) {
-  if (!alumno) return null;
-
-  const formatoDato = (val: any) => {
-    if (val === undefined || val === null || val === '') return "---";
-    const str = String(val).toLowerCase();
-    if (str === 'no' || str === 'false') return "NO";
-    if (Array.isArray(val)) return val.length > 0 ? val.join(', ').toUpperCase() : "NO";
-    return String(val).toUpperCase();
-  };
-
-  const generarPDF = async () => {
-    // Filas para la tabla de frecuencia en el PDF
-    const filasAli = Object.entries(alumno.frecuenciaAlimentos || {})
-      .map(([k, v]) => `<tr><td>${k}</td><td><b>${v}</b></td></tr>`).join('');
-
-    const html = `
-      <html>
-      <head>
-        <style>
-          @page { size: A4; margin: 20mm; }
-          body { font-family: 'Helvetica'; color: #1e293b; padding: 0; }
-          .header { text-align: center; border-bottom: 3px solid #3b82f6; margin-bottom: 20px; padding-bottom: 10px; }
-          .block { border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; margin-bottom: 15px; page-break-inside: avoid; }
-          .title { background: #3b82f6; color: white; padding: 5px 15px; border-radius: 15px; font-weight: bold; font-size: 11px; display: inline-block; margin-bottom: 10px; }
-          .grid { display: flex; flex-wrap: wrap; }
-          .item { width: 48%; margin-bottom: 8px; font-size: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 2px; }
-          .label { color: #64748b; font-weight: bold; font-size: 8px; text-transform: uppercase; }
-          .page-break { page-break-before: always; }
-          img { width: 250px; display: block; margin: 20px auto; border-bottom: 2px solid #000; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h1 style="margin:0">EXPEDIENTE TÉCNICO: ${formatoDato(alumno.nombre)}</h1>
-          <p style="margin:5px; color:#64748b;">ID: ${alumno.id} | FitTech Coaching</p>
-        </div>
-        
-        <div class="block">
-          <div class="title">1. DATOS PERSONALES</div>
-          <div class="grid">
-            <div class="item"><span class="label">EDAD:</span><br/>${formatoDato(alumno.datosFisicos?.edad)} AÑOS</div>
-            <div class="item"><span class="label">PESO:</span><br/>${formatoDato(alumno.datosFisicos?.peso)} KG</div>
-            <div class="item"><span class="label">ESTATURA:</span><br/>${formatoDato(alumno.datosFisicos?.altura)} CM</div>
-            <div class="item"><span class="label">TELÉFONO:</span><br/>${formatoDato(alumno.telefono)}</div>
-          </div>
-        </div>
-
-        <div class="block">
-          <div class="title">2. MEDIDAS CORPORALES</div>
-          <div class="grid">
-            <div class="item">CUELLO: ${formatoDato(alumno.medidas?.cuello)} CM</div>
-            <div class="item">PECHO: ${formatoDato(alumno.medidas?.pecho)} CM</div>
-            <div class="item">CINTURA: ${formatoDato(alumno.medidas?.cintura)} CM</div>
-            <div class="item">CADERA: ${formatoDato(alumno.medidas?.cadera)} CM</div>
-          </div>
-        </div>
-
-        <div class="page-break"></div>
-        <p style="text-align:center; font-weight:bold; margin-top:50px;">FIRMA DIGITAL DEL ALUMNO</p>
-        <img src="${alumno.firma}" />
-      </body>
-      </html>
-    `;
-    try {
-      const { uri } = await Print.printToFileAsync({ html });
-      await Sharing.shareAsync(uri);
-    } catch (e) {
-      Alert.alert("Error", "No se pudo generar el documento PDF");
-    }
-  };
-
-  const Bloque = ({ num, titulo, children }: any) => (
+  const Seccion = ({ title, icon, color, children }: any) => (
     <View style={styles.card}>
-      <Text style={styles.cardT}>{num}. {titulo.toUpperCase()}</Text>
-      <View style={styles.cardC}>{children}</View>
+      <View style={[styles.cardHeader, { borderLeftColor: color }]}>
+        <FontAwesome5 name={icon} size={18} color={color} style={{ marginRight: 10 }} />
+        <Text style={[styles.cardTitle, { color: color }]}>{title}</Text>
+      </View>
+      <View style={styles.cardBody}>{children}</View>
     </View>
   );
 
-  const Dato = ({ label, value, full }: any) => (
-    <View style={[styles.datoW, full ? { width: '100%' } : { width: '48%' }]}>
-      <Text style={styles.datoL}>{label}</Text>
-      <Text style={[styles.datoV, formatoDato(value) === "NO" && { color: '#ef4444' }]}>
-        {formatoDato(value)}
-      </Text>
+  const Dato = ({ label, value }: { label: string, value: any }) => (
+    <View style={styles.datoRow}>
+      <Text style={styles.datoLabel}>{label}:</Text>
+      <Text style={styles.datoValue}>{value || 'N/A'}</Text>
     </View>
   );
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      {/* Encabezado Principal */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onClose}><Ionicons name="arrow-back" size={28} color="#1e293b" /></TouchableOpacity>
-        <Text style={styles.headerT}>DETALLE DEL ALUMNO</Text>
-        <TouchableOpacity onPress={generarPDF}><FontAwesome5 name="file-pdf" size={22} color="#ef4444" /></TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.btnBack}>
+          <FontAwesome5 name="arrow-left" size={16} color="#1e293b" />
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.nombre}>{cliente.nombre}</Text>
+          <Text style={styles.email}>{cliente.email}</Text>
+        </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 50 }}>
-        <View style={styles.cont}>
-          
-          <Bloque num="1" titulo="Datos Personales">
-            <Dato label="Nombre" value={alumno.nombre} full />
-            <Dato label="Edad" value={alumno.datosFisicos?.edad} />
-            <Dato label="Peso" value={alumno.datosFisicos?.peso} />
-            <Dato label="Estatura" value={alumno.datosFisicos?.altura} />
-            <Dato label="Teléfono" value={alumno.telefono} />
-          </Bloque>
+      <TouchableOpacity style={styles.btnPdf} onPress={() => alert('Generando PDF...')}>
+        <FontAwesome5 name="file-pdf" size={16} color="#fff" />
+        <Text style={styles.btnPdfText}>Exportar a PDF</Text>
+      </TouchableOpacity>
 
-          <Bloque num="2" titulo="Medidas Corporales">
-            <Dato label="Cuello" value={alumno.medidas?.cuello} />
-            <Dato label="Pecho" value={alumno.medidas?.pecho} />
-            <Dato label="Cintura" value={alumno.medidas?.cintura} />
-            <Dato label="Cadera" value={alumno.medidas?.cadera} />
-            <Dato label="Brazo R" value={alumno.medidas?.brazoR} />
-            <Dato label="Brazo F" value={alumno.medidas?.brazoF} />
-            <Dato label="Muslo" value={alumno.medidas?.muslo} />
-            <Dato label="Pierna" value={alumno.medidas?.pierna} />
-          </Bloque>
-
-          <Bloque num="3" titulo="Ciclo Menstrual">
-            <Dato label="Estado" value={alumno.ciclo?.tipo} />
-            <Dato label="Anticonceptivo" value={alumno.ciclo?.anticonceptivo} />
-          </Bloque>
-
-          <Bloque num="4" titulo="Historial Salud">
-            <Dato label="Enfermedades" value={alumno.salud?.enfPers} full />
-            <Dato label="Lesiones" value={alumno.salud?.detalleLesion} full />
-            <Dato label="Cirugías" value={alumno.salud?.detalleOperacion} full />
-          </Bloque>
-
-          <Bloque num="5" titulo="Estilo de Vida (IPAQ)">
-            <Dato label="Act. Vigorosa" value={alumno.ipaq?.vDias} />
-            <Dato label="Horas Sueño" value={alumno.ipaq?.horasSueno} />
-            <Dato label="Horas Sentado" value={alumno.ipaq?.sentado} />
-          </Bloque>
-
-          <Bloque num="6" titulo="PAR-Q">
-            {Object.keys(PREGUNTAS_PARQ).map(k => (
-              <View key={k} style={styles.rowQ}>
-                <Text style={styles.txtQ}>{PREGUNTAS_PARQ[k]}</Text>
-                <Text style={styles.valQ}>{formatoDato(alumno.salud?.parq?.[k])}</Text>
-              </View>
-            ))}
-          </Bloque>
-
-          <Bloque num="7" titulo="Nutrición">
-            <Dato label="Objetivo" value={alumno.nutricion?.objetivo} full />
-            <Dato label="Alcohol" value={alumno.nutricion?.alcohol} />
-            <Dato label="Sustancias" value={alumno.nutricion?.sust} />
-          </Bloque>
-
-          <Bloque num="8" titulo="Frecuencia Alimentaria">
-            {alumno.frecuenciaAlimentos && Object.entries(alumno.frecuenciaAlimentos).map(([k,v]: any) => (
-              <View key={k} style={styles.rowQ}><Text style={{fontSize:11}}>{k}</Text><Text style={{fontWeight:'bold'}}>{v}</Text></View>
-            ))}
-          </Bloque>
-
-          <Bloque num="9" titulo="Consentimiento">
-            <Text style={styles.cons}>El alumno ha aceptado el consentimiento informado legal.</Text>
-          </Bloque>
-
-          <Bloque num="10" titulo="Firma del Alumno">
-            <Image source={{ uri: alumno.firma }} style={styles.firma} resizeMode="contain" />
-          </Bloque>
-
-          <TouchableOpacity style={styles.btn} onPress={onAccept}>
-            <Text style={styles.btnT}>APROBAR REGISTRO</Text>
-          </TouchableOpacity>
+      {/* BLOQUE 1: DATOS FÍSICOS */}
+      <Seccion title="Composición Corporal" icon="weight" color="#3b82f6">
+        <View style={styles.grid}>
+          <Dato label="Edad" value={cliente.datosFisicos?.edad} />
+          <Dato label="Género" value={cliente.datosFisicos?.genero} />
+          <Dato label="Peso" value={`${cliente.datosFisicos?.peso} kg`} />
+          <Dato label="Altura" value={`${cliente.datosFisicos?.altura} cm`} />
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </Seccion>
+
+      {/* BLOQUE 2: MEDIDAS (Para el PDF) */}
+      <Seccion title="Medidas (CM)" icon="ruler-combined" color="#10b981">
+        <View style={styles.grid}>
+          <Dato label="Cuello" value={cliente.medidas?.cuello} />
+          <Dato label="Pecho" value={cliente.medidas?.pecho} />
+          <Dato label="Cintura" value={cliente.medidas?.cintura} />
+          <Dato label="Cadera" value={cliente.medidas?.cadera} />
+          <Dato label="Brazo R." value={cliente.medidas?.brazoR} />
+          <Dato label="Brazo F." value={cliente.medidas?.brazoF} />
+          <Dato label="Muslo" value={cliente.medidas?.muslo} />
+          <Dato label="Pierna" value={cliente.medidas?.pierna} />
+        </View>
+      </Seccion>
+
+      {/* BLOQUE 3: SALUD Y ALERTAS (Crítico) */}
+      <Seccion title="Historial de Salud" icon="heartbeat" color="#ef4444">
+        <Dato label="Lesiones" value={cliente.salud?.lesion === 'si' ? cliente.salud.detalleLesion : 'No'} />
+        <Dato label="Operaciones" value={cliente.salud?.operacion === 'si' ? cliente.salud.detalleOperacion : 'No'} />
+        <Dato label="Enf. Propias" value={cliente.salud?.enfPers?.join(', ')} />
+        <Dato label="Frec. Cardíaca" value={cliente.salud?.frecuenciaCardiaca} />
+      </Seccion>
+
+      {/* BLOQUE 4: NUTRICIÓN */}
+      <Seccion title="Nutrición y Objetivos" icon="utensils" color="#f59e0b">
+        <Dato label="Objetivo" value={cliente.nutricion?.objetivo} />
+        <Dato label="Comidas Deseadas" value={cliente.nutricion?.comidasDes} />
+        <Dato label="Días Entrenamiento" value={cliente.nutricion?.entrenos} />
+        <Text style={styles.labelArea}>Descripción dieta actual:</Text>
+        <Text style={styles.textArea}>{cliente.nutricion?.descAct}</Text>
+      </Seccion>
+
+      {/* BLOQUE 5: FIRMA */}
+      <Seccion title="Consentimiento y Firma" icon="pen-fancy" color="#1e293b">
+        {cliente.firma?.includes('data:image') ? (
+          <Image source={{ uri: cliente.firma }} style={styles.firmaImg} resizeMode="contain" />
+        ) : (
+          <Text style={styles.firmaTexto}>{cliente.firma}</Text>
+        )}
+      </Seccion>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f1f5f9' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, backgroundColor: '#fff', elevation: 2 },
-  headerT: { fontSize: 16, fontWeight: 'bold', color: '#1e293b' },
-  cont: { width: width > 800 ? 800 : '90%', alignSelf: 'center', marginTop: 10 },
-  card: { backgroundColor: '#fff', borderRadius: 15, padding: 15, marginBottom: 15, elevation: 1 },
-  cardT: { fontSize: 11, fontWeight: 'bold', color: '#3b82f6', marginBottom: 10 },
-  cardC: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  datoW: { marginBottom: 10 },
-  datoL: { fontSize: 8, color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase' },
-  datoV: { fontSize: 14, fontWeight: 'bold', color: '#1e293b' },
-  rowQ: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  txtQ: { flex: 0.8, fontSize: 11, color: '#64748b' },
-  valQ: { fontWeight: 'bold', fontSize: 12 },
-  firma: { width: '100%', height: 150, backgroundColor: '#f8fafc', borderRadius: 10, marginTop: 10 },
-  btn: { backgroundColor: '#10b981', padding: 18, borderRadius: 15, alignItems: 'center', marginTop: 10 },
-  btnT: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  cons: { fontSize: 11, color: '#64748b', fontStyle: 'italic' }
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  scrollContent: { padding: 15, maxWidth: 800, alignSelf: 'center', width: '100%' },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, gap: 15 },
+  btnBack: { padding: 10, backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0' },
+  nombre: { fontSize: 22, fontWeight: 'bold', color: '#1e293b' },
+  email: { fontSize: 14, color: '#64748b' },
+  btnPdf: { backgroundColor: '#1e293b', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 12, borderRadius: 10, marginBottom: 20, gap: 10 },
+  btnPdfText: { color: '#fff', fontWeight: 'bold' },
+  card: { backgroundColor: '#fff', borderRadius: 12, marginBottom: 15, overflow: 'hidden', borderWidth: 1, borderColor: '#e2e8f0' },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: '#fdfdfd', borderLeftWidth: 4 },
+  cardTitle: { fontWeight: 'bold', fontSize: 16 },
+  cardBody: { padding: 15 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  datoRow: { width: '50%', marginBottom: 10, paddingRight: 5 },
+  datoLabel: { fontSize: 11, color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase' },
+  datoValue: { fontSize: 14, color: '#334155', fontWeight: '600' },
+  labelArea: { fontSize: 11, color: '#94a3b8', fontWeight: 'bold', marginTop: 10, textTransform: 'uppercase' },
+  textArea: { fontSize: 14, color: '#334155', marginTop: 5, fontStyle: 'italic', lineHeight: 20 },
+  firmaImg: { width: '100%', height: 100, marginTop: 10, backgroundColor: '#f1f5f9' },
+  firmaTexto: { fontSize: 20, fontStyle: 'italic', textAlign: 'center', marginTop: 10, color: '#1e293b' }
 });
