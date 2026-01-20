@@ -4,6 +4,16 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
+// --- FUNCIONES DE APOYO PARA PROCESAMIENTO ---
+const procesarTexto = (texto: any) => (texto ? String(texto).toUpperCase() : '---');
+
+const formatearActividad = (dias: any, min: any) => {
+  if (!dias || !min) return 'SIN ACTIVIDAD';
+  return `${dias} DÍAS / ${min} MIN`;
+};
+
+const consentimientoCompleto = `Por medio de la presente, el alumno declara que la información proporcionada en este expediente es verídica. Acepta que el plan de entrenamiento y nutrición se basa en los datos aquí suministrados. El alumno se compromete a seguir las indicaciones del Coach y libera de toda responsabilidad a FitTech por omisiones en el historial de salud.`;
+
 const PREGUNTAS_TEXTO: any = {
   p1: "¿Alguna vez un médico le ha dicho que tiene un problema cardíaco?",
   p2: "¿Siente dolor en el pecho cuando realiza actividad física?",
@@ -14,6 +24,7 @@ const PREGUNTAS_TEXTO: any = {
   p7: "¿Sabe de alguna otra razón por la cual no debería hacer ejercicio?"
 };
 
+// --- COMPONENTES DE INTERFAZ APP ---
 const InfoItem = ({ label, value, full }: any) => (
   <View style={[styles.infoItem, full ? { width: '100%' } : { width: '48%' }]}>
     <Text style={styles.label}>{label}</Text>
@@ -34,104 +45,113 @@ const Section = ({ title, color, icon, children }: any) => (
 export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject }: any) {
   if (!alumno) return null;
 
-  const generarPDFCompleto = async () => {
-    const alimentosHtml = Object.entries(alumno.frecuenciaAlimentos || {})
-      .map(([ali, op]) => `<tr><td style="border-bottom:1px solid #eee; padding:8px;">${ali}</td><td style="text-align:right; padding:8px;"><b>${op}</b></td></tr>`).join('');
-
-    const parqHtml = Object.keys(PREGUNTAS_TEXTO)
-      .map(key => `<tr><td style="border-bottom:1px solid #eee; padding:8px;">${PREGUNTAS_TEXTO[key]}</td><td style="text-align:right; padding:8px;"><b>${alumno.salud?.parq?.[key]?.toUpperCase() || 'N/A'}</b></td></tr>`).join('');
-
-    const html = `
+  const exportarPDF = async () => {
+    const htmlContent = `
       <!DOCTYPE html>
       <html>
       <head>
         <style>
-          @page { size: A4; margin: 15mm; }
-          body { font-family: 'Helvetica', sans-serif; color: #1e293b; margin: 0; padding: 0; background: #fff; }
-          .container { width: 100%; }
-          .header { text-align: center; border-bottom: 4px solid #3b82f6; margin-bottom: 30px; padding-bottom: 10px; }
-          .section { margin-bottom: 25px; page-break-inside: avoid; display: block; width: 100%; }
-          .section-title { background: #f8fafc; color: #3b82f6; font-weight: bold; font-size: 14px; padding: 10px; border-left: 5px solid #3b82f6; margin-bottom: 15px; text-transform: uppercase; }
-          table { width: 100%; border-collapse: collapse; }
-          td { font-size: 11px; padding: 5px; }
-          .label { color: #64748b; font-weight: bold; font-size: 10px; text-transform: uppercase; }
-          .firma-img { width: 300px; height: auto; margin-top: 20px; border-bottom: 2px solid #333; }
+          @page { size: A4; margin: 25mm 20mm 20mm 20mm; }
+          body { font-family: 'Helvetica', sans-serif; color: #334155; line-height: 1.3; margin: 0; padding: 0; }
+          .block-container { page-break-inside: avoid; margin-bottom: 20px; width: 100%; display: block; }
+          .header { text-align: center; border-bottom: 4px solid #3b82f6; padding-bottom: 15px; margin-bottom: 30px; }
+          h1 { color: #1e3a8a; font-size: 22px; margin: 0; text-transform: uppercase; }
+          .subtitle { font-size: 12px; color: #64748b; margin-top: 5px; }
+          .section-title { background: #3b82f6; color: white; padding: 6px 18px; border-radius: 25px; font-size: 11px; font-weight: bold; width: fit-content; text-transform: uppercase; margin-bottom: 8px; }
+          .grid { display: flex; flex-wrap: wrap; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff; }
+          .item { width: 50%; padding: 10px; border: 0.5px solid #f1f5f9; box-sizing: border-box; }
+          .full-width { width: 100%; }
+          .label { font-size: 8px; color: #64748b; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 2px; }
+          .value { font-size: 11px; color: #0f172a; font-weight: 600; }
+          .legal-text { font-size: 8.5px; line-height: 1.5; text-align: justify; color: #475569; padding: 15px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; }
+          .signature-box { margin-top: 30px; text-align: center; page-break-inside: avoid; }
+          .signature-img { width: 150px; height: auto; margin: 0 auto; display: block; border-bottom: 2px solid #1e293b; }
+          .signature-label { font-size: 10px; font-weight: bold; margin-top: 10px; color: #1e293b; }
+          .page-break { page-break-before: always; }
         </style>
       </head>
       <body>
-        <div class="container">
-          <div class="header">
-            <h1>EXPEDIENTE DE RECOMPOSICIÓN CORPORAL</h1>
-            <p>Cliente: <b>${alumno.nombre}</b> | Email: ${alumno.email}</p>
-          </div>
+        <div class="header">
+          <h1>EXPEDIENTE TÉCNICO FITTECH</h1>
+          <p class="subtitle"><b>ALUMNO:</b> ${procesarTexto(alumno.nombre)} | <b>FECHA:</b> ${new Date().toLocaleDateString()}</p>
+        </div>
 
-          <div class="section">
-            <div class="section-title">1. Datos Personales</div>
-            <table>
-              <tr><td><span class="label">Email:</span><br/>${alumno.email}</td><td><span class="label">Teléfono:</span><br/>${alumno.telefono}</td></tr>
-              <tr><td><span class="label">Edad:</span><br/>${alumno.datosFisicos?.edad} años</td><td><span class="label">Género:</span><br/>${alumno.datosFisicos?.genero}</td></tr>
-              <tr><td><span class="label">Peso Actual:</span><br/>${alumno.datosFisicos?.peso} kg</td><td><span class="label">Estatura:</span><br/>${alumno.datosFisicos?.altura} cm</td></tr>
-            </table>
+        <div class="block-container">
+          <div class="section-title">1. Datos e Identificación</div>
+          <div class="grid">
+            <div class="item"><span class="label">Nombre</span><span class="value">${procesarTexto(alumno.nombre)}</span></div>
+            <div class="item"><span class="label">Email</span><span class="value">${alumno.email}</span></div>
+            <div class="item"><span class="label">Teléfono</span><span class="value">${procesarTexto(alumno.telefono)}</span></div>
+            <div class="item"><span class="label">Edad</span><span class="value">${alumno.datosFisicos?.edad} AÑOS</span></div>
+            <div class="item"><span class="label">Peso / Estatura</span><span class="value">${alumno.datosFisicos?.peso} KG / ${alumno.datosFisicos?.altura} CM</span></div>
+            <div class="item"><span class="label">Género</span><span class="value">${procesarTexto(alumno.datosFisicos?.genero)}</span></div>
           </div>
+        </div>
 
-          <div class="section">
-            <div class="section-title">2. Medidas Corporales (CM)</div>
-            <table>
-              <tr><td>Cuello: <b>${alumno.medidas?.cuello}</b></td><td>Pecho: <b>${alumno.medidas?.pecho}</b></td><td>Cintura: <b>${alumno.medidas?.cintura}</b></td></tr>
-              <tr><td>Cadera: <b>${alumno.medidas?.cadera}</b></td><td>Muslo: <b>${alumno.medidas?.muslo}</b></td><td>Pierna: <b>${alumno.medidas?.pierna}</b></td></tr>
-              <tr><td>Brazo R: <b>${alumno.medidas?.brazoR}</b></td><td>Brazo F: <b>${alumno.medidas?.brazoF}</b></td><td></td></tr>
-            </table>
+        <div class="block-container">
+          <div class="section-title">2. Medidas Corporales</div>
+          <div class="grid">
+            <div class="item"><span class="label">Cuello / Pecho</span><span class="value">${alumno.medidas?.cuello} / ${alumno.medidas?.pecho}</span></div>
+            <div class="item"><span class="label">Cintura / Cadera</span><span class="value">${alumno.medidas?.cintura} / ${alumno.medidas?.cadera}</span></div>
+            <div class="item"><span class="label">Brazos (R/F)</span><span class="value">${alumno.medidas?.brazoR} / ${alumno.medidas?.brazoF}</span></div>
+            <div class="item"><span class="label">Muslo / Pierna</span><span class="value">${alumno.medidas?.muslo} / ${alumno.medidas?.pierna}</span></div>
           </div>
+        </div>
 
-          <div class="section">
-            <div class="section-title">4. Historial de Salud</div>
-            <p><span class="label">Enfermedades Familiares:</span><br/>${alumno.salud?.enfFam?.join(", ") || 'Ninguna'}</p>
-            <p><span class="label">Enfermedades Propias:</span><br/>${alumno.salud?.enfPers?.join(", ") || 'Ninguna'}</p>
-            <p><span class="label">Lesiones / Operaciones:</span><br/>L: ${alumno.salud?.lesion === 'si' ? alumno.salud?.detalleLesion : 'No'} | O: ${alumno.salud?.operacion === 'si' ? alumno.salud?.detalleOperacion : 'No'}</p>
-            <p><span class="label">Frecuencia Cardiaca:</span> ${alumno.salud?.frecuenciaCardiaca} lpm</p>
+        <div class="block-container">
+          <div class="section-title">4. Historial Salud</div>
+          <div class="grid">
+            <div class="item full-width"><span class="label">Enfermedades</span><span class="value">${procesarTexto(alumno.salud?.enfPers)}</span></div>
+            <div class="item"><span class="label">Lesiones</span><span class="value">${procesarTexto(alumno.salud?.detalleLesion)}</span></div>
+            <div class="item"><span class="label">Operaciones</span><span class="value">${procesarTexto(alumno.salud?.detalleOperacion)}</span></div>
           </div>
+        </div>
 
-          <div class="section">
-            <div class="section-title">5. Estilo de Vida (IPAQ)</div>
-            <p>Actividad Vigorosa: <b>${alumno.ipaq?.vDias} días / ${alumno.ipaq?.vMin} min</b></p>
-            <p>Caminata: <b>${alumno.ipaq?.cDias} días / ${alumno.ipaq?.cMin} min</b></p>
-            <p>Horas de Sueño: <b>${alumno.ipaq?.horasSueno} h</b> | Sentado: <b>${alumno.ipaq?.sentado} h</b></p>
+        <div class="block-container">
+          <div class="section-title">6. Cuestionario PAR-Q</div>
+          <div class="grid">
+            ${Object.keys(PREGUNTAS_TEXTO).map(key => `
+              <div class="item full-width">
+                <span class="label">${PREGUNTAS_TEXTO[key]}</span>
+                <span class="value" style="color:${alumno.salud?.parq?.[key] === 'si' ? 'red' : 'green'}">${procesarTexto(alumno.salud?.parq?.[key])}</span>
+              </div>
+            `).join('')}
           </div>
+        </div>
 
-          <div class="section">
-            <div class="section-title">6. Cuestionario PAR-Q</div>
-            <table>${parqHtml}</table>
-          </div>
+        <div class="page-break"></div>
 
-          <div class="section">
-            <div class="section-title">7. Nutrición y Hábitos</div>
-            <p><span class="label">Objetivo:</span> <b>${alumno.nutricion?.objetivo}</b></p>
-            <p><span class="label">Dieta Actual:</span><br/>${alumno.nutricion?.descAct}</p>
-            <p><span class="label">Hábitos:</span> Alcohol (${alumno.nutricion?.alcohol}) | Sustancias (${alumno.nutricion?.sust})</p>
-            <p><span class="label">Plan:</span> ${alumno.nutricion?.entrenos} días entreno / ${alumno.nutricion?.comidasDes} comidas deseadas</p>
+        <div class="block-container">
+          <div class="section-title">7. Nutrición y Hábitos</div>
+          <div class="grid">
+            <div class="item full-width"><span class="label">Objetivo</span><span class="value">${procesarTexto(alumno.nutricion?.objetivo)}</span></div>
+            <div class="item"><span class="label">Alcohol / Sustancias</span><span class="value">${alumno.nutricion?.alcohol} / ${alumno.nutricion?.sust}</span></div>
+            <div class="item"><span class="label">Entrenamiento</span><span class="value">${alumno.nutricion?.entrenos} DÍAS</span></div>
           </div>
+        </div>
 
-          <div class="section">
-            <div class="section-title">8. Frecuencia de Alimentos</div>
-            <table>${alimentosHtml}</table>
+        <div class="block-container">
+          <div class="section-title">8. Consentimiento Legal</div>
+          <div class="legal-text">
+            ${consentimientoCompleto}
           </div>
+        </div>
 
-          <div class="section" style="text-align:center; margin-top:40px;">
-            <div class="section-title">9. Firma del Cliente</div>
-            ${alumno.firma?.startsWith('data:image') 
-              ? `<img src="${alumno.firma}" class="firma-img" />` 
-              : `<h2>${alumno.firma}</h2>`}
-          </div>
+        <div class="signature-box">
+          ${alumno.firma?.startsWith('data:image') 
+            ? `<img src="${alumno.firma}" class="signature-img" />` 
+            : `<h3>${alumno.firma}</h3>`}
+          <div class="signature-label">Firma: ${procesarTexto(alumno.nombre)}</div>
+          <div style="font-size:8px; color:#94a3b8; margin-top:5px;">ID: ${alumno.id}</div>
         </div>
       </body>
       </html>
     `;
-
     try {
-      const { uri } = await Print.printToFileAsync({ html });
-      await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+      const { uri } = await Print.printToFileAsync({ html: htmlContent });
+      await Sharing.shareAsync(uri);
     } catch (e) {
-      Alert.alert("Error", "No se pudo generar el PDF.");
+      Alert.alert("Error", "No se pudo generar el PDF");
     }
   };
 
@@ -140,98 +160,42 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
       <View style={styles.header}>
         <View style={styles.webContainerRow}>
           <TouchableOpacity onPress={onClose}><Ionicons name="close-circle" size={28} color="#1e293b" /></TouchableOpacity>
-          <Text style={styles.headerTitle}>EXPEDIENTE: {alumno.nombre?.toUpperCase()}</Text>
-          <TouchableOpacity onPress={generarPDFCompleto}><Ionicons name="cloud-download-outline" size={26} color="#3b82f6" /></TouchableOpacity>
+          <Text style={styles.headerTitle}>EXPEDIENTE DEL ALUMNO</Text>
+          <TouchableOpacity onPress={exportarPDF}><Ionicons name="cloud-download-outline" size={26} color="#3b82f6" /></TouchableOpacity>
         </View>
       </View>
 
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.webWrapper}>
-          
           <Section title="1. Datos Personales" color="#3b82f6" icon="account">
-            <View style={styles.grid}>
+            <View style={styles.gridApp}>
               <InfoItem label="Nombre" value={alumno.nombre} full />
               <InfoItem label="Email" value={alumno.email} full />
-              <InfoItem label="Teléfono" value={alumno.telefono} />
+              <InfoItem label="Peso / Altura" value={`${alumno.datosFisicos?.peso}kg / ${alumno.datosFisicos?.altura}cm`} />
               <InfoItem label="Edad" value={`${alumno.datosFisicos?.edad} años`} />
-              <InfoItem label="Peso" value={`${alumno.datosFisicos?.peso} kg`} />
-              <InfoItem label="Altura" value={`${alumno.datosFisicos?.altura} cm`} />
-              <InfoItem label="Género" value={alumno.datosFisicos?.genero} />
             </View>
           </Section>
 
           <Section title="2. Medidas (cm)" color="#10b981" icon="ruler-square">
-            <View style={styles.grid}>
-              <InfoItem label="Cuello" value={alumno.medidas?.cuello} />
-              <InfoItem label="Pecho" value={alumno.medidas?.pecho} />
-              <InfoItem label="Brazo R" value={alumno.medidas?.brazoR} />
-              <InfoItem label="Brazo F" value={alumno.medidas?.brazoF} />
+            <View style={styles.gridApp}>
               <InfoItem label="Cintura" value={alumno.medidas?.cintura} />
               <InfoItem label="Cadera" value={alumno.medidas?.cadera} />
-              <InfoItem label="Muslo" value={alumno.medidas?.muslo} />
-              <InfoItem label="Pierna" value={alumno.medidas?.pierna} />
+              <InfoItem label="Pecho" value={alumno.medidas?.pecho} />
+              <InfoItem label="Cuello" value={alumno.medidas?.cuello} />
             </View>
           </Section>
 
-          {alumno.datosFisicos?.genero === 'mujer' && (
-            <Section title="3. Ciclo Menstrual" color="#ec4899" icon="flower">
-              <View style={styles.grid}>
-                <InfoItem label="Tipo" value={alumno.ciclo?.tipo} />
-                <InfoItem label="Anticonceptivo" value={alumno.ciclo?.anticonceptivo} />
-              </View>
-            </Section>
-          )}
-
-          <Section title="4. Historial Salud" color="#ef4444" icon="heart-pulse">
-            <InfoItem label="Enfermedades Propias" value={alumno.salud?.enfPers?.join(", ")} full />
-            <InfoItem label="¿Lesión?" value={alumno.salud?.lesion === 'si' ? alumno.salud?.detalleLesion : 'No'} full />
-            <InfoItem label="¿Operación?" value={alumno.salud?.operacion === 'si' ? alumno.salud?.detalleOperacion : 'No'} full />
-            <InfoItem label="FCR" value={alumno.salud?.frecuenciaCardiaca} />
+          <Section title="4. Salud" color="#ef4444" icon="heart-pulse">
+            <InfoItem label="Lesión" value={alumno.salud?.lesion === 'si' ? alumno.salud?.detalleLesion : 'No'} full />
+            <InfoItem label="Operación" value={alumno.salud?.operacion === 'si' ? alumno.salud?.detalleOperacion : 'No'} full />
           </Section>
 
-          <Section title="5. Estilo de Vida (IPAQ)" color="#f59e0b" icon="walk">
-            <View style={styles.grid}>
-              <InfoItem label="Act. Vigorosa" value={`${alumno.ipaq?.vDias}d / ${alumno.ipaq?.vMin}m`} />
-              <InfoItem label="Act. Moderada" value={`${alumno.ipaq?.mDias}d / ${alumno.ipaq?.mMin}m`} />
-              <InfoItem label="Caminata" value={`${alumno.ipaq?.cDias}d / ${alumno.ipaq?.cMin}m`} />
-              <InfoItem label="Sentado" value={alumno.ipaq?.sentado} />
-              <InfoItem label="Sueño" value={alumno.ipaq?.horasSueno} />
-            </View>
-          </Section>
-
-          <Section title="6. PAR-Q" color="#0ea5e9" icon="clipboard-pulse">
-            {Object.keys(PREGUNTAS_TEXTO).map((k) => (
-              <View key={k} style={styles.parqRow}>
-                <Text style={styles.parqText}>{PREGUNTAS_TEXTO[k]}</Text>
-                <Text style={[styles.parqVal, alumno.salud?.parq?.[k] === 'si' && {color:'red'}]}>{alumno.salud?.parq?.[k]?.toUpperCase()}</Text>
-              </View>
-            ))}
-          </Section>
-
-          <Section title="7. Nutrición y Hábitos" color="#8b5cf6" icon="food-apple">
-            <InfoItem label="Comidas Actuales" value={alumno.nutricion?.comidasAct} />
-            <InfoItem label="Descripción" value={alumno.nutricion?.descAct} full />
-            <InfoItem label="Alcohol" value={alumno.nutricion?.alcohol} />
-            <InfoItem label="Sustancias" value={alumno.nutricion?.sust} />
-            <InfoItem label="Entrenos" value={alumno.nutricion?.entrenos} />
+          <Section title="7. Nutrición" color="#8b5cf6" icon="food-apple">
             <InfoItem label="Objetivo" value={alumno.nutricion?.objetivo} full />
+            <InfoItem label="Entrenos" value={`${alumno.nutricion?.entrenos} días`} />
           </Section>
 
-          <Section title="8. Frecuencia Alimentos" color="#10b981" icon="format-list-bulleted">
-            {Object.entries(alumno.frecuenciaAlimentos || {}).map(([ali, op]: any) => (
-              <View key={ali} style={styles.parqRow}><Text style={{fontSize:12}}>{ali}</Text><Text style={{fontSize:12, fontWeight:'bold'}}>{op}</Text></View>
-            ))}
-          </Section>
-
-          <Section title="9. Firma y Consentimiento" color="#1e293b" icon="file-sign">
-            {alumno.firma?.startsWith('data:image') ? (
-              <Image source={{ uri: alumno.firma }} style={styles.firma} />
-            ) : (
-              <Text style={styles.firmaNombre}>{alumno.firma}</Text>
-            )}
-          </Section>
-
-          <View style={{ height: 120 }} />
+          <View style={{ height: 100 }} />
         </View>
       </ScrollView>
 
@@ -256,15 +220,10 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
   sectionTitle: { fontSize: 12, fontWeight: 'bold' },
   card: { backgroundColor: '#fff', borderRadius: 20, padding: 20, elevation: 1 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  gridApp: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   infoItem: { marginBottom: 15 },
   label: { fontSize: 9, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 2, fontWeight: 'bold' },
   val: { fontSize: 14, color: '#334155' },
-  parqRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  parqText: { fontSize: 12, color: '#475569', flex: 0.8 },
-  parqVal: { fontSize: 12, fontWeight: 'bold', color: '#10b981' },
-  firma: { width: '100%', height: 150, resizeMode: 'contain', backgroundColor: '#f1f5f9', borderRadius: 15 },
-  firmaNombre: { fontSize: 24, fontStyle: 'italic', textAlign: 'center', color: '#1e293b' },
   footer: { backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#e2e8f0', padding: 15 },
   webFooterContent: { maxWidth: 800, width: '100%', alignSelf: 'center', flexDirection: 'row', gap: 12 },
   btn: { flex: 1, height: 55, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
