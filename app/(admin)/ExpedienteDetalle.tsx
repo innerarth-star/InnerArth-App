@@ -4,7 +4,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
-// --- FUNCIONES DE APOYO (REQUERIDAS POR TU CÓDIGO DE PDF) ---
+// --- FUNCIONES DE APOYO PARA TU PDF ---
 const procesarTexto = (texto: any) => (texto ? String(texto).toUpperCase() : '---');
 
 const formatearActividad = (dias: any, min: any) => {
@@ -45,8 +45,10 @@ const Section = ({ title, color, icon, children }: any) => (
 export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject }: any) {
   if (!alumno) return null;
 
-  // --- TU FUNCIÓN DE EXPORTACIÓN (LA QUE FUNCIONA PERFECTO) ---
-  const exportarPDF = async (a: any) => {
+  // --- TU LÓGICA DE PDF INTEGRADA Y CORREGIDA ---
+  const exportarPDF = async () => {
+    const a = alumno; // Sincronizamos con tu variable 'a'
+    
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -66,7 +68,7 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
           .value { font-size: 11px; color: #0f172a; font-weight: 600; }
           .legal-text { font-size: 8.5px; line-height: 1.5; text-align: justify; color: #475569; padding: 15px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; }
           .signature-box { margin-top: 30px; text-align: center; page-break-inside: avoid; }
-          .signature-img { width: 150px; height: auto; margin: 0 auto; display: block; border-bottom: 2px solid #1e293b; }
+          .signature-img { width: 180px; height: auto; margin: 0 auto; display: block; border-bottom: 2px solid #1e293b; }
           .signature-label { font-size: 10px; font-weight: bold; margin-top: 10px; color: #1e293b; }
           .page-break { page-break-before: always; }
         </style>
@@ -100,10 +102,10 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
         <div class="block-container">
           <div class="section-title">4. Historial de Salud</div>
           <div class="grid">
-            <div class="item full-width"><span class="label">Enf. Familiares</span><span class="value">${procesarTexto(a.salud?.enfFam)}</span></div>
-            <div class="item full-width"><span class="label">Enf. Personales</span><span class="value">${procesarTexto(a.salud?.enfPers)}</span></div>
+            <div class="item full-width"><span class="label">Enfermedades Familiares</span><span class="value">${procesarTexto(a.salud?.enfFam?.join(", "))}</span></div>
+            <div class="item full-width"><span class="label">Enfermedades Propias</span><span class="value">${procesarTexto(a.salud?.enfPers?.join(", "))}</span></div>
             <div class="item"><span class="label">Lesiones</span><span class="value">${procesarTexto(a.salud?.detalleLesion)}</span></div>
-            <div class="item"><span class="label">Cirugías</span><span class="value">${procesarTexto(a.salud?.detalleOperacion)}</span></div>
+            <div class="item"><span class="label">Operaciones</span><span class="value">${procesarTexto(a.salud?.detalleOperacion)}</span></div>
           </div>
         </div>
 
@@ -118,12 +120,11 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
         </div>
 
         <div class="block-container">
-          <div class="section-title">7. Nutrición y Planificación</div>
+          <div class="section-title">7. Nutrición y Hábitos</div>
           <div class="grid">
-            <div class="item full-width"><span class="label">Comidas Actuales</span><span class="value">${procesarTexto(a.nutricion?.comidasAct)} (${procesarTexto(a.nutricion?.descAct)})</span></div>
-            <div class="item"><span class="label">Días Entreno</span><span class="value">${procesarTexto(a.nutricion?.entrenos)}</span></div>
-            <div class="item"><span class="label">Comidas en Plan</span><span class="value">${procesarTexto(a.nutricion?.comidasDes)}</span></div>
-            <div class="item full-width" style="background:#f0f9ff;"><span class="label">Objetivo</span><span class="value" style="color:#2563eb">${procesarTexto(a.nutricion?.objetivo)}</span></div>
+            <div class="item full-width"><span class="label">Objetivo</span><span class="value">${procesarTexto(a.nutricion?.objetivo)}</span></div>
+            <div class="item"><span class="label">Alcohol / Sustancias</span><span class="value">${a.nutricion?.alcohol} / ${a.nutricion?.sust}</span></div>
+            <div class="item"><span class="label">Entrenamiento</span><span class="value">${a.nutricion?.entrenos} DÍAS</span></div>
           </div>
         </div>
 
@@ -139,16 +140,16 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
         <div class="page-break"></div>
 
         <div class="block-container">
-          <div class="section-title">9. Consentimiento Informado Legal</div>
+          <div class="section-title">9. Consentimiento Legal</div>
           <div class="legal-text">
-            ${consentimientoCompleto.replace(/\n\n/g, '<br/><br/>')}
+            ${consentimientoCompleto}
           </div>
         </div>
 
         <div class="signature-box">
           <img src="${a.firma}" class="signature-img" />
           <div class="signature-label">Firma del Alumno: ${procesarTexto(a.nombre)}</div>
-          <div style="font-size:8px; color:#94a3b8;">ID: ${a.id}</div>
+          <div style="font-size:8px; color:#94a3b8; margin-top:5px;">ID: ${a.id}</div>
         </div>
       </body>
       </html>
@@ -164,12 +165,11 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* HEADER DE LA APP */}
       <View style={styles.header}>
         <View style={styles.webContainerRow}>
           <TouchableOpacity onPress={onClose}><Ionicons name="close-circle" size={28} color="#1e293b" /></TouchableOpacity>
           <Text style={styles.headerTitle}>EXPEDIENTE DEL ALUMNO</Text>
-          <TouchableOpacity onPress={() => exportarPDF(alumno)}>
+          <TouchableOpacity onPress={exportarPDF}>
             <Ionicons name="cloud-download-outline" size={26} color="#3b82f6" />
           </TouchableOpacity>
         </View>
@@ -182,51 +182,26 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
             <View style={styles.gridApp}>
               <InfoItem label="Nombre" value={alumno.nombre} full />
               <InfoItem label="Email" value={alumno.email} full />
-              <InfoItem label="Teléfono" value={alumno.telefono} />
+              <InfoItem label="Peso / Altura" value={`${alumno.datosFisicos?.peso}kg / ${alumno.datosFisicos?.altura}cm`} />
               <InfoItem label="Edad" value={`${alumno.datosFisicos?.edad} años`} />
-              <InfoItem label="Peso" value={`${alumno.datosFisicos?.peso} kg`} />
-              <InfoItem label="Altura" value={`${alumno.datosFisicos?.altura} cm`} />
-              <InfoItem label="Género" value={alumno.datosFisicos?.genero} />
             </View>
           </Section>
 
           <Section title="2. Medidas (cm)" color="#10b981" icon="ruler-square">
             <View style={styles.gridApp}>
-              <InfoItem label="Cuello" value={alumno.medidas?.cuello} />
-              <InfoItem label="Pecho" value={alumno.medidas?.pecho} />
-              <InfoItem label="Brazo R" value={alumno.medidas?.brazoR} />
-              <InfoItem label="Brazo F" value={alumno.medidas?.brazoF} />
               <InfoItem label="Cintura" value={alumno.medidas?.cintura} />
               <InfoItem label="Cadera" value={alumno.medidas?.cadera} />
-              <InfoItem label="Muslo" value={alumno.medidas?.muslo} />
-              <InfoItem label="Pierna" value={alumno.medidas?.pierna} />
+              <InfoItem label="Pecho" value={alumno.medidas?.pecho} />
+              <InfoItem label="Cuello" value={alumno.medidas?.cuello} />
+              <InfoItem label="Brazo R" value={alumno.medidas?.brazoR} />
+              <InfoItem label="Brazo F" value={alumno.medidas?.brazoF} />
             </View>
           </Section>
-
-          {alumno.datosFisicos?.genero === 'mujer' && (
-            <Section title="3. Ciclo Menstrual" color="#ec4899" icon="flower">
-              <View style={styles.gridApp}>
-                <InfoItem label="Tipo" value={alumno.ciclo?.tipo} />
-                <InfoItem label="Anticonceptivo" value={alumno.ciclo?.anticonceptivo} />
-              </View>
-            </Section>
-          )}
 
           <Section title="4. Historial Salud" color="#ef4444" icon="heart-pulse">
-            <InfoItem label="Enf. Familiares" value={alumno.salud?.enfFam} full />
-            <InfoItem label="Enf. Personales" value={alumno.salud?.enfPers} full />
+            <InfoItem label="Enf. Propias" value={alumno.salud?.enfPers?.join(", ")} full />
             <InfoItem label="¿Lesión?" value={alumno.salud?.lesion === 'si' ? alumno.salud?.detalleLesion : 'No'} full />
             <InfoItem label="¿Operación?" value={alumno.salud?.operacion === 'si' ? alumno.salud?.detalleOperacion : 'No'} full />
-            <InfoItem label="FCR" value={alumno.salud?.frecuenciaCardiaca} />
-          </Section>
-
-          <Section title="5. Estilo de Vida (IPAQ)" color="#f59e0b" icon="walk">
-            <View style={styles.gridApp}>
-              <InfoItem label="Vigorosa" value={formatearActividad(alumno.ipaq?.vDias, alumno.ipaq?.vMin)} />
-              <InfoItem label="Moderada" value={formatearActividad(alumno.ipaq?.mDias, alumno.ipaq?.mMin)} />
-              <InfoItem label="Caminata" value={formatearActividad(alumno.ipaq?.cDias, alumno.ipaq?.cMin)} />
-              <InfoItem label="Sentado" value={`${alumno.ipaq?.sentado}h`} />
-            </View>
           </Section>
 
           <Section title="6. PAR-Q" color="#0ea5e9" icon="clipboard-pulse">
@@ -238,28 +213,19 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
             ))}
           </Section>
 
-          <Section title="7. Nutrición y Hábitos" color="#8b5cf6" icon="food-apple">
-            <InfoItem label="Comidas Actuales" value={alumno.nutricion?.comidasAct} />
-            <InfoItem label="Dieta" value={alumno.nutricion?.descAct} full />
-            <InfoItem label="Entrenos" value={alumno.nutricion?.entrenos} />
+          <Section title="7. Nutrición" color="#8b5cf6" icon="food-apple">
             <InfoItem label="Objetivo" value={alumno.nutricion?.objetivo} full />
-          </Section>
-
-          <Section title="8. Frecuencia Alimentos" color="#10b981" icon="format-list-bulleted">
-            {Object.entries(alumno.frecuenciaAlimentos || {}).map(([ali, op]: any) => (
-              <View key={ali} style={styles.parqRow}><Text>{ali}</Text><Text style={{fontWeight:'bold'}}>{op}</Text></View>
-            ))}
+            <InfoItem label="Entrenos" value={`${alumno.nutricion?.entrenos} DÍAS`} />
           </Section>
 
           <Section title="9. Firma" color="#1e293b" icon="file-sign">
              <Image source={{ uri: alumno.firma }} style={styles.firma} />
           </Section>
 
-          <View style={{ height: 120 }} />
+          <View style={{ height: 100 }} />
         </View>
       </ScrollView>
 
-      {/* FOOTER */}
       <View style={styles.footer}>
         <View style={styles.webFooterContent}>
           <TouchableOpacity style={[styles.btn, styles.btnReject]} onPress={onReject}><Text style={styles.btnTxt}>RECHAZAR</Text></TouchableOpacity>
