@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, FlatList, Pressable, ActivityIndicator, Platfor
 import { db, auth } from '../../firebaseConfig';
 import { collection, query, onSnapshot, doc, deleteDoc, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
-import { FontAwesome5 } from '@expo/vector-icons';
+import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function CoachPanel() {
   const [clientes, setClientes] = useState<any[]>([]);
@@ -21,138 +21,136 @@ export default function CoachPanel() {
     return () => unsubscribe();
   }, []);
 
-  const handleSignOut = () => signOut(auth);
-
-  // --- LÓGICA DE FLUJO: ACEPTAR O RECHAZAR ---
   const gestionarCliente = async (accion: 'aceptar' | 'rechazar') => {
     if (!clienteSeleccionado) return;
-    
     try {
       if (accion === 'aceptar') {
-        // 1. Lo movemos a la colección de Alumnos Activos
         await addDoc(collection(db, "alumnos_activos"), {
           ...clienteSeleccionado,
           fechaAceptado: serverTimestamp(),
-          estadoPlan: 'pendiente_creacion' // Esto servirá para el siguiente módulo de planes
+          estadoPlan: 'pendiente'
         });
       }
-      // 2. Lo borramos de pendientes (sea aceptado o rechazado)
       await deleteDoc(doc(db, "revisiones_pendientes", clienteSeleccionado.id));
       setClienteSeleccionado(null);
-      alert(accion === 'aceptar' ? "Cliente aceptado correctamente" : "Registro eliminado");
-    } catch (e) {
-      console.log(e);
-    }
+    } catch (e) { console.log(e); }
   };
 
-  // --- COMPONENTE DE BLOQUE (Misma estética que el Index) ---
-  const BloqueExpediente = ({ num, title, icon, color, children }: any) => (
-    <View style={styles.cardExpediente}>
-      <View style={[styles.cardHeader, { backgroundColor: color + '15', borderLeftColor: color }]}>
-        <View style={[styles.numCircle, { backgroundColor: color }]}><Text style={styles.numText}>{num}</Text></View>
-        <FontAwesome5 name={icon} size={14} color={color} />
-        <Text style={[styles.cardTitle, { color: color }]}>{title}</Text>
+  // --- COMPONENTE DE SECCIÓN FORMAL ---
+  const SeccionFormal = ({ title, icon, color, children }: any) => (
+    <View style={styles.seccionCard}>
+      <View style={[styles.seccionHeader, { borderLeftColor: color }]}>
+        <MaterialCommunityIcons name={icon} size={20} color={color} />
+        <Text style={[styles.seccionTitle, { color: color }]}>{title.toUpperCase()}</Text>
       </View>
-      <View style={styles.cardBody}>{children}</View>
+      <View style={styles.seccionContent}>{children}</View>
     </View>
   );
 
-  const InfoRow = ({ label, value }: { label: string, value: any }) => (
-    <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{label}:</Text>
-      <Text style={styles.infoValue}>{value || 'Sin dato'}</Text>
+  const FilaDato = ({ label, value, fullWidth = false }: any) => (
+    <View style={[styles.datoContenedor, fullWidth ? { width: '100%' } : { width: '48%' }]}>
+      <Text style={styles.datoLabel}>{label}</Text>
+      <Text style={styles.datoValue}>{value || '—'}</Text>
     </View>
   );
 
-  // --- VISTA DETALLE (RESPETANDO LOS BLOQUES DEL INDEX) ---
   if (clienteSeleccionado) {
     const c = clienteSeleccionado;
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.headerDetalle}>
+        {/* Header de Navegación (No sale en el PDF) */}
+        <View style={[styles.navHeader, { display: Platform.OS === 'web' ? 'flex' : 'flex' }]}>
           <Pressable onPress={() => setClienteSeleccionado(null)} style={styles.btnVolver}>
-            <FontAwesome5 name="chevron-left" size={16} color="#3b82f6" />
-            <Text style={styles.txtVolver}> Volver</Text>
+            <FontAwesome5 name="arrow-left" size={14} color="#64748b" />
+            <Text style={styles.txtVolver}> Volver al Listado</Text>
           </Pressable>
-          <Text style={styles.headerTitle}>Expediente Cliente</Text>
-          <Pressable onPress={() => window.print()} style={styles.btnMiniPdf}>
-            <FontAwesome5 name="file-pdf" size={16} color="#1e293b" />
+          <Pressable onPress={() => window.print()} style={styles.btnDescargar}>
+            <FontAwesome5 name="file-pdf" size={16} color="#fff" />
+            <Text style={{color:'#fff', fontWeight:'bold', marginLeft:8}}>Generar Reporte PDF</Text>
           </Pressable>
         </View>
 
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.mainWrapper}>
+        <ScrollView contentContainerStyle={styles.reporteContainer}>
+          <View style={styles.hojaA4}>
             
-            <BloqueExpediente num={1} title="Datos Personales" icon="user" color="#3b82f6">
-              <InfoRow label="Nombre" value={c.nombre} />
-              <InfoRow label="Email" value={c.email} />
-              <InfoRow label="Teléfono" value={c.telefono} />
-              <View style={styles.row}>
-                <InfoRow label="Edad" value={c.datosFisicos?.edad} />
-                <InfoRow label="Género" value={c.datosFisicos?.genero} />
+            {/* CABECERA DEL REPORTE */}
+            <View style={styles.reporteHeader}>
+              <View>
+                <Text style={styles.reporteTitulo}>EXPEDIENTE TÉCNICO</Text>
+                <Text style={styles.reporteSubtitulo}>Evaluación Inicial de Salud y Aptitud Física</Text>
               </View>
-              <View style={styles.row}>
-                <InfoRow label="Peso" value={`${c.datosFisicos?.peso} kg`} />
-                <InfoRow label="Altura" value={`${c.datosFisicos?.altura} cm`} />
+              <View style={styles.fechaContenedor}>
+                <Text style={styles.fechaLabel}>FECHA DE REGISTRO</Text>
+                <Text style={styles.fechaValor}>{new Date(c.timestamp?.seconds * 1000).toLocaleDateString()}</Text>
               </View>
-            </BloqueExpediente>
+            </View>
 
-            <BloqueExpediente num={2} title="Medidas Corporales" icon="ruler-horizontal" color="#10b981">
-              <View style={styles.gridMedidas}>
-                <InfoRow label="Cuello" value={c.medidas?.cuello} />
-                <InfoRow label="Pecho" value={c.medidas?.pecho} />
-                <InfoRow label="Brazo R" value={c.medidas?.brazoR} />
-                <InfoRow label="Brazo F" value={c.medidas?.brazoF} />
-                <InfoRow label="Cintura" value={c.medidas?.cintura} />
-                <InfoRow label="Cadera" value={c.medidas?.cadera} />
-                <InfoRow label="Muslo" value={c.medidas?.muslo} />
-                <InfoRow label="Pierna" value={c.medidas?.pierna} />
+            {/* BLOQUE 1: IDENTIFICACIÓN */}
+            <SeccionFormal title="Identificación del Cliente" icon="account-details" color="#1e293b">
+              <View style={styles.filaWrap}>
+                <FilaDato label="Nombre Completo" value={c.nombre} fullWidth />
+                <FilaDato label="Correo Electrónico" value={c.email} />
+                <FilaDato label="Teléfono / WhatsApp" value={c.telefono} />
               </View>
-            </BloqueExpediente>
+            </SeccionFormal>
 
-            {c.datosFisicos?.genero === 'mujer' && (
-              <BloqueExpediente num={3} title="Ciclo Menstrual" icon="venus" color="#ec4899">
-                <InfoRow label="Tipo Ciclo" value={c.ciclo?.tipo} />
-                <InfoRow label="Anticonceptivo" value={c.ciclo?.anticonceptivo} />
-              </BloqueExpediente>
-            )}
-
-            <BloqueExpediente num={4} title="Historial Salud" icon="heartbeat" color="#ef4444">
-              <InfoRow label="Enf. Fam" value={c.salud?.enfFam?.join(', ')} />
-              <InfoRow label="Enf. Pers" value={c.salud?.enfPers?.join(', ')} />
-              <InfoRow label="Lesión" value={c.salud?.lesion === 'si' ? c.salud.detalleLesion : 'No'} />
-              <InfoRow label="Operación" value={c.salud?.operacion === 'si' ? c.salud.detalleOperacion : 'No'} />
-              <InfoRow label="FCR" value={c.salud?.frecuenciaCardiaca} />
-            </BloqueExpediente>
-
-            <BloqueExpediente num={5} title="Estilo Vida (IPAQ)" icon="walking" color="#f59e0b">
-              <InfoRow label="Horas sentado" value={c.ipaq?.sentado} />
-              <InfoRow label="Horas sueño" value={c.ipaq?.horasSueno} />
-            </BloqueExpediente>
-
-            <BloqueExpediente num={7} title="Nutrición y Hábitos" icon="utensils" color="#8b5cf6">
-              <InfoRow label="Objetivo" value={c.nutricion?.objetivo} />
-              <Text style={styles.labelTextArea}>Dieta Actual:</Text>
-              <Text style={styles.textArea}>{c.nutricion?.descAct}</Text>
-              <View style={styles.row}>
-                <InfoRow label="Alcohol" value={c.nutricion?.alcohol === 'si' ? c.nutricion.alcoholFreq : 'No'} />
-                <InfoRow label="Fuma/Sust" value={c.nutricion?.sust === 'si' ? c.nutricion.sustFreq : 'No'} />
+            {/* BLOQUE 2: ANTROPOMETRÍA */}
+            <SeccionFormal title="Composición y Antropometría" icon="scale-bathroom" color="#3b82f6">
+              <View style={styles.filaWrap}>
+                <FilaDato label="Edad" value={`${c.datosFisicos?.edad} años`} />
+                <FilaDato label="Género" value={c.datosFisicos?.genero} />
+                <FilaDato label="Peso Actual" value={`${c.datosFisicos?.peso} kg`} />
+                <FilaDato label="Estatura" value={`${c.datosFisicos?.altura} cm`} />
               </View>
-            </BloqueExpediente>
+              <View style={[styles.filaWrap, { marginTop: 15, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 10 }]}>
+                <FilaDato label="Cuello" value={c.medidas?.cuello} />
+                <FilaDato label="Pecho" value={c.medidas?.pecho} />
+                <FilaDato label="Cintura" value={c.medidas?.cintura} />
+                <FilaDato label="Cadera" value={c.medidas?.cadera} />
+                <FilaDato label="Bíceps R." value={c.medidas?.brazoR} />
+                <FilaDato label="Bíceps F." value={c.medidas?.brazoF} />
+                <FilaDato label="Muslo" value={c.medidas?.muslo} />
+                <FilaDato label="Pierna" value={c.medidas?.pierna} />
+              </View>
+            </SeccionFormal>
 
-            <BloqueExpediente num={9} title="Firma y Consentimiento" icon="file-signature" color="#1e293b">
+            {/* BLOQUE 3: HISTORIAL CLÍNICO */}
+            <SeccionFormal title="Antecedentes y Salud" icon="medical-bag" color="#ef4444">
+              <FilaDato label="Enfermedades Familiares" value={c.salud?.enfFam?.join(', ')} fullWidth />
+              <FilaDato label="Condiciones Personales" value={c.salud?.enfPers?.join(', ')} fullWidth />
+              <View style={styles.filaWrap}>
+                <FilaDato label="Lesiones" value={c.salud?.lesion === 'si' ? c.salud.detalleLesion : 'Ninguna'} />
+                <FilaDato label="Operaciones" value={c.salud?.operacion === 'si' ? c.salud.detalleOperacion : 'Ninguna'} />
+              </View>
+            </SeccionFormal>
+
+            {/* BLOQUE 4: NUTRICIÓN Y OBJETIVOS */}
+            <SeccionFormal title="Análisis Nutricional y Metas" icon="food-apple" color="#10b981">
+              <FilaDato label="Objetivo Principal" value={c.nutricion?.objetivo} fullWidth />
+              <FilaDato label="Descripción Dietética Actual" value={c.nutricion?.descAct} fullWidth />
+              <View style={styles.filaWrap}>
+                <FilaDato label="Comidas al día" value={c.nutricion?.comidasDes} />
+                <FilaDato label="Entrenamientos/Semana" value={c.nutricion?.entrenos} />
+                <FilaDato label="Consumo Alcohol" value={c.nutricion?.alcohol === 'si' ? c.nutricion.alcoholFreq : 'No'} />
+                <FilaDato label="Fuma / Sustancias" value={c.nutricion?.sust === 'si' ? c.nutricion.sustFreq : 'No'} />
+              </View>
+            </SeccionFormal>
+
+            {/* BLOQUE 5: FIRMA LEGAL */}
+            <SeccionFormal title="Validación y Consentimiento" icon="fountain-pen-tip" color="#1e293b">
+              <Text style={styles.textoLegal}>El cliente declara que la información proporcionada es fidedigna y acepta los términos del programa de entrenamiento.</Text>
               {c.firma?.includes('data:image') ? (
-                <Image source={{ uri: c.firma }} style={styles.firmaImagen} resizeMode="contain" />
-              ) : <Text style={styles.firmaTexto}>{c.firma}</Text>}
-            </BloqueExpediente>
+                <Image source={{ uri: c.firma }} style={styles.imgFirma} resizeMode="contain" />
+              ) : <Text style={styles.txtFirmaNombre}>{c.firma}</Text>}
+            </SeccionFormal>
 
-            {/* BOTONES DE ACCIÓN FINAL */}
-            <View style={styles.accionesFinales}>
+            {/* ACCIONES (No salen en PDF) */}
+            <View style={styles.areaAcciones}>
               <Pressable style={styles.btnRechazar} onPress={() => gestionarCliente('rechazar')}>
-                <Text style={styles.txtW}>RECHAZAR / BORRAR</Text>
+                <Text style={styles.btnTexto}>RECHAZAR SOLICITUD</Text>
               </Pressable>
               <Pressable style={styles.btnAceptar} onPress={() => gestionarCliente('aceptar')}>
-                <Text style={styles.txtW}>ACEPTAR CLIENTE</Text>
+                <Text style={styles.btnTexto}>ADMITIR CLIENTE Y CREAR PERFIL</Text>
               </Pressable>
             </View>
 
@@ -162,34 +160,32 @@ export default function CoachPanel() {
     );
   }
 
-  // --- VISTA LISTA (COACH PANEL PRINCIPAL) ---
+  // --- LISTADO PRINCIPAL ---
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerInner}>
-          <Text style={styles.headerTitle}>Panel Coach</Text>
-          <Pressable onPress={handleSignOut} style={styles.btnSalir}>
-            <Text style={styles.txtSalir}>Salir </Text>
-            <FontAwesome5 name="sign-out-alt" size={12} color="#ef4444" />
-          </Pressable>
-        </View>
+      <View style={styles.headerSimple}>
+        <Text style={styles.headerTitleSimple}>Gestión de Prospectos</Text>
+        <Pressable onPress={() => signOut(auth)} style={styles.btnLogOut}>
+          <Text style={{color:'#ef4444', fontWeight:'bold', fontSize:12}}>Cerrar Sesión</Text>
+        </Pressable>
       </View>
-
       <View style={styles.mainWrapper}>
         <FlatList
           data={clientes}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 15 }}
           renderItem={({ item }) => (
-            <Pressable style={styles.cardLista} onPress={() => setClienteSeleccionado(item)}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.clienteNombre}>{item.nombre}</Text>
-                <Text style={styles.clienteEmail}>{item.email}</Text>
+            <Pressable style={styles.cardProspecto} onPress={() => setClienteSeleccionado(item)}>
+              <View>
+                <Text style={styles.prospectoNombre}>{item.nombre}</Text>
+                <Text style={styles.prospectoEmail}>{item.email}</Text>
               </View>
-              <FontAwesome5 name="chevron-right" size={14} color="#cbd5e1" />
+              <View style={styles.badgePendiente}>
+                <Text style={styles.badgeTexto}>REVISAR</Text>
+              </View>
             </Pressable>
           )}
-          ListEmptyComponent={<Text style={styles.vacio}>No hay revisiones pendientes</Text>}
+          contentContainerStyle={{ padding: 20 }}
+          ListEmptyComponent={<Text style={styles.vacio}>Sin solicitudes nuevas.</Text>}
         />
       </View>
     </SafeAreaView>
@@ -197,39 +193,53 @@ export default function CoachPanel() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  header: { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0', alignItems: 'center' },
-  headerInner: { width: '100%', maxWidth: 800, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
-  btnSalir: { flexDirection: 'row', alignItems: 'center', padding: 8, backgroundColor: '#fee2e2', borderRadius: 8 },
-  txtSalir: { color: '#ef4444', fontWeight: 'bold', fontSize: 12 },
+  container: { flex: 1, backgroundColor: '#f1f5f9' },
   mainWrapper: { flex: 1, width: '100%', maxWidth: 800, alignSelf: 'center' },
-  cardLista: { backgroundColor: '#fff', padding: 15, borderRadius: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#e2e8f0' },
-  clienteNombre: { fontWeight: 'bold', fontSize: 15, color: '#334155' },
-  clienteEmail: { fontSize: 12, color: '#64748b' },
-  scrollContent: { paddingBottom: 40 },
-  headerDetalle: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 10, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-  btnVolver: { flexDirection: 'row', alignItems: 'center', padding: 10 },
-  txtVolver: { color: '#3b82f6', fontWeight: 'bold' },
-  btnMiniPdf: { padding: 10, backgroundColor: '#f1f5f9', borderRadius: 8 },
-  cardExpediente: { backgroundColor: '#fff', borderRadius: 12, marginBottom: 15, overflow: 'hidden', borderWidth: 1, borderColor: '#e2e8f0' },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 10, borderLeftWidth: 4 },
-  numCircle: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  numText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
-  cardTitle: { fontSize: 14, fontWeight: 'bold' },
-  cardBody: { padding: 15 },
-  infoRow: { marginBottom: 8, flex: 1 },
-  infoLabel: { fontSize: 10, color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase' },
-  infoValue: { fontSize: 13, color: '#334155', fontWeight: '500' },
-  row: { flexDirection: 'row', gap: 15 },
-  gridMedidas: { flexDirection: 'row', flexWrap: 'wrap' },
-  labelTextArea: { fontSize: 10, color: '#94a3b8', fontWeight: 'bold', marginTop: 10 },
-  textArea: { fontSize: 13, color: '#475569', fontStyle: 'italic', marginVertical: 5 },
-  firmaImagen: { width: '100%', height: 80, marginTop: 10 },
-  firmaTexto: { fontSize: 18, fontStyle: 'italic', textAlign: 'center', marginTop: 10 },
-  accionesFinales: { flexDirection: 'row', gap: 10, marginTop: 20 },
-  btnAceptar: { flex: 1, backgroundColor: '#10b981', padding: 15, borderRadius: 12, alignItems: 'center' },
-  btnRechazar: { flex: 1, backgroundColor: '#ef4444', padding: 15, borderRadius: 12, alignItems: 'center' },
-  txtW: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
-  vacio: { textAlign: 'center', marginTop: 50, color: '#94a3b8' }
+  
+  // Estilos de la Lista
+  headerSimple: { backgroundColor: '#fff', padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  headerTitleSimple: { fontSize: 20, fontWeight: '800', color: '#1e293b' },
+  btnLogOut: { padding: 8, backgroundColor: '#fee2e2', borderRadius: 6 },
+  cardProspecto: { backgroundColor: '#fff', padding: 18, borderRadius: 12, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#e2e8f0' },
+  prospectoNombre: { fontSize: 16, fontWeight: 'bold', color: '#334155' },
+  prospectoEmail: { fontSize: 13, color: '#64748b' },
+  badgePendiente: { backgroundColor: '#eff6ff', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  badgeTexto: { color: '#3b82f6', fontSize: 10, fontWeight: '900' },
+
+  // Estilos del Reporte (Vista PDF)
+  navHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  btnVolver: { flexDirection: 'row', alignItems: 'center' },
+  txtVolver: { color: '#64748b', fontWeight: '600', marginLeft: 5 },
+  btnDescargar: { backgroundColor: '#1e293b', flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 8 },
+  
+  reporteContainer: { paddingVertical: 20 },
+  hojaA4: { backgroundColor: '#fff', width: '95%', maxWidth: 850, alignSelf: 'center', padding: 30, borderRadius: 8, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
+  reporteHeader: { flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 2, borderBottomColor: '#1e293b', paddingBottom: 20, marginBottom: 30 },
+  reporteTitulo: { fontSize: 24, fontWeight: '900', color: '#1e293b', letterSpacing: 1 },
+  reporteSubtitulo: { fontSize: 12, color: '#64748b', marginTop: 4 },
+  fechaContenedor: { alignItems: 'flex-end' },
+  fechaLabel: { fontSize: 9, fontWeight: '900', color: '#94a3b8' },
+  fechaValor: { fontSize: 14, fontWeight: 'bold', color: '#1e293b' },
+
+  seccionCard: { marginBottom: 25 },
+  seccionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', borderLeftWidth: 4, paddingLeft: 10, marginBottom: 15 },
+  seccionTitle: { fontSize: 13, fontWeight: '900' },
+  
+  // AQUÍ ESTABA EL ERROR: Añadida la propiedad faltante
+  seccionContent: { paddingLeft: 14 }, 
+
+  filaWrap: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  datoContenedor: { marginBottom: 15 },
+  datoLabel: { fontSize: 10, color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 2 },
+  datoValue: { fontSize: 14, color: '#1e293b', fontWeight: '600' },
+  textArea: { fontSize: 13, color: '#475569', lineHeight: 20, backgroundColor: '#f8fafc', padding: 12, borderRadius: 6, marginTop: 5, borderLeftWidth: 2, borderLeftColor: '#e2e8f0' },
+  textoLegal: { fontSize: 11, color: '#94a3b8', fontStyle: 'italic', marginBottom: 15 },
+  imgFirma: { width: 200, height: 80, backgroundColor: '#f8fafc', marginTop: 10 },
+  txtFirmaNombre: { fontSize: 22, fontStyle: 'italic', marginTop: 10, color: '#1e293b' },
+
+  areaAcciones: { flexDirection: 'row', gap: 15, marginTop: 40, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 30 },
+  btnAceptar: { flex: 2, backgroundColor: '#10b981', padding: 18, borderRadius: 10, alignItems: 'center' },
+  btnRechazar: { flex: 1, backgroundColor: '#fff', padding: 18, borderRadius: 10, alignItems: 'center', borderWidth: 1, borderColor: '#fecaca' },
+  btnTexto: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
+  vacio: { textAlign: 'center', marginTop: 100, color: '#94a3b8' }
 });
