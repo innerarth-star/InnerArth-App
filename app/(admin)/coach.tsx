@@ -5,7 +5,8 @@ import { collection, query, onSnapshot, doc, deleteDoc, orderBy } from 'firebase
 import { signOut } from 'firebase/auth';
 import { FontAwesome5 } from '@expo/vector-icons';
 
-export default function CoachPanel() {
+// IMPORTANTE: Recibimos { navigation } para poder saltar al detalle
+export default function CoachPanel({ navigation }: any) {
   const [clientes, setClientes] = useState<any[]>([]);
   const [cargando, setCargando] = useState(true);
 
@@ -25,15 +26,12 @@ export default function CoachPanel() {
     return () => unsubscribe();
   }, []);
 
-  // 2. Función de Cerrar Sesión con logs para depuración
+  // 2. Función de Cerrar Sesión
   const handleSignOut = async () => {
-    console.log("Botón Salir presionado");
     try {
       await signOut(auth);
-      console.log("Sesión cerrada correctamente");
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
-      if (Platform.OS === 'web') alert("Error al salir");
     }
   };
 
@@ -43,28 +41,30 @@ export default function CoachPanel() {
       try {
         await deleteDoc(doc(db, "revisiones_pendientes", id));
       } catch (err) {
-        console.log("Error al borrar:", err);
+        console.error("Error al borrar:", err);
       }
     };
 
     if (Platform.OS === 'web') {
       if (window.confirm(`¿Estás seguro de eliminar a ${nombre}?`)) confirmar();
     } else {
-      confirmar(); // En móvil puedes añadir un Alert.alert aquí
+      confirmar(); 
     }
   };
 
+  // 4. Diseño de cada tarjeta de cliente
   const renderCliente = ({ item }: { item: any }) => (
     <View style={styles.card}>
       <View style={styles.cardInfo}>
         <Text style={styles.clienteNombre}>{item.nombre || 'Sin nombre'}</Text>
         <Text style={styles.clienteSub}>{item.email}</Text>
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>PENDIENTE</Text>
+          <Text style={styles.badgeText}>POR REVISAR</Text>
         </View>
       </View>
       
       <View style={styles.acciones}>
+        {/* BOTÓN OJO: Navega al detalle pasando el objeto 'item' */}
         <Pressable 
           style={styles.btnRevisar} 
           onPress={() => navigation.navigate('ExpedienteDetalle', { cliente: item })}
@@ -72,6 +72,7 @@ export default function CoachPanel() {
           <FontAwesome5 name="eye" size={16} color="#fff" />
         </Pressable>
 
+        {/* BOTÓN BASURA: Elimina de Firebase */}
         <Pressable 
           style={styles.btnBorrar} 
           onPress={() => eliminarRegistro(item.id, item.nombre)}
@@ -84,7 +85,7 @@ export default function CoachPanel() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header centrado y ajustado para Web */}
+      {/* Header optimizado para Web */}
       <View style={styles.header}>
         <View style={styles.headerInner}>
           <Text style={styles.headerTitle}>Panel Coach</Text>
@@ -101,7 +102,7 @@ export default function CoachPanel() {
         </View>
       </View>
 
-      {/* Contenedor principal con límite de ancho */}
+      {/* Contenedor principal con límite de ancho para evitar estiramiento en Vercel */}
       <View style={styles.mainWrapper}>
         {cargando ? (
           <ActivityIndicator size="large" color="#3b82f6" style={{ marginTop: 50 }} />
@@ -112,7 +113,10 @@ export default function CoachPanel() {
             renderItem={renderCliente}
             contentContainerStyle={styles.lista}
             ListEmptyComponent={
-              <Text style={styles.vacio}>No hay clientes en espera 🙌</Text>
+              <View style={styles.vacioContainer}>
+                <Text style={{fontSize: 40}}>🎉</Text>
+                <Text style={styles.vacio}>¡No hay pendientes!</Text>
+              </View>
             }
           />
         )}
@@ -127,7 +131,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', 
     borderBottomWidth: 1, 
     borderBottomColor: '#e2e8f0',
-    alignItems: 'center', // Centra el contenido en Web
+    alignItems: 'center',
     zIndex: 10
   },
   headerInner: {
@@ -154,7 +158,7 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     maxWidth: 800,
-    alignSelf: 'center', // Clave para que no se estire en Web
+    alignSelf: 'center',
   },
   lista: { padding: 20 },
   card: { 
@@ -167,7 +171,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    // Sombra suave
     ...Platform.select({
       web: { boxShadow: '0 2px 4px rgba(0,0,0,0.05)' } as any,
       default: { elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5 }
@@ -177,14 +180,14 @@ const styles = StyleSheet.create({
   clienteNombre: { fontSize: 16, fontWeight: '700', color: '#1e293b' },
   clienteSub: { fontSize: 12, color: '#64748b', marginTop: 2 },
   badge: { 
-    backgroundColor: '#dcfce7', 
+    backgroundColor: '#eff6ff', 
     paddingHorizontal: 8, 
     paddingVertical: 4, 
     borderRadius: 6, 
     marginTop: 8,
     alignSelf: 'flex-start'
   },
-  badgeText: { color: '#166534', fontSize: 10, fontWeight: 'bold' },
+  badgeText: { color: '#3b82f6', fontSize: 10, fontWeight: 'bold' },
   acciones: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   btnRevisar: { backgroundColor: '#3b82f6', padding: 12, borderRadius: 10 },
   btnBorrar: { 
@@ -194,5 +197,6 @@ const styles = StyleSheet.create({
     borderWidth: 1, 
     borderColor: '#fecaca' 
   },
-  vacio: { textAlign: 'center', marginTop: 50, color: '#94a3b8', fontSize: 15 }
+  vacioContainer: { alignItems: 'center', marginTop: 100 },
+  vacio: { textAlign: 'center', marginTop: 10, color: '#94a3b8', fontSize: 15 }
 });
