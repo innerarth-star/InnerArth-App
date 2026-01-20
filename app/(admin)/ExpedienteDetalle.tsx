@@ -1,94 +1,65 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, Image, Alert } from 'react-native';
-import { Ionicons, FontAwesome5, FontAwesome } from '@expo/vector-icons';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, Image } from 'react-native';
+import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 
 export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject }: any) {
-  const [seccionActiva, setSeccionActiva] = useState<number | null>(1); // El primero abierto por defecto
-
-  const exportarPDF = async () => {
-    const htmlContent = `
-      <html>
-      <head>
-        <style>
-          @page { size: A4; margin: 20mm; }
-          body { font-family: 'Helvetica'; color: #334155; }
-          h1 { color: #1e3a8a; text-align: center; border-bottom: 3px solid #3b82f6; padding-bottom: 10px; }
-          .section { margin-bottom: 20px; border: 1px solid #e2e8f0; padding: 15px; border-radius: 10px; page-break-inside: avoid; }
-          .title { background: #3b82f6; color: white; padding: 5px 10px; border-radius: 5px; font-weight: bold; margin-bottom: 10px; display: inline-block; }
-          .row { display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
-          .label { font-size: 10px; color: #64748b; font-weight: bold; text-transform: uppercase; }
-          .value { font-size: 12px; font-weight: bold; color: #1e293b; }
-          .page-break { page-break-before: always; }
-        </style>
-      </head>
-      <body>
-        <h1>EXPEDIENTE: ${alumno.nombre?.toUpperCase()}</h1>
-        
-        <div class="section">
-          <div class="title">1. DATOS PERSONALES</div>
-          <div class="row"><span class="label">Email</span><span class="value">${alumno.email}</span></div>
-          <div class="row"><span class="label">Teléfono</span><span class="value">${alumno.telefono}</span></div>
-          <div class="row"><span class="label">Edad / Peso / Altura</span><span class="value">${alumno.datosFisicos?.edad} años / ${alumno.datosFisicos?.peso}kg / ${alumno.datosFisicos?.altura}cm</span></div>
-        </div>
-
-        <div class="section">
-          <div class="title">2. MEDIDAS CORPORALES</div>
-          <div class="row"><span>Cintura: ${alumno.medidas?.cintura}</span><span>Cadera: ${alumno.medidas?.cadera}</span></div>
-          <div class="row"><span>Pecho: ${alumno.medidas?.pecho}</span><span>Cuello: ${alumno.medidas?.cuello}</span></div>
-          <div class="row"><span>Brazo R: ${alumno.medidas?.brazoR}</span><span>Brazo F: ${alumno.medidas?.brazoF}</span></div>
-        </div>
-
-        <div class="section">
-          <div class="title">4. SALUD</div>
-          <div class="row"><span class="label">Enfermedades</span><span class="value">${alumno.salud?.enfPers || 'Ninguna'}</span></div>
-          <div class="row"><span class="label">Lesiones</span><span class="value">${alumno.salud?.detalleLesion || 'No'}</span></div>
-        </div>
-
-        <div class="page-break"></div>
-        <div style="text-align:center;">
-          <p class="label">FIRMA DEL ALUMNO</p>
-          <img src="${alumno.firma}" style="width:200px; border-bottom:1px solid #000;" />
-        </div>
-      </body>
-      </html>
-    `;
-    try {
-      const { uri } = await Print.printToFileAsync({ html: htmlContent });
-      await Sharing.shareAsync(uri);
-    } catch (e) { Alert.alert("Error", "No se pudo generar el PDF"); }
-  };
+  const [seccion, setSeccion] = useState<number | null>(1);
 
   const Section = ({ num, title, color, icon, children }: any) => (
-    <View style={styles.cardSection}>
-      <TouchableOpacity style={styles.headerToggle} onPress={() => setSeccionActiva(seccionActiva === num ? null : num)}>
+    <View style={styles.sectionContainer}>
+      <TouchableOpacity style={styles.sectionHeader} onPress={() => setSeccion(seccion === num ? null : num)}>
         <View style={styles.titleRow}>
-          <View style={[styles.numCircle, {backgroundColor: color}]}><Text style={styles.numText}>{num}</Text></View>
-          <FontAwesome5 name={icon} size={14} color={color} /><Text style={styles.sectionTitle}>{title}</Text>
+          <View style={[styles.badge, {backgroundColor: color}]}><Text style={styles.badgeText}>{num}</Text></View>
+          <FontAwesome5 name={icon} size={14} color={color} />
+          <Text style={styles.sectionTitle}>{title}</Text>
         </View>
-        <FontAwesome name={seccionActiva === num ? "chevron-up" : "chevron-down"} size={14} color="#64748b" />
+        <Ionicons name={seccion === num ? "chevron-up" : "chevron-down"} size={18} color="#64748b" />
       </TouchableOpacity>
-      {seccionActiva === num && <View style={styles.content}>{children}</View>}
+      {seccion === num && <View style={styles.sectionContent}>{children}</View>}
+    </View>
+  );
+
+  const Info = ({ label, value }: any) => (
+    <View style={styles.infoRow}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue}>{value || '---'}</Text>
     </View>
   );
 
   return (
-    <SafeAreaView style={{flex: 1, backgroundColor: '#f1f5f9'}}>
-      <View style={styles.modalHeader}>
-        <TouchableOpacity onPress={onClose}><Ionicons name="chevron-back" size={28} color="#1e293b" /></TouchableOpacity>
-        <Text style={styles.modalTitle}>Expediente</Text>
-        <TouchableOpacity onPress={exportarPDF}><FontAwesome5 name="file-pdf" size={22} color="#3b82f6" /></TouchableOpacity>
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.modalNav}>
+        <TouchableOpacity onPress={onClose}><Ionicons name="close" size={26} color="#1e293b" /></TouchableOpacity>
+        <Text style={styles.navTitle}>Detalle del Expediente</Text>
+        <View style={{width: 26}} />
       </View>
 
-      <ScrollView contentContainerStyle={{padding: 15}}>
+      <ScrollView contentContainerStyle={styles.scroll}>
         <Section num={1} title="Datos Personales" color="#3b82f6" icon="user">
-          <Text style={styles.val}>{alumno.nombre}</Text>
-          <Text style={styles.val}>{alumno.email}</Text>
+          <Info label="Nombre" value={alumno.nombre} />
+          <Info label="Email" value={alumno.email} />
+          <Info label="Teléfono" value={alumno.telefono} />
+          <Info label="Edad/Peso/Talla" value={`${alumno.datosFisicos?.edad}A / ${alumno.datosFisicos?.peso}KG / ${alumno.datosFisicos?.altura}CM`} />
         </Section>
-        {/* Agrega los demás bloques aquí siguiendo la estructura de Section */}
-        <View style={{marginTop: 20}}>
-          <TouchableOpacity style={styles.btnAceptar} onPress={onAccept}><Text style={styles.btnText}>ACEPTAR Y CONTINUAR</Text></TouchableOpacity>
+
+        <Section num={2} title="Medidas" color="#10b981" icon="ruler">
+          <Info label="Cintura" value={alumno.medidas?.cintura} />
+          <Info label="Cadera" value={alumno.medidas?.cadera} />
+          <Info label="Pecho" value={alumno.medidas?.pecho} />
+        </Section>
+
+        <Section num={9} title="Firma" color="#1e293b" icon="pen">
+          <Image source={{ uri: alumno.firma }} style={styles.firma} resizeMode="contain" />
+        </Section>
+
+        {/* BOTONES DE ACCIÓN RESTAURADOS */}
+        <View style={styles.actionRow}>
+          <TouchableOpacity style={styles.btnReject} onPress={onReject}>
+            <Text style={styles.btnTextReject}>RECHAZAR</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.btnAccept} onPress={onAccept}>
+            <Text style={styles.btnTextAccept}>ACEPTAR ALUMNO</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -96,16 +67,24 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
 }
 
 const styles = StyleSheet.create({
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 18, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-  modalTitle: { fontSize: 18, fontWeight: 'bold' },
-  cardSection: { backgroundColor: '#fff', borderRadius: 12, marginBottom: 10, elevation: 1 },
-  headerToggle: { flexDirection: 'row', justifyContent: 'space-between', padding: 15, alignItems: 'center' },
+  safe: { flex: 1, backgroundColor: '#f8fafc' },
+  modalNav: { flexDirection: 'row', justifyContent: 'space-between', padding: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  navTitle: { fontSize: 17, fontWeight: 'bold' },
+  scroll: { padding: 15 },
+  sectionContainer: { backgroundColor: '#fff', borderRadius: 12, marginBottom: 10, overflow: 'hidden', elevation: 1 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 15, alignItems: 'center' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  numCircle: { width: 22, height: 22, borderRadius: 11, justifyContent: 'center', alignItems: 'center' },
-  numText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
-  sectionTitle: { fontSize: 14, fontWeight: 'bold' },
-  content: { padding: 15, borderTopWidth: 1, borderTopColor: '#f8fafc' },
-  val: { fontSize: 14, marginBottom: 5, fontWeight: '600' },
-  btnAceptar: { backgroundColor: '#10b981', padding: 16, borderRadius: 12, alignItems: 'center' },
-  btnText: { color: '#fff', fontWeight: 'bold' }
+  badge: { width: 20, height: 20, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  badgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+  sectionTitle: { fontSize: 14, fontWeight: 'bold', color: '#1e293b' },
+  sectionContent: { padding: 15, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
+  infoRow: { marginBottom: 10 },
+  infoLabel: { fontSize: 10, color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase' },
+  infoValue: { fontSize: 15, fontWeight: '600', color: '#1e293b' },
+  firma: { width: '100%', height: 120, marginTop: 10 },
+  actionRow: { flexDirection: 'row', gap: 10, marginTop: 20, paddingBottom: 40 },
+  btnAccept: { flex: 2, backgroundColor: '#10b981', padding: 16, borderRadius: 12, alignItems: 'center' },
+  btnReject: { flex: 1, backgroundColor: '#fee2e2', padding: 16, borderRadius: 12, alignItems: 'center' },
+  btnTextAccept: { color: '#fff', fontWeight: 'bold' },
+  btnTextReject: { color: '#ef4444', fontWeight: 'bold' }
 });
