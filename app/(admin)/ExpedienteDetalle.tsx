@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, Image, Alert, Platform } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, Image, Alert } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -35,44 +35,39 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
   if (!alumno) return null;
 
   const generarPDFCompleto = async () => {
-    // Generar tablas dinámicas
     const alimentosHtml = Object.entries(alumno.frecuenciaAlimentos || {})
-      .map(([ali, op]) => `<tr><td style="padding:10px; border-bottom:1px solid #eee;">${ali}</td><td style="text-align:right;"><b>${op}</b></td></tr>`).join('');
+      .map(([ali, op]) => `<tr><td style="padding:8px; border-bottom:1px solid #eee;">${ali}</td><td style="text-align:right;"><b>${op}</b></td></tr>`).join('');
 
     const parqHtml = Object.keys(PREGUNTAS_TEXTO)
-      .map(key => `<tr><td style="padding:10px; border-bottom:1px solid #eee;">${PREGUNTAS_TEXTO[key]}</td><td style="text-align:right;"><b>${alumno.salud?.parq?.[key]?.toUpperCase() || 'N/A'}</b></td></tr>`).join('');
+      .map(key => `<tr><td style="padding:8px; border-bottom:1px solid #eee;">${PREGUNTAS_TEXTO[key]}</td><td style="text-align:right;"><b>${alumno.salud?.parq?.[key]?.toUpperCase() || 'N/A'}</b></td></tr>`).join('');
 
     const html = `
       <html>
         <head>
           <style>
-            @page { margin: 1.5cm; }
-            body { font-family: 'Helvetica', sans-serif; color: #1e293b; line-height: 1.6; }
-            .page-header { text-align: center; border-bottom: 4px solid #3b82f6; margin-bottom: 40px; padding-bottom: 20px; }
-            h1 { color: #3b82f6; font-size: 26px; margin-bottom: 5px; }
-            .section { margin-bottom: 35px; page-break-inside: avoid; border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; }
-            .section-title { font-weight: bold; color: #3b82f6; font-size: 16px; text-transform: uppercase; border-bottom: 2px solid #f1f5f9; margin-bottom: 15px; padding-bottom: 8px; }
+            @page { size: A4; margin: 20mm; }
+            body { font-family: 'Helvetica', sans-serif; color: #1e293b; line-height: 1.5; }
+            .page-break { page-break-before: always; }
+            .header { text-align: center; border-bottom: 3px solid #3b82f6; margin-bottom: 30px; padding-bottom: 10px; }
+            .section { margin-bottom: 25px; border: 1px solid #e2e8f0; padding: 15px; border-radius: 10px; }
+            .section-title { font-weight: bold; color: #3b82f6; font-size: 14px; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; margin-bottom: 10px; padding-bottom: 5px; }
             table { width: 100%; border-collapse: collapse; }
-            td { font-size: 12px; padding: 8px 0; }
-            .label { color: #94a3b8; font-weight: bold; font-size: 10px; text-transform: uppercase; }
-            .value { font-size: 14px; font-weight: bold; }
-            .firma-box { text-align: center; margin-top: 50px; page-break-inside: avoid; }
-            /* Forzar salto de página manual si es necesario */
-            .break { page-break-before: always; }
+            td { font-size: 11px; padding: 5px 0; }
+            .label { color: #94a3b8; font-weight: bold; font-size: 9px; text-transform: uppercase; }
+            .firma-box { text-align: center; margin-top: 50px; }
           </style>
         </head>
         <body>
-          <div class="page-header">
+          <div class="header">
             <h1>EXPEDIENTE DE RECOMPOSICIÓN PERSONAL</h1>
-            <p><b>Cliente:</b> ${alumno.nombre} | <b>Email:</b> ${alumno.email}</p>
+            <p>Cliente: <b>${alumno.nombre}</b> | Email: ${alumno.email}</p>
           </div>
 
           <div class="section">
-            <div class="section-title">1. Información Personal</div>
+            <div class="section-title">1. Datos Personales</div>
             <table>
-              <tr><td><span class="label">Teléfono:</span><br/><span class="value">${alumno.telefono}</span></td><td><span class="label">Edad:</span><br/><span class="value">${alumno.datosFisicos?.edad} años</span></td></tr>
-              <tr><td><span class="label">Peso:</span><br/><span class="value">${alumno.datosFisicos?.peso} kg</span></td><td><span class="label">Altura:</span><br/><span class="value">${alumno.datosFisicos?.altura} cm</span></td></tr>
-              <tr><td><span class="label">Género:</span><br/><span class="value">${alumno.datosFisicos?.genero}</span></td><td></td></tr>
+              <tr><td><span class="label">Teléfono:</span><br/><b>${alumno.telefono}</b></td><td><span class="label">Edad:</span><br/><b>${alumno.datosFisicos?.edad} años</b></td></tr>
+              <tr><td><span class="label">Peso:</span><br/><b>${alumno.datosFisicos?.peso} kg</b></td><td><span class="label">Altura:</span><br/><b>${alumno.datosFisicos?.altura} cm</b></td></tr>
             </table>
           </div>
 
@@ -81,51 +76,41 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
             <table>
               <tr><td>Cuello: <b>${alumno.medidas?.cuello}</b></td><td>Pecho: <b>${alumno.medidas?.pecho}</b></td><td>Cintura: <b>${alumno.medidas?.cintura}</b></td></tr>
               <tr><td>Cadera: <b>${alumno.medidas?.cadera}</b></td><td>Muslo: <b>${alumno.medidas?.muslo}</b></td><td>Pierna: <b>${alumno.medidas?.pierna}</b></td></tr>
-              <tr><td>Brazo Rel: <b>${alumno.medidas?.brazoR}</b></td><td>Brazo Flex: <b>${alumno.medidas?.brazoF}</b></td><td></td></tr>
+              <tr><td>Brazo R: <b>${alumno.medidas?.brazoR}</b></td><td>Brazo F: <b>${alumno.medidas?.brazoF}</b></td><td></td></tr>
             </table>
           </div>
 
-          <div class="section">
+          <div class="page-break"></div> <div class="section">
             <div class="section-title">4. Historial de Salud</div>
-            <p><span class="label">Enfermedades Familiares:</span><br/>${alumno.salud?.enfFam?.join(", ") || 'Ninguna'}</p>
-            <p><span class="label">Enfermedades Propias:</span><br/>${alumno.salud?.enfPers?.join(", ") || 'Ninguna'}</p>
+            <p><span class="label">Enfermedades:</span><br/>${alumno.salud?.enfPers?.join(", ") || 'Ninguna'}</p>
             <p><span class="label">Lesiones:</span> ${alumno.salud?.lesion === 'si' ? alumno.salud?.detalleLesion : 'No'}</p>
             <p><span class="label">Operaciones:</span> ${alumno.salud?.operacion === 'si' ? alumno.salud?.detalleOperacion : 'No'}</p>
-            <p><span class="label">Frecuencia Cardiaca Reposo:</span> ${alumno.salud?.frecuenciaCardiaca} lpm</p>
-          </div>
-
-          <div class="break"></div> <div class="section">
-            <div class="section-title">5. Estilo de Vida e IPAQ</div>
-            <table>
-              <tr><td>Act. Vigorosa: <b>${alumno.ipaq?.vDias}d / ${alumno.ipaq?.vMin}m</b></td><td>Act. Moderada: <b>${alumno.ipaq?.mDias}d / ${alumno.ipaq?.mMin}m</b></td></tr>
-              <tr><td>Caminata: <b>${alumno.ipaq?.cDias}d / ${alumno.ipaq?.cMin}m</b></td><td>Sueño: <b>${alumno.ipaq?.horasSueno} hrs</b></td></tr>
-              <tr><td>Sentado al día: <b>${alumno.ipaq?.sentado} hrs</b></td><td></td></tr>
-            </table>
+            <p><span class="label">FCR:</span> ${alumno.salud?.frecuenciaCardiaca} lpm</p>
           </div>
 
           <div class="section">
-            <div class="section-title">6. Cuestionario de Riesgo PAR-Q</div>
+            <div class="section-title">6. Riesgos PAR-Q</div>
             <table>${parqHtml}</table>
           </div>
 
-          <div class="section">
+          <div class="page-break"></div> <div class="section">
             <div class="section-title">7. Nutrición y Hábitos</div>
-            <p><span class="label">Objetivo Principal:</span><br/><b>${alumno.nutricion?.objetivo}</b></p>
-            <p><span class="label">Descripción de Dieta Actual:</span><br/>${alumno.nutricion?.descAct}</p>
-            <p><span class="label">Alcohol:</span> ${alumno.nutricion?.alcohol} (${alumno.nutricion?.alcoholFreq})</p>
-            <p><span class="label">Sustancias/Fuma:</span> ${alumno.nutricion?.sust} (${alumno.nutricion?.sustFreq})</p>
-            <p><span class="label">Plan deseado:</span> ${alumno.nutricion?.comidasDes} comidas / ${alumno.nutricion?.entrenos} días entreno</p>
+            <p><span class="label">Objetivo:</span><br/><b>${alumno.nutricion?.objetivo}</b></p>
+            <p><span class="label">Dieta Actual:</span><br/>${alumno.nutricion?.descAct}</p>
+            <p><span class="label">Alcohol:</span> ${alumno.nutricion?.alcohol} | <span class="label">Sustancias:</span> ${alumno.nutricion?.sust}</p>
           </div>
 
-          <div class="break"></div> <div class="section">
+          <div class="section">
             <div class="section-title">8. Frecuencia de Alimentos</div>
             <table>${alimentosHtml}</table>
           </div>
 
-          <div class="firma-box">
-            <p class="label">Firma de Conformidad</p>
-            ${alumno.firma?.startsWith('data:image') ? `<img src="${alumno.firma}" style="width:300px; height:120px; object-fit:contain; border-bottom:1px solid #333;"/>` : `<h3>${alumno.firma}</h3>`}
-            <p style="font-size:10px; margin-top:10px;">Documento legal de consentimiento informado</p>
+          <div class="page-break"></div> <div class="firma-box">
+            <div class="section-title">9. Firma y Consentimiento</div>
+            <p style="margin-top:40px; border-bottom: 1px solid #333; display:inline-block; min-width:300px;">
+              ${alumno.firma?.startsWith('data:image') ? `<img src="${alumno.firma}" style="width:250px;"/>` : `<h2>${alumno.firma}</h2>`}
+            </p>
+            <p><span class="label">Firma del Cliente</span></p>
           </div>
         </body>
       </html>
@@ -145,20 +130,20 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
         <View style={styles.webContainerRow}>
           <TouchableOpacity onPress={onClose}><Ionicons name="close-circle" size={28} color="#1e293b" /></TouchableOpacity>
           <Text style={styles.headerTitle}>EXPEDIENTE COMPLETO</Text>
-          <TouchableOpacity onPress={generarPDFCompleto}><Ionicons name="cloud-download" size={26} color="#3b82f6" /></TouchableOpacity>
+          <TouchableOpacity onPress={generarPDFCompleto}>
+            <Ionicons name="cloud-download-outline" size={26} color="#3b82f6" />
+          </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.webWrapper}>
-          
           <Section title="1. Datos Personales" color="#3b82f6" icon="account">
             <View style={styles.grid}>
               <InfoItem label="Nombre" value={alumno.nombre} full />
               <InfoItem label="Email" value={alumno.email} full />
               <InfoItem label="Peso/Altura" value={`${alumno.datosFisicos?.peso}kg / ${alumno.datosFisicos?.altura}cm`} />
               <InfoItem label="Edad" value={`${alumno.datosFisicos?.edad} años`} />
-              <InfoItem label="Género" value={alumno.datosFisicos?.genero} />
             </View>
           </Section>
 
@@ -166,39 +151,19 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
             <View style={styles.grid}>
               <InfoItem label="Cuello" value={alumno.medidas?.cuello} />
               <InfoItem label="Pecho" value={alumno.medidas?.pecho} />
-              <InfoItem label="Brazo Rel" value={alumno.medidas?.brazoR} />
-              <InfoItem label="Brazo Flex" value={alumno.medidas?.brazoF} />
               <InfoItem label="Cintura" value={alumno.medidas?.cintura} />
               <InfoItem label="Cadera" value={alumno.medidas?.cadera} />
+              <InfoItem label="Brazo R" value={alumno.medidas?.brazoR} />
+              <InfoItem label="Brazo F" value={alumno.medidas?.brazoF} />
               <InfoItem label="Muslo" value={alumno.medidas?.muslo} />
               <InfoItem label="Pierna" value={alumno.medidas?.pierna} />
             </View>
           </Section>
 
-          {alumno.datosFisicos?.genero === 'mujer' && (
-            <Section title="3. Ciclo Menstrual" color="#ec4899" icon="flower">
-              <View style={styles.grid}>
-                <InfoItem label="Tipo" value={alumno.ciclo?.tipo} />
-                <InfoItem label="Anticonceptivo" value={alumno.ciclo?.anticonceptivo} />
-              </View>
-            </Section>
-          )}
-
-          <Section title="4. Historial Salud" color="#ef4444" icon="heart-pulse">
-            <InfoItem label="Enfermedades Propias" value={alumno.salud?.enfPers?.join(", ")} full />
+          <Section title="4. Salud" color="#ef4444" icon="heart-pulse">
+            <InfoItem label="Enfermedades" value={alumno.salud?.enfPers?.join(", ")} full />
             <InfoItem label="Lesión" value={alumno.salud?.lesion === 'si' ? alumno.salud?.detalleLesion : 'No'} full />
             <InfoItem label="Operación" value={alumno.salud?.operacion === 'si' ? alumno.salud?.detalleOperacion : 'No'} full />
-            <InfoItem label="FCR" value={`${alumno.salud?.frecuenciaCardiaca} lpm`} />
-          </Section>
-
-          <Section title="5. Estilo de Vida (IPAQ)" color="#f59e0b" icon="walk">
-            <View style={styles.grid}>
-              <InfoItem label="Act. Vigorosa" value={`${alumno.ipaq?.vDias}d / ${alumno.ipaq?.vMin}m`} />
-              <InfoItem label="Act. Moderada" value={`${alumno.ipaq?.mDias}d / ${alumno.ipaq?.mMin}m`} />
-              <InfoItem label="Caminata" value={`${alumno.ipaq?.cDias}d / ${alumno.ipaq?.cMin}m`} />
-              <InfoItem label="Sentado" value={`${alumno.ipaq?.sentado}h`} />
-              <InfoItem label="Sueño" value={`${alumno.ipaq?.horasSueno}h`} />
-            </View>
           </Section>
 
           <Section title="6. PAR-Q" color="#0ea5e9" icon="clipboard-pulse">
@@ -210,10 +175,8 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
             ))}
           </Section>
 
-          <Section title="7. Nutrición y Hábitos" color="#8b5cf6" icon="food-apple">
-            <InfoItem label="Comidas Actuales" value={alumno.nutricion?.comidasAct} />
+          <Section title="7. Nutrición" color="#8b5cf6" icon="food-apple">
             <InfoItem label="Objetivo" value={alumno.nutricion?.objetivo} full />
-            <InfoItem label="Descripción Dieta" value={alumno.nutricion?.descAct} full />
             <InfoItem label="Alcohol/Sustancias" value={`${alumno.nutricion?.alcohol} / ${alumno.nutricion?.sust}`} full />
           </Section>
 
@@ -223,15 +186,7 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
             ))}
           </Section>
 
-          <Section title="9. Firma y Consentimiento" color="#1e293b" icon="file-sign">
-            {alumno.firma?.startsWith('data:image') ? (
-              <Image source={{ uri: alumno.firma }} style={styles.firma} />
-            ) : (
-              <Text style={styles.firmaNombre}>{alumno.firma}</Text>
-            )}
-          </Section>
-
-          <View style={{ height: 120 }} />
+          <View style={{ height: 100 }} />
         </View>
       </ScrollView>
 
@@ -263,8 +218,6 @@ const styles = StyleSheet.create({
   parqRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
   parqText: { fontSize: 12, color: '#475569', flex: 0.8 },
   parqVal: { fontSize: 12, fontWeight: 'bold', color: '#10b981' },
-  firma: { width: '100%', height: 150, resizeMode: 'contain', backgroundColor: '#f1f5f9', borderRadius: 15, marginTop: 10 },
-  firmaNombre: { fontSize: 24, fontStyle: 'italic', textAlign: 'center', color: '#1e293b' },
   footer: { backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#e2e8f0', padding: 15 },
   webFooterContent: { maxWidth: 800, width: '100%', alignSelf: 'center', flexDirection: 'row', gap: 12 },
   btn: { flex: 1, height: 55, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
