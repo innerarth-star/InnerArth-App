@@ -34,8 +34,7 @@ const Section = ({ title, color, icon, children }: any) => (
 export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject }: any) {
   if (!alumno) return null;
 
-  const generarPDFCompleto = async () => {
-    // Preparar datos dinámicos
+const generarPDFCompleto = async () => {
     const alimentosHtml = Object.entries(alumno.frecuenciaAlimentos || {})
       .map(([ali, op]) => `<tr><td>${ali}</td><td style="text-align:right"><b>${op}</b></td></tr>`).join('');
 
@@ -46,82 +45,100 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
       <!DOCTYPE html>
       <html>
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-          @page { margin: 0; }
-          body { font-family: 'Helvetica', sans-serif; color: #1e293b; margin: 0; padding: 0; }
-          .page { padding: 2cm; page-break-after: always; min-height: 297mm; }
-          .header { text-align: center; border-bottom: 4px solid #3b82f6; margin-bottom: 30px; padding-bottom: 10px; }
-          .section { margin-bottom: 20px; border: 1px solid #e2e8f0; padding: 15px; border-radius: 10px; }
-          .section-title { font-weight: bold; color: #3b82f6; font-size: 14px; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; margin-bottom: 10px; }
+          /* CONFIGURACIÓN CRÍTICA DE IMPRESIÓN */
+          @page {
+            size: A4;
+            margin: 15mm;
+          }
+          html, body {
+            width: 210mm; /* Ancho real de hoja A4 */
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica', sans-serif;
+            background-color: white;
+          }
+          .content-wrapper {
+            width: 100%;
+          }
+          .page-segment {
+            page-break-inside: avoid;
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+          }
+          .header {
+            text-align: center;
+            border-bottom: 4px solid #3b82f6;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+          }
+          .section-title {
+            color: #3b82f6;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-bottom: 2px solid #f1f5f9;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+          }
           table { width: 100%; border-collapse: collapse; }
-          td { font-size: 11px; padding: 6px; border-bottom: 1px solid #f8fafc; }
-          .label { color: #94a3b8; font-weight: bold; font-size: 9px; text-transform: uppercase; }
-          .firma-img { width: 300px; margin-top: 20px; border-bottom: 1px solid #000; }
+          td { font-size: 12px; padding: 8px; border-bottom: 1px solid #f8fafc; }
+          .label { color: #94a3b8; font-weight: bold; font-size: 10px; text-transform: uppercase; }
+          .firma-container { text-align: center; margin-top: 50px; page-break-inside: avoid; }
+          img { max-width: 300px; height: auto; }
+          
+          /* FORZAR SALTO DESPUÉS DE SECCIONES GRANDES */
+          .break-after { page-break-after: always; }
         </style>
       </head>
       <body>
-        <div class="page">
+        <div class="content-wrapper">
           <div class="header">
-            <h1>EXPEDIENTE DE RECOMPOSICIÓN</h1>
-            <p>Cliente: <b>${alumno.nombre}</b> | Email: ${alumno.email}</p>
+            <h1>EXPEDIENTE DE RECOMPOSICIÓN PERSONAL</h1>
+            <p>Cliente: <b>${alumno.nombre}</b> | Fecha: ${new Date().toLocaleDateString()}</p>
           </div>
-          <div class="section">
-            <div class="section-title">1. Datos Personales</div>
+
+          <div class="page-segment">
+            <div class="section-title">1. Datos Personales y 2. Medidas</div>
             <table>
-              <tr><td><span class="label">Teléfono:</span><br/>${alumno.telefono}</td><td><span class="label">Edad:</span><br/>${alumno.datosFisicos?.edad} años</td></tr>
-              <tr><td><span class="label">Peso / Altura:</span><br/>${alumno.datosFisicos?.peso}kg / ${alumno.datosFisicos?.altura}cm</td><td><span class="label">Género:</span><br/>${alumno.datosFisicos?.genero}</td></tr>
+              <tr><td><span class="label">Email:</span><br/>${alumno.email}</td><td><span class="label">Tel:</span><br/>${alumno.telefono}</td></tr>
+              <tr><td><span class="label">Peso:</span><br/>${alumno.datosFisicos?.peso}kg</td><td><span class="label">Altura:</span><br/>${alumno.datosFisicos?.altura}cm</td></tr>
             </table>
-          </div>
-          <div class="section">
-            <div class="section-title">2. Medidas Corporales (CM)</div>
+            <h4 style="margin-top:15px; font-size:12px;">Medidas (cm)</h4>
             <table>
               <tr><td>Cuello: ${alumno.medidas?.cuello}</td><td>Pecho: ${alumno.medidas?.pecho}</td><td>Cintura: ${alumno.medidas?.cintura}</td></tr>
-              <tr><td>Cadera: ${alumno.medidas?.cadera}</td><td>Muslo: ${alumno.medidas?.muslo}</td><td>Pierna: ${alumno.medidas?.pierna}</td></tr>
-              <tr><td>Brazo R: ${alumno.medidas?.brazoR}</td><td>Brazo F: ${alumno.medidas?.brazoF}</td><td></td></tr>
+              <tr><td>Cadera: ${alumno.medidas?.cadera}</td><td>Muslo: ${alumno.medidas?.muslo}</td><td>Brazo R: ${alumno.medidas?.brazoR}</td></tr>
             </table>
           </div>
-        </div>
 
-        <div class="page">
-          <div class="section">
-            <div class="section-title">4. Historial de Salud</div>
-            <p><span class="label">Enfermedades:</span><br/>${alumno.salud?.enfPers?.join(", ") || 'Ninguna'}</p>
-            <p><span class="label">Lesiones:</span> ${alumno.salud?.lesion === 'si' ? alumno.salud?.detalleLesion : 'No'}</p>
-            <p><span class="label">Operaciones:</span> ${alumno.salud?.operacion === 'si' ? alumno.salud?.detalleOperacion : 'No'}</p>
-            <p><span class="label">Frecuencia Cardiaca:</span> ${alumno.salud?.frecuenciaCardiaca} lpm</p>
+          <div class="page-segment">
+            <div class="section-title">4. Salud y 5. Estilo de Vida</div>
+            <p><b>Enfermedades:</b> ${alumno.salud?.enfPers?.join(", ") || 'Ninguna'}</p>
+            <p><b>Lesiones/Operaciones:</b> ${alumno.salud?.lesion === 'si' ? alumno.salud?.detalleLesion : 'No'} / ${alumno.salud?.operacion === 'si' ? alumno.salud?.detalleOperacion : 'No'}</p>
+            <p><b>IPAQ (Actividad):</b> Vigorosa ${alumno.ipaq?.vDias} días, Moderada ${alumno.ipaq?.mDias} días.</p>
           </div>
-          <div class="section">
-            <div class="section-title">5. Estilo de Vida (IPAQ)</div>
-            <p>Sueño: ${alumno.ipaq?.horasSueno}h | Sentado: ${alumno.ipaq?.sentado}h</p>
-            <p>Actividad Vigorosa: ${alumno.ipaq?.vDias} días / ${alumno.ipaq?.vMin} min</p>
-          </div>
-          <div class="section">
+
+          <div class="break-after"></div> <div class="page-segment">
             <div class="section-title">6. Cuestionario PAR-Q</div>
             <table>${parqHtml}</table>
           </div>
-        </div>
 
-        <div class="page">
-          <div class="section">
-            <div class="section-title">7. Nutrición y Hábitos</div>
-            <p><span class="label">Objetivo:</span> ${alumno.nutricion?.objetivo}</p>
-            <p><span class="label">Dieta Actual:</span> ${alumno.nutricion?.descAct}</p>
-            <p><span class="label">Alcohol:</span> ${alumno.nutricion?.alcohol} | <span class="label">Sustancias:</span> ${alumno.nutricion?.sust}</p>
-            <p><span class="label">Entrenamiento:</span> ${alumno.nutricion?.entrenos} días / ${alumno.nutricion?.comidasDes} comidas deseadas</p>
+          <div class="page-segment">
+            <div class="section-title">7. Nutrición y 8. Frecuencia</div>
+            <p><b>Objetivo:</b> ${alumno.nutricion?.objetivo}</p>
+            <p><b>Hábitos:</b> Alcohol (${alumno.nutricion?.alcohol}), Sustancias (${alumno.nutricion?.sust})</p>
+            <table style="margin-top:10px;">${alimentosHtml}</table>
           </div>
-          <div class="section">
-            <div class="section-title">8. Frecuencia de Alimentos</div>
-            <table>${alimentosHtml}</table>
-          </div>
-        </div>
 
-        <div class="page">
-          <div class="section-title">9. Firma y Consentimiento</div>
-          <div style="text-align:center; margin-top:50px;">
+          <div class="firma-container">
+            <div class="section-title">9. Firma</div>
             ${alumno.firma?.startsWith('data:image') 
-              ? `<img src="${alumno.firma}" class="firma-img" />` 
-              : `<h2>${alumno.firma}</h2>`}
-            <p><span class="label">Firma del Cliente</span></p>
+              ? `<img src="${alumno.firma}" />` 
+              : `<h2 style="font-family:cursive;">${alumno.firma}</h2>`}
+            <p style="font-size:10px; color:#94a3b8;">Firma digital del expediente</p>
           </div>
         </div>
       </body>
@@ -129,10 +146,14 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
     `;
 
     try {
-      const { uri } = await Print.printToFileAsync({ html });
+      // Configuramos explicitamente que no queremos impresión simplificada
+      const { uri } = await Print.printToFileAsync({ 
+        html,
+        base64: false 
+      });
       await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
     } catch (e) {
-      Alert.alert("Error", "No se pudo generar el PDF");
+      Alert.alert("Error", "No se pudo generar el PDF completo");
     }
   };
 
