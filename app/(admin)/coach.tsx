@@ -11,12 +11,23 @@ export default function CoachPanel() {
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState<any>(null);
 
   useEffect(() => {
+    console.log("Iniciando escucha en: revisiones_pendientes...");
+    
+    // Escuchamos la colección exacta que me comentaste
     const q = query(collection(db, 'revisiones_pendientes'));
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      console.log("Documentos encontrados en Firebase:", docs.length);
+      
       setAlumnos(docs);
       setLoading(false);
+    }, (error) => {
+      console.error("Error de Firebase:", error);
+      setLoading(false);
     });
+
     return () => unsubscribe();
   }, []);
 
@@ -24,12 +35,16 @@ export default function CoachPanel() {
     <View style={styles.center}><ActivityIndicator size="large" color="#3b82f6" /></View>
   );
 
+  // Si seleccionamos un alumno, mostramos el detalle
   if (alumnoSeleccionado) {
     return (
       <ExpedienteDetalle 
         alumno={alumnoSeleccionado}
         onClose={() => setAlumnoSeleccionado(null)}
-        onAccept={() => { alert("Aceptado"); setAlumnoSeleccionado(null); }}
+        onAccept={() => {
+            console.log("Aceptando a:", alumnoSeleccionado.nombre);
+            setAlumnoSeleccionado(null);
+        }}
         onReject={() => setAlumnoSeleccionado(null)}
       />
     );
@@ -39,8 +54,10 @@ export default function CoachPanel() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.webContainer}>
-          <Text style={styles.title}>Cuestionarios Recibidos</Text>
-          <Text style={styles.subtitle}>{alumnos.length} pendientes de revisión</Text>
+          <Text style={styles.title}>Panel del Coach</Text>
+          <Text style={styles.subtitle}>
+            {alumnos.length === 0 ? "No hay registros pendientes" : `Tienes ${alumnos.length} cuestionarios por revisar`}
+          </Text>
         </View>
       </View>
       
@@ -50,20 +67,31 @@ export default function CoachPanel() {
         contentContainerStyle={styles.listContainer}
         renderItem={({ item }) => (
           <View style={styles.webContainer}>
-            <TouchableOpacity style={styles.card} onPress={() => setAlumnoSeleccionado(item)}>
+            <TouchableOpacity 
+                style={styles.card} 
+                onPress={() => {
+                    console.log("Seleccionando alumno:", item.nombre);
+                    setAlumnoSeleccionado(item);
+                }}
+            >
               <View style={styles.cardInfo}>
                 <View style={styles.avatar}>
-                  <Text style={styles.avatarTxt}>{item.nombre?.charAt(0).toUpperCase()}</Text>
+                  <Text style={styles.avatarTxt}>{(item.nombre || "U").charAt(0)}</Text>
                 </View>
                 <View>
-                  <Text style={styles.name}>{item.nombre || 'Sin nombre'}</Text>
-                  <Text style={styles.email}>{item.email}</Text>
+                  <Text style={styles.name}>{item.nombre || 'Sin nombre definido'}</Text>
+                  <Text style={styles.email}>{item.email || 'Sin email'}</Text>
                 </View>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#3b82f6" />
             </TouchableOpacity>
           </View>
         )}
+        ListEmptyComponent={
+            <View style={styles.center}>
+                <Text style={{color: '#94a3b8'}}>No se encontraron datos en 'revisiones_pendientes'</Text>
+            </View>
+        }
       />
     </SafeAreaView>
   );
@@ -71,7 +99,7 @@ export default function CoachPanel() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f1f5f9' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   header: { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0', paddingVertical: 20 },
   webContainer: { width: '100%', maxWidth: 800, alignSelf: 'center', paddingHorizontal: 20 },
   title: { fontSize: 24, fontWeight: 'bold', color: '#0f172a' },
@@ -85,7 +113,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-between',
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 10, elevation: 2
+    borderWidth: 1,
+    borderColor: '#e2e8f0'
   },
   cardInfo: { flexDirection: 'row', alignItems: 'center', gap: 15 },
   avatar: { width: 45, height: 45, borderRadius: 23, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' },
