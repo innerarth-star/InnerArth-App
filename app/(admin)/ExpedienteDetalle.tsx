@@ -6,142 +6,180 @@ import * as Sharing from 'expo-sharing';
 
 const { width } = Dimensions.get('window');
 
+// Diccionario único para evitar errores de nombre
+const PREGUNTAS_TEXTO: any = {
+  p1: "¿Alguna vez un médico le ha dicho que tiene un problema cardíaco?",
+  p2: "¿Siente dolor en el pecho cuando realiza actividad física?",
+  p3: "¿En el último mes, ha sentido dolor en el pecho sin actividad física?",
+  p4: "¿Pierde el equilibrio debido a mareos o pérdida de conocimiento?",
+  p5: "¿Tiene algún problema óseo o articular que podría empeorar?",
+  p6: "¿Le receta actualmente medicamentos para la presión o corazón?",
+  p7: "¿Sabe de alguna otra razón por la cual no debería hacer ejercicio?"
+};
+
 export default function ExpedienteDetalle({ alumno, onClose, onAccept }: any) {
   if (!alumno) return null;
 
-  // FUNCIÓN DE PDF CORREGIDA Y VINCULADA
   const generarPDF = async () => {
+    // Filas dinámicas para el HTML del PDF
+    const filasAlimentos = Object.entries(alumno.frecuenciaAlimentos || {})
+      .map(([ali, op]) => `<tr><td>${ali}</td><td><b>${op}</b></td></tr>`).join('');
+
+    const filasParq = Object.keys(PREGUNTAS_TEXTO)
+      .map(k => `<tr><td>${PREGUNTAS_TEXTO[k]}</td><td style="text-align:right"><b>${alumno.salud?.parq?.[k]?.toUpperCase() || 'N/A'}</b></td></tr>`).join('');
+
     const html = `
       <html>
-        <head>
-          <style>
-            body { font-family: 'Helvetica'; padding: 20px; color: #1e293b; }
-            h1 { color: #3b82f6; text-align: center; border-bottom: 2px solid #3b82f6; }
-            .section { margin-top: 20px; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; }
-            .title { font-weight: bold; background: #f1f5f9; padding: 5px; }
-            .row { margin: 5px 0; display: flex; justify-content: space-between; border-bottom: 0.5px solid #eee; }
-            .label { font-weight: bold; color: #64748b; font-size: 12px; }
-            .value { color: #1e293b; font-size: 13px; }
-            img { width: 200px; display: block; margin: 20px auto; }
-          </style>
-        </head>
-        <body>
-          <h1>EXPEDIENTE DE ${alumno.nombre?.toUpperCase()}</h1>
-          <div class="section">
-            <div class="title">DATOS PERSONALES</div>
-            <div class="row"><span class="label">Email:</span><span class="value">${alumno.email}</span></div>
-            <div class="row"><span class="label">Teléfono:</span><span class="value">${alumno.telefono || 'N/A'}</span></div>
-          </div>
-          <div class="section">
-            <div class="title">MEDIDAS</div>
-            <div class="row"><span>Peso: ${alumno.datosFisicos?.peso}kg</span><span>Altura: ${alumno.datosFisicos?.altura}cm</span></div>
-          </div>
-          <p style="text-align: center; margin-top: 40px;">FIRMA DEL ALUMNO</p>
-          <img src="${alumno.firma}" />
-        </body>
+      <head>
+        <style>
+          @page { size: A4; margin: 20mm; }
+          body { font-family: 'Helvetica'; color: #1e293b; line-height: 1.5; }
+          .header { text-align: center; border-bottom: 4px solid #3b82f6; padding-bottom: 10px; margin-bottom: 20px; }
+          .section { border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 20px; page-break-inside: avoid; }
+          .title { background: #3b82f6; color: white; padding: 5px 12px; border-radius: 15px; font-weight: bold; font-size: 12px; margin-bottom: 10px; display: inline-block; text-transform: uppercase; }
+          table { width: 100%; border-collapse: collapse; }
+          td { border-bottom: 0.5px solid #eee; padding: 8px; font-size: 11px; }
+          .label { font-size: 9px; color: #64748b; font-weight: bold; text-transform: uppercase; }
+          .page-break { page-break-before: always; }
+          .firma { width: 300px; display: block; margin: 20px auto; border-bottom: 2px solid #000; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>EXPEDIENTE TÉCNICO: ${alumno.nombre?.toUpperCase()}</h1>
+          <p>FitTech Coaching - Registro de Usuario</p>
+        </div>
+
+        <div class="section">
+          <div class="title">1. Información de Identificación</div>
+          <table>
+            <tr><td><span class="label">Nombre:</span><br/>${alumno.nombre}</td><td><span class="label">Email:</span><br/>${alumno.email}</td></tr>
+            <tr><td><span class="label">Teléfono:</span><br/>${alumno.telefono}</td><td><span class="label">Ocupación:</span><br/>${alumno.datosFisicos?.ocupacion || 'N/A'}</td></tr>
+          </table>
+        </div>
+
+        <div class="section">
+          <div class="title">2. Composición Física y Medidas</div>
+          <table>
+            <tr><td>Peso: <b>${alumno.datosFisicos?.peso} kg</b></td><td>Altura: <b>${alumno.datosFisicos?.altura} cm</b></td><td>Edad: <b>${alumno.datosFisicos?.edad} años</b></td></tr>
+            <tr><td>Cintura: ${alumno.medidas?.cintura} cm</td><td>Cadera: ${alumno.medidas?.cadera} cm</td><td>Cuello: ${alumno.medidas?.cuello} cm</td></tr>
+          </table>
+        </div>
+
+        <div class="section">
+          <div class="title">4. Historial de Salud</div>
+          <p><span class="label">Enfermedades:</span> ${alumno.salud?.enfPers?.join(', ') || 'Ninguna'}</p>
+          <p><span class="label">FCR:</span> ${alumno.salud?.frecuenciaCardiaca} lpm | <span class="label">Cirugías:</span> ${alumno.salud?.detalleOperacion || 'No'}</p>
+        </div>
+
+        <div class="page-break"></div>
+
+        <div class="section">
+          <div class="title">6. Cuestionario de Riesgo PAR-Q</div>
+          <table>${filasParq}</table>
+        </div>
+
+        <div class="section">
+          <div class="title">8. Frecuencia Alimentaria</div>
+          <table>${filasAlimentos}</table>
+        </div>
+
+        <div class="page-break"></div>
+        <div style="text-align: center; margin-top: 50px;">
+          <p class="label">FIRMA DIGITAL DEL ALUMNO</p>
+          <img src="${alumno.firma}" class="firma" />
+          <p>ID de Registro: ${alumno.id}</p>
+        </div>
+      </body>
       </html>
     `;
     try {
       const { uri } = await Print.printToFileAsync({ html });
       await Sharing.shareAsync(uri);
     } catch (e) {
-      Alert.alert("Error", "No se pudo generar el archivo PDF");
+      Alert.alert("Error", "No se pudo generar el PDF");
     }
   };
 
-  // Componente de Bloque con información TOTALMENTE VISIBLE (No minimizada)
-  const BloqueInformativo = ({ num, titulo, icono, color, children }: any) => (
-    <View style={styles.bloqueContainer}>
+  const Bloque = ({ num, titulo, color, children }: any) => (
+    <View style={styles.bloque}>
       <View style={[styles.bloqueHeader, { borderLeftColor: color }]}>
-        <View style={styles.headerLeft}>
-          <View style={[styles.circulo, { backgroundColor: color }]}>
-            <Text style={styles.circuloText}>{num}</Text>
-          </View>
-          <MaterialCommunityIcons name={icono} size={20} color={color} />
-          <Text style={styles.bloqueTitulo}>{titulo}</Text>
-        </View>
+        <View style={[styles.num, { backgroundColor: color }]}><Text style={styles.numTxt}>{num}</Text></View>
+        <Text style={styles.bloqueTitulo}>{titulo}</Text>
       </View>
-      <View style={styles.bloqueContenido}>
-        {children}
-      </View>
+      <View style={styles.bloqueContenido}>{children}</View>
     </View>
   );
 
   const Campo = ({ label, value }: any) => (
-    <View style={styles.campoRow}>
-      <Text style={styles.campoLabel}>{label}:</Text>
-      <Text style={styles.campoValue}>{value || '---'}</Text>
+    <View style={styles.campo}>
+      <Text style={styles.labelApp}>{label}</Text>
+      <Text style={styles.valueApp}>{value || '---'}</Text>
     </View>
   );
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* NAVBAR SUPERIOR CON REGRESAR FLUIDO */}
       <View style={styles.nav}>
-        <TouchableOpacity style={styles.btnNav} onPress={onClose}>
+        <TouchableOpacity style={styles.btnBack} onPress={onClose}>
           <Ionicons name="arrow-back" size={24} color="#1e293b" />
-          <Text style={styles.btnNavText}>Regresar</Text>
+          <Text style={styles.btnTxt}>Regresar</Text>
         </TouchableOpacity>
-        
-        <Text style={styles.navTitle}>Detalles</Text>
-
-        <TouchableOpacity style={styles.btnNav} onPress={generarPDF}>
+        <Text style={styles.navTitle}>Expediente</Text>
+        <TouchableOpacity onPress={generarPDF} style={styles.btnPdf}>
           <FontAwesome5 name="file-pdf" size={20} color="#ef4444" />
-          <Text style={[styles.btnNavText, { color: '#ef4444' }]}>PDF</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        <View style={styles.centralizador}>
-          
-          <BloqueInformativo num="1" titulo="IDENTIFICACIÓN" icono="account-details" color="#3b82f6">
-            <Campo label="Nombre" value={alumno.nombre} />
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <View style={styles.central}>
+          <Bloque num="1" titulo="DATOS PERSONALES" color="#3b82f6">
+            <Campo label="Nombre Completo" value={alumno.nombre} />
             <Campo label="Email" value={alumno.email} />
             <Campo label="WhatsApp" value={alumno.telefono} />
-          </BloqueInformativo>
+          </Bloque>
 
-          <BloqueInformativo num="2" titulo="COMPOSICIÓN FISICA" icono="human-male-height" color="#10b981">
-            <View style={styles.grid}>
-              <Campo label="Peso" value={`${alumno.datosFisicos?.peso} kg`} />
-              <Campo label="Altura" value={`${alumno.datosFisicos?.altura} cm`} />
+          <Bloque num="2" titulo="MEDIDAS Y COMPOSICIÓN" color="#10b981">
+            <View style={styles.row}>
+              <Campo label="Peso" value={`${alumno.datosFisicos?.peso}kg`} />
+              <Campo label="Altura" value={`${alumno.datosFisicos?.altura}cm`} />
               <Campo label="Edad" value={`${alumno.datosFisicos?.edad} años`} />
             </View>
-            <View style={styles.grid}>
+            <View style={styles.row}>
               <Campo label="Cintura" value={alumno.medidas?.cintura} />
               <Campo label="Cadera" value={alumno.medidas?.cadera} />
-              <Campo label="Pecho" value={alumno.medidas?.pecho} />
+              <Campo label="Cuello" value={alumno.medidas?.cuello} />
             </View>
-          </BloqueInformativo>
+          </Bloque>
 
-          <BloqueInformativo num="3" titulo="SALUD Y PAR-Q" icono="heart-pulse" color="#ef4444">
-            <Campo label="Enfermedades" value={alumno.salud?.enfPers?.join(', ')} />
-            <Campo label="¿Dolor Pecho?" value={alumno.salud?.parq?.p2} />
-            <Campo label="¿Lesiones?" value={alumno.salud?.detalleLesion} />
-          </BloqueInformativo>
+          <Bloque num="4" titulo="HISTORIAL DE SALUD" color="#ef4444">
+            <Campo label="Enfermedades Propias" value={alumno.salud?.enfPers?.join(', ')} />
+            <Campo label="Cirugías/Operaciones" value={alumno.salud?.detalleOperacion} />
+            <Campo label="Frecuencia Cardiaca (FCR)" value={`${alumno.salud?.frecuenciaCardiaca} lpm`} />
+          </Bloque>
 
-          <BloqueInformativo num="4" titulo="IPAQ (ACTIVIDAD)" icono="walk" color="#f59e0b">
-            <Campo label="Vigorosa" value={`${alumno.ipaq?.vDias} días / ${alumno.ipaq?.vMin} min`} />
-            <Campo label="Horas sentado" value={alumno.ipaq?.sentado} />
-          </BloqueInformativo>
+          <Bloque num="6" titulo="PAR-Q (RIESGOS)" color="#0ea5e9">
+            {Object.keys(PREGUNTAS_TEXTO).map(k => (
+              <View key={k} style={styles.parqRow}>
+                <Text style={styles.parqTxt}>{PREGUNTAS_TEXTO[k]}</Text>
+                <Text style={styles.parqVal}>{alumno.salud?.parq?.[k]?.toUpperCase()}</Text>
+              </View>
+            ))}
+          </Bloque>
 
-          <BloqueInformativo num="5" titulo="ALIMENTACIÓN" icono="food-apple" color="#8b5cf6">
-            <Campo label="Objetivo" value={alumno.nutricion?.objetivo} />
-            <Campo label="Entrenamientos" value={alumno.nutricion?.entrenos} />
-            <Campo label="Alergias" value={alumno.nutricion?.alergias} />
-          </BloqueInformativo>
+          <Bloque num="8" titulo="FRECUENCIA ALIMENTARIA" color="#22c55e">
+            {Object.entries(alumno.frecuenciaAlimentos || {}).map(([k,v]: any) => (
+              <View key={k} style={styles.parqRow}><Text>{k}</Text><Text style={{fontWeight:'bold'}}>{v}</Text></View>
+            ))}
+          </Bloque>
 
-          <BloqueInformativo num="6" titulo="FIRMA" icono="fountain-pen-tip" color="#1e293b">
-            {alumno.firma ? (
-              <Image source={{ uri: alumno.firma }} style={styles.firmaImg} resizeMode="contain" />
-            ) : <Text>No hay firma</Text>}
-          </BloqueInformativo>
+          <Bloque num="9" titulo="FIRMA" color="#1e293b">
+            <Image source={{ uri: alumno.firma }} style={styles.firmaImg} resizeMode="contain" />
+          </Bloque>
 
-          <View style={styles.footer}>
-            <TouchableOpacity style={styles.btnAceptar} onPress={onAccept}>
-              <Text style={styles.btnAceptarText}>APROBAR REGISTRO</Text>
-            </TouchableOpacity>
-          </View>
-
+          <TouchableOpacity style={styles.btnAprobar} onPress={onAccept}>
+            <Text style={styles.btnAprobarTxt}>APROBAR Y CREAR PLAN</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -150,25 +188,27 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept }: any) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#f8fafc' },
-  nav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-  btnNav: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  btnNavText: { fontSize: 14, fontWeight: '600', color: '#1e293b' },
-  navTitle: { fontSize: 16, fontWeight: 'bold', color: '#1e293b' },
+  nav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#e2e8f0' },
+  btnBack: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  btnTxt: { fontSize: 16, fontWeight: '600' },
+  navTitle: { fontSize: 18, fontWeight: 'bold' },
+  btnPdf: { padding: 5 },
   scroll: { paddingVertical: 20 },
-  centralizador: { width: width > 800 ? 800 : '95%', alignSelf: 'center' },
-  bloqueContainer: { backgroundColor: '#fff', borderRadius: 12, marginBottom: 15, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5 },
-  bloqueHeader: { flexDirection: 'row', padding: 15, borderLeftWidth: 5, borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  circulo: { width: 22, height: 22, borderRadius: 11, justifyContent: 'center', alignItems: 'center' },
-  circuloText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
-  bloqueTitulo: { fontWeight: 'bold', color: '#334155', fontSize: 14 },
+  central: { width: width > 800 ? 800 : '95%', alignSelf: 'center' },
+  bloque: { backgroundColor: '#fff', borderRadius: 12, marginBottom: 15, elevation: 2 },
+  bloqueHeader: { flexDirection: 'row', alignItems: 'center', padding: 15, borderLeftWidth: 5, gap: 10 },
+  num: { width: 22, height: 22, borderRadius: 11, justifyContent: 'center', alignItems: 'center' },
+  numTxt: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
+  bloqueTitulo: { fontWeight: 'bold', fontSize: 14, color: '#334155' },
   bloqueContenido: { padding: 15, paddingTop: 0 },
-  campoRow: { marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 4 },
-  campoLabel: { fontSize: 10, color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase' },
-  campoValue: { fontSize: 14, color: '#1e293b', fontWeight: '600', marginTop: 2 },
-  grid: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
-  firmaImg: { width: '100%', height: 120, backgroundColor: '#fdfdfd', borderRadius: 8 },
-  footer: { marginTop: 20, marginBottom: 40 },
-  btnAceptar: { backgroundColor: '#10b981', padding: 18, borderRadius: 15, alignItems: 'center' },
-  btnAceptarText: { color: '#fff', fontWeight: 'bold', fontSize: 16 }
+  campo: { marginBottom: 10, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  labelApp: { fontSize: 10, color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase' },
+  valueApp: { fontSize: 15, color: '#1e293b', fontWeight: '600', marginTop: 2 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
+  parqRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5, borderBottomWidth: 0.5, borderBottomColor: '#eee' },
+  parqTxt: { flex: 0.8, fontSize: 12, color: '#64748b' },
+  parqVal: { fontWeight: 'bold', color: '#1e293b' },
+  firmaImg: { width: '100%', height: 150, backgroundColor: '#fafafa', borderRadius: 10 },
+  btnAprobar: { backgroundColor: '#10b981', padding: 18, borderRadius: 15, alignItems: 'center', marginTop: 20, marginBottom: 40 },
+  btnAprobarTxt: { color: '#fff', fontWeight: 'bold', fontSize: 16 }
 });
