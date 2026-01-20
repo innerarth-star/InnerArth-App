@@ -4,7 +4,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
-// --- FUNCIONES DE APOYO PARA PROCESAMIENTO ---
+// --- FUNCIONES DE APOYO (REQUERIDAS POR TU CÓDIGO DE PDF) ---
 const procesarTexto = (texto: any) => (texto ? String(texto).toUpperCase() : '---');
 
 const formatearActividad = (dias: any, min: any) => {
@@ -45,7 +45,8 @@ const Section = ({ title, color, icon, children }: any) => (
 export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject }: any) {
   if (!alumno) return null;
 
-  const exportarPDF = async () => {
+  // --- TU FUNCIÓN DE EXPORTACIÓN (LA QUE FUNCIONA PERFECTO) ---
+  const exportarPDF = async (a: any) => {
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -73,48 +74,64 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
       <body>
         <div class="header">
           <h1>EXPEDIENTE TÉCNICO FITTECH</h1>
-          <p class="subtitle"><b>ALUMNO:</b> ${procesarTexto(alumno.nombre)} | <b>FECHA:</b> ${new Date().toLocaleDateString()}</p>
+          <p class="subtitle"><b>Alumno:</b> ${procesarTexto(a.nombre)} | <b>Fecha:</b> ${new Date().toLocaleDateString()}</p>
         </div>
 
         <div class="block-container">
           <div class="section-title">1. Datos e Identificación</div>
           <div class="grid">
-            <div class="item"><span class="label">Nombre</span><span class="value">${procesarTexto(alumno.nombre)}</span></div>
-            <div class="item"><span class="label">Email</span><span class="value">${alumno.email}</span></div>
-            <div class="item"><span class="label">Teléfono</span><span class="value">${procesarTexto(alumno.telefono)}</span></div>
-            <div class="item"><span class="label">Edad</span><span class="value">${alumno.datosFisicos?.edad} AÑOS</span></div>
-            <div class="item"><span class="label">Peso / Estatura</span><span class="value">${alumno.datosFisicos?.peso} KG / ${alumno.datosFisicos?.altura} CM</span></div>
-            <div class="item"><span class="label">Género</span><span class="value">${procesarTexto(alumno.datosFisicos?.genero)}</span></div>
+            <div class="item"><span class="label">Teléfono</span><span class="value">${procesarTexto(a.telefono)}</span></div>
+            <div class="item"><span class="label">Género</span><span class="value">${procesarTexto(a.datosFisicos?.genero)}</span></div>
+            <div class="item"><span class="label">Peso</span><span class="value">${procesarTexto(a.datosFisicos?.peso)} kg</span></div>
+            <div class="item"><span class="label">Estatura</span><span class="value">${procesarTexto(a.datosFisicos?.altura)} cm</span></div>
           </div>
         </div>
 
         <div class="block-container">
           <div class="section-title">2. Medidas Corporales</div>
           <div class="grid">
-            <div class="item"><span class="label">Cuello / Pecho</span><span class="value">${alumno.medidas?.cuello} / ${alumno.medidas?.pecho}</span></div>
-            <div class="item"><span class="label">Cintura / Cadera</span><span class="value">${alumno.medidas?.cintura} / ${alumno.medidas?.cadera}</span></div>
-            <div class="item"><span class="label">Brazos (R/F)</span><span class="value">${alumno.medidas?.brazoR} / ${alumno.medidas?.brazoF}</span></div>
-            <div class="item"><span class="label">Muslo / Pierna</span><span class="value">${alumno.medidas?.muslo} / ${alumno.medidas?.pierna}</span></div>
+            <div class="item"><span class="label">Cuello / Pecho</span><span class="value">${procesarTexto(a.medidas?.cuello)} / ${procesarTexto(a.medidas?.pecho)}</span></div>
+            <div class="item"><span class="label">Brazo R / F</span><span class="value">${procesarTexto(a.medidas?.brazoR)} / ${procesarTexto(a.medidas?.brazoF)}</span></div>
+            <div class="item"><span class="label">Cintura / Cadera</span><span class="value">${procesarTexto(a.medidas?.cintura)} / ${procesarTexto(a.medidas?.cadera)}</span></div>
+            <div class="item"><span class="label">Muslo / Pierna</span><span class="value">${procesarTexto(a.medidas?.muslo)} / ${procesarTexto(a.medidas?.pierna)}</span></div>
           </div>
         </div>
 
         <div class="block-container">
-          <div class="section-title">4. Historial Salud</div>
+          <div class="section-title">4. Historial de Salud</div>
           <div class="grid">
-            <div class="item full-width"><span class="label">Enfermedades</span><span class="value">${procesarTexto(alumno.salud?.enfPers)}</span></div>
-            <div class="item"><span class="label">Lesiones</span><span class="value">${procesarTexto(alumno.salud?.detalleLesion)}</span></div>
-            <div class="item"><span class="label">Operaciones</span><span class="value">${procesarTexto(alumno.salud?.detalleOperacion)}</span></div>
+            <div class="item full-width"><span class="label">Enf. Familiares</span><span class="value">${procesarTexto(a.salud?.enfFam)}</span></div>
+            <div class="item full-width"><span class="label">Enf. Personales</span><span class="value">${procesarTexto(a.salud?.enfPers)}</span></div>
+            <div class="item"><span class="label">Lesiones</span><span class="value">${procesarTexto(a.salud?.detalleLesion)}</span></div>
+            <div class="item"><span class="label">Cirugías</span><span class="value">${procesarTexto(a.salud?.detalleOperacion)}</span></div>
           </div>
         </div>
 
         <div class="block-container">
-          <div class="section-title">6. Cuestionario PAR-Q</div>
+          <div class="section-title">5. Estilo de Vida e IPAQ</div>
           <div class="grid">
-            ${Object.keys(PREGUNTAS_TEXTO).map(key => `
-              <div class="item full-width">
-                <span class="label">${PREGUNTAS_TEXTO[key]}</span>
-                <span class="value" style="color:${alumno.salud?.parq?.[key] === 'si' ? 'red' : 'green'}">${procesarTexto(alumno.salud?.parq?.[key])}</span>
-              </div>
+            <div class="item"><span class="label">Vigorosa</span><span class="value">${formatearActividad(a.ipaq?.vDias, a.ipaq?.vMin)}</span></div>
+            <div class="item"><span class="label">Moderada</span><span class="value">${formatearActividad(a.ipaq?.mDias, a.ipaq?.mMin)}</span></div>
+            <div class="item"><span class="label">Caminata</span><span class="value">${formatearActividad(a.ipaq?.cDias, a.ipaq?.cMin)}</span></div>
+            <div class="item"><span class="label">Sentado</span><span class="value">${procesarTexto(a.ipaq?.sentado)} hrs/día</span></div>
+          </div>
+        </div>
+
+        <div class="block-container">
+          <div class="section-title">7. Nutrición y Planificación</div>
+          <div class="grid">
+            <div class="item full-width"><span class="label">Comidas Actuales</span><span class="value">${procesarTexto(a.nutricion?.comidasAct)} (${procesarTexto(a.nutricion?.descAct)})</span></div>
+            <div class="item"><span class="label">Días Entreno</span><span class="value">${procesarTexto(a.nutricion?.entrenos)}</span></div>
+            <div class="item"><span class="label">Comidas en Plan</span><span class="value">${procesarTexto(a.nutricion?.comidasDes)}</span></div>
+            <div class="item full-width" style="background:#f0f9ff;"><span class="label">Objetivo</span><span class="value" style="color:#2563eb">${procesarTexto(a.nutricion?.objetivo)}</span></div>
+          </div>
+        </div>
+
+        <div class="block-container">
+          <div class="section-title">8. Frecuencia Alimentaria</div>
+          <div class="grid">
+            ${Object.entries(a.frecuenciaAlimentos || {}).map(([k, v]) => `
+              <div class="item"><span class="label">${k}</span><span class="value">${procesarTexto(v)}</span></div>
             `).join('')}
           </div>
         </div>
@@ -122,31 +139,21 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
         <div class="page-break"></div>
 
         <div class="block-container">
-          <div class="section-title">7. Nutrición y Hábitos</div>
-          <div class="grid">
-            <div class="item full-width"><span class="label">Objetivo</span><span class="value">${procesarTexto(alumno.nutricion?.objetivo)}</span></div>
-            <div class="item"><span class="label">Alcohol / Sustancias</span><span class="value">${alumno.nutricion?.alcohol} / ${alumno.nutricion?.sust}</span></div>
-            <div class="item"><span class="label">Entrenamiento</span><span class="value">${alumno.nutricion?.entrenos} DÍAS</span></div>
-          </div>
-        </div>
-
-        <div class="block-container">
-          <div class="section-title">8. Consentimiento Legal</div>
+          <div class="section-title">9. Consentimiento Informado Legal</div>
           <div class="legal-text">
-            ${consentimientoCompleto}
+            ${consentimientoCompleto.replace(/\n\n/g, '<br/><br/>')}
           </div>
         </div>
 
         <div class="signature-box">
-          ${alumno.firma?.startsWith('data:image') 
-            ? `<img src="${alumno.firma}" class="signature-img" />` 
-            : `<h3>${alumno.firma}</h3>`}
-          <div class="signature-label">Firma: ${procesarTexto(alumno.nombre)}</div>
-          <div style="font-size:8px; color:#94a3b8; margin-top:5px;">ID: ${alumno.id}</div>
+          <img src="${a.firma}" class="signature-img" />
+          <div class="signature-label">Firma del Alumno: ${procesarTexto(a.nombre)}</div>
+          <div style="font-size:8px; color:#94a3b8;">ID: ${a.id}</div>
         </div>
       </body>
       </html>
     `;
+
     try {
       const { uri } = await Print.printToFileAsync({ html: htmlContent });
       await Sharing.shareAsync(uri);
@@ -157,48 +164,102 @@ export default function ExpedienteDetalle({ alumno, onClose, onAccept, onReject 
 
   return (
     <SafeAreaView style={styles.safe}>
+      {/* HEADER DE LA APP */}
       <View style={styles.header}>
         <View style={styles.webContainerRow}>
           <TouchableOpacity onPress={onClose}><Ionicons name="close-circle" size={28} color="#1e293b" /></TouchableOpacity>
           <Text style={styles.headerTitle}>EXPEDIENTE DEL ALUMNO</Text>
-          <TouchableOpacity onPress={exportarPDF}><Ionicons name="cloud-download-outline" size={26} color="#3b82f6" /></TouchableOpacity>
+          <TouchableOpacity onPress={() => exportarPDF(alumno)}>
+            <Ionicons name="cloud-download-outline" size={26} color="#3b82f6" />
+          </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.webWrapper}>
+          
           <Section title="1. Datos Personales" color="#3b82f6" icon="account">
             <View style={styles.gridApp}>
               <InfoItem label="Nombre" value={alumno.nombre} full />
               <InfoItem label="Email" value={alumno.email} full />
-              <InfoItem label="Peso / Altura" value={`${alumno.datosFisicos?.peso}kg / ${alumno.datosFisicos?.altura}cm`} />
+              <InfoItem label="Teléfono" value={alumno.telefono} />
               <InfoItem label="Edad" value={`${alumno.datosFisicos?.edad} años`} />
+              <InfoItem label="Peso" value={`${alumno.datosFisicos?.peso} kg`} />
+              <InfoItem label="Altura" value={`${alumno.datosFisicos?.altura} cm`} />
+              <InfoItem label="Género" value={alumno.datosFisicos?.genero} />
             </View>
           </Section>
 
           <Section title="2. Medidas (cm)" color="#10b981" icon="ruler-square">
             <View style={styles.gridApp}>
+              <InfoItem label="Cuello" value={alumno.medidas?.cuello} />
+              <InfoItem label="Pecho" value={alumno.medidas?.pecho} />
+              <InfoItem label="Brazo R" value={alumno.medidas?.brazoR} />
+              <InfoItem label="Brazo F" value={alumno.medidas?.brazoF} />
               <InfoItem label="Cintura" value={alumno.medidas?.cintura} />
               <InfoItem label="Cadera" value={alumno.medidas?.cadera} />
-              <InfoItem label="Pecho" value={alumno.medidas?.pecho} />
-              <InfoItem label="Cuello" value={alumno.medidas?.cuello} />
+              <InfoItem label="Muslo" value={alumno.medidas?.muslo} />
+              <InfoItem label="Pierna" value={alumno.medidas?.pierna} />
             </View>
           </Section>
 
-          <Section title="4. Salud" color="#ef4444" icon="heart-pulse">
-            <InfoItem label="Lesión" value={alumno.salud?.lesion === 'si' ? alumno.salud?.detalleLesion : 'No'} full />
-            <InfoItem label="Operación" value={alumno.salud?.operacion === 'si' ? alumno.salud?.detalleOperacion : 'No'} full />
+          {alumno.datosFisicos?.genero === 'mujer' && (
+            <Section title="3. Ciclo Menstrual" color="#ec4899" icon="flower">
+              <View style={styles.gridApp}>
+                <InfoItem label="Tipo" value={alumno.ciclo?.tipo} />
+                <InfoItem label="Anticonceptivo" value={alumno.ciclo?.anticonceptivo} />
+              </View>
+            </Section>
+          )}
+
+          <Section title="4. Historial Salud" color="#ef4444" icon="heart-pulse">
+            <InfoItem label="Enf. Familiares" value={alumno.salud?.enfFam} full />
+            <InfoItem label="Enf. Personales" value={alumno.salud?.enfPers} full />
+            <InfoItem label="¿Lesión?" value={alumno.salud?.lesion === 'si' ? alumno.salud?.detalleLesion : 'No'} full />
+            <InfoItem label="¿Operación?" value={alumno.salud?.operacion === 'si' ? alumno.salud?.detalleOperacion : 'No'} full />
+            <InfoItem label="FCR" value={alumno.salud?.frecuenciaCardiaca} />
           </Section>
 
-          <Section title="7. Nutrición" color="#8b5cf6" icon="food-apple">
+          <Section title="5. Estilo de Vida (IPAQ)" color="#f59e0b" icon="walk">
+            <View style={styles.gridApp}>
+              <InfoItem label="Vigorosa" value={formatearActividad(alumno.ipaq?.vDias, alumno.ipaq?.vMin)} />
+              <InfoItem label="Moderada" value={formatearActividad(alumno.ipaq?.mDias, alumno.ipaq?.mMin)} />
+              <InfoItem label="Caminata" value={formatearActividad(alumno.ipaq?.cDias, alumno.ipaq?.cMin)} />
+              <InfoItem label="Sentado" value={`${alumno.ipaq?.sentado}h`} />
+            </View>
+          </Section>
+
+          <Section title="6. PAR-Q" color="#0ea5e9" icon="clipboard-pulse">
+            {Object.keys(PREGUNTAS_TEXTO).map((k) => (
+              <View key={k} style={styles.parqRow}>
+                <Text style={styles.parqText}>{PREGUNTAS_TEXTO[k]}</Text>
+                <Text style={[styles.parqVal, alumno.salud?.parq?.[k] === 'si' && {color:'red'}]}>{alumno.salud?.parq?.[k]?.toUpperCase()}</Text>
+              </View>
+            ))}
+          </Section>
+
+          <Section title="7. Nutrición y Hábitos" color="#8b5cf6" icon="food-apple">
+            <InfoItem label="Comidas Actuales" value={alumno.nutricion?.comidasAct} />
+            <InfoItem label="Dieta" value={alumno.nutricion?.descAct} full />
+            <InfoItem label="Entrenos" value={alumno.nutricion?.entrenos} />
             <InfoItem label="Objetivo" value={alumno.nutricion?.objetivo} full />
-            <InfoItem label="Entrenos" value={`${alumno.nutricion?.entrenos} días`} />
           </Section>
 
-          <View style={{ height: 100 }} />
+          <Section title="8. Frecuencia Alimentos" color="#10b981" icon="format-list-bulleted">
+            {Object.entries(alumno.frecuenciaAlimentos || {}).map(([ali, op]: any) => (
+              <View key={ali} style={styles.parqRow}><Text>{ali}</Text><Text style={{fontWeight:'bold'}}>{op}</Text></View>
+            ))}
+          </Section>
+
+          <Section title="9. Firma" color="#1e293b" icon="file-sign">
+             <Image source={{ uri: alumno.firma }} style={styles.firma} />
+          </Section>
+
+          <View style={{ height: 120 }} />
         </View>
       </ScrollView>
 
+      {/* FOOTER */}
       <View style={styles.footer}>
         <View style={styles.webFooterContent}>
           <TouchableOpacity style={[styles.btn, styles.btnReject]} onPress={onReject}><Text style={styles.btnTxt}>RECHAZAR</Text></TouchableOpacity>
@@ -224,6 +285,10 @@ const styles = StyleSheet.create({
   infoItem: { marginBottom: 15 },
   label: { fontSize: 9, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 2, fontWeight: 'bold' },
   val: { fontSize: 14, color: '#334155' },
+  parqRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  parqText: { fontSize: 12, color: '#475569', flex: 0.8 },
+  parqVal: { fontSize: 12, fontWeight: 'bold', color: '#10b981' },
+  firma: { width: '100%', height: 150, resizeMode: 'contain', backgroundColor: '#f1f5f9', borderRadius: 15 },
   footer: { backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#e2e8f0', padding: 15 },
   webFooterContent: { maxWidth: 800, width: '100%', alignSelf: 'center', flexDirection: 'row', gap: 12 },
   btn: { flex: 1, height: 55, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
