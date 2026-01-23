@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator, FlatList } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { db } from '../../firebaseConfig';
-import { doc, getDoc, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { FontAwesome5 } from '@expo/vector-icons';
 
 export default function HistorialAlumno() {
@@ -13,7 +13,6 @@ export default function HistorialAlumno() {
   const router = useRouter();
 
   useEffect(() => {
-    // 1. Obtener datos del alumno para cálculos
     const obtenerDatos = async () => {
       try {
         const docRef = doc(db, "alumnos_activos", id as string);
@@ -26,7 +25,6 @@ export default function HistorialAlumno() {
       }
     };
 
-    // 2. Escuchar los planes creados para este alumno específico
     const q = query(
       collection(db, "alumnos_activos", id as string, "planes"),
       orderBy("numero", "desc")
@@ -43,10 +41,9 @@ export default function HistorialAlumno() {
     return () => unsubPlanes();
   }, [id]);
 
-  // FUNCIÓN PARA CREAR NUEVO PLAN
   const crearNuevoPlan = async () => {
     try {
-      const proximoNumero = planes.length + 1;
+      const proximoNumero = planes.length > 0 ? Math.max(...planes.map(p => p.numero)) + 1 : 1;
       await addDoc(collection(db, "alumnos_activos", id as string, "planes"), {
         titulo: `Plan ${proximoNumero}`,
         numero: proximoNumero,
@@ -58,7 +55,29 @@ export default function HistorialAlumno() {
     }
   };
 
-  // CÁLCULO DE METROMETRÍA (Mifflin-St Jeor)
+  const confirmarEliminarPlan = (planId: string, titulo: string) => {
+    Alert.alert(
+      "Eliminar Plan",
+      `¿Estás seguro de que quieres borrar el ${titulo}? Esta acción no se puede deshacer.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Eliminar", 
+          style: "destructive", 
+          onPress: () => eliminarPlan(planId) 
+        }
+      ]
+    );
+  };
+
+  const eliminarPlan = async (planId: string) => {
+    try {
+      await deleteDoc(doc(db, "alumnos_activos", id as string, "planes", planId));
+    } catch (error) {
+      console.error("Error al eliminar:", error);
+    }
+  };
+
   const calcularMetricas = () => {
     if (!alumno) return null;
     const peso = parseFloat(alumno.datosFisicos?.peso) || 0;
@@ -66,8 +85,8 @@ export default function HistorialAlumno() {
     const edad = parseInt(alumno.datosFisicos?.edad) || 0;
     const genero = alumno.datosFisicos?.genero;
     
-    // Factor de actividad basado en la info de actividad física/METs
-    const factorActividad = 1.4; // Valor base, ajustable según tu lógica de METs
+    // Factor de actividad (puedes vincularlo a tu lógica de METs después)
+    const factorActividad = 1.4; 
 
     let tmb = (10 * peso) + (6.25 * altura) - (5 * edad);
     tmb = genero === 'mujer' ? tmb - 161 : tmb + 5;
@@ -97,7 +116,6 @@ export default function HistorialAlumno() {
   return (
     <View style={styles.outerContainer}>
       <View style={styles.mainContainer}>
-        {/* Header con regreso a Mis Alumnos */}
         <View style={styles.header}>
           <Pressable onPress={() => router.replace('/(admin)/alumnos' as any)} style={styles.backBtn}>
             <FontAwesome5 name="arrow-left" size={18} color="#1e293b" />
@@ -109,7 +127,6 @@ export default function HistorialAlumno() {
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Tarjeta de Cálculos */}
           {metricas && (
             <View style={styles.metricsCard}>
               <Text style={styles.cardLabel}>OBJETIVO: {metricas.tipo}</Text>
@@ -117,33 +134,39 @@ export default function HistorialAlumno() {
               <View style={styles.divider} />
               <View style={styles.miniRow}>
                 <Text style={styles.miniLabel}>Basal: {metricas.tmb}</Text>
-                <Text style={styles.miniLabel}>Gasto Total: {metricas.get}</Text>
+                <Text style={styles.miniLabel}>Total: {metricas.get}</Text>
               </View>
             </View>
           )}
 
-          {/* Sección de Planes */}
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Planes Asignados</Text>
+            <Text style={styles.sectionTitle}>Planes</Text>
             <Pressable style={styles.btnAdd} onPress={crearNuevoPlan}>
               <FontAwesome5 name="plus" size={14} color="#fff" />
-              <Text style={styles.btnAddText}>Nuevo Plan</Text>
+              <Text style={styles.btnAddText}>Nuevo</Text>
             </Pressable>
           </View>
 
           {planes.map((plan) => (
-            <Pressable 
-              key={plan.id} 
-              style={styles.folderCard}
-              onPress={() => router.push({ pathname: '/(admin)/editorPlan' as any, params: { planId: plan.id, alumnoId: id } })}
-            >
-              <FontAwesome5 name="folder" size={24} color="#3b82f6" style={{ opacity: 0.8 }} />
-              <View style={styles.folderInfo}>
-                <Text style={styles.folderTitle}>{plan.titulo}</Text>
-                <Text style={styles.folderSub}>Creado el: {plan.fechaCreacion?.toDate().toLocaleDateString() || 'Reciente'}</Text>
-              </View>
-              <FontAwesome5 name="chevron-right" size={14} color="#cbd5e1" />
-            </Pressable>
+            <View key={plan.id} style={styles.folderCard}>
+              <Pressable 
+                style={styles.folderMain}
+                onPress={() => router.push({ pathname: '/(admin)/editorPlan' as any, params: { planId: plan.id, alumnoId: id } })}
+              >
+                <FontAwesome5 name="folder" size={24} color="#3b82f6" />
+                <View style={styles.folderInfo}>
+                  <Text style={styles.folderTitle}>{plan.titulo}</Text>
+                  <Text style={styles.folderSub}>{plan.fechaCreacion?.toDate().toLocaleDateString() || 'Reciente'}</Text>
+                </View>
+              </Pressable>
+              
+              <Pressable 
+                onPress={() => confirmarEliminarPlan(plan.id, plan.titulo)}
+                style={styles.btnDelete}
+              >
+                <FontAwesome5 name="trash-alt" size={16} color="#ef4444" />
+              </Pressable>
+            </View>
           ))}
 
           {planes.length === 0 && (
@@ -175,10 +198,32 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
   btnAdd: { backgroundColor: '#3b82f6', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 10, gap: 8 },
   btnAddText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
-  folderCard: { backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' },
+  folderCard: { 
+    backgroundColor: '#fff', 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    borderRadius: 16, 
+    marginBottom: 12, 
+    borderWidth: 1, 
+    borderColor: '#e2e8f0',
+    overflow: 'hidden'
+  },
+  folderMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+  },
   folderInfo: { flex: 1, marginLeft: 15 },
   folderTitle: { fontSize: 16, fontWeight: 'bold', color: '#1e293b' },
   folderSub: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
+  btnDelete: {
+    paddingHorizontal: 20,
+    height: '100%',
+    justifyContent: 'center',
+    borderLeftWidth: 1,
+    borderLeftColor: '#f1f5f9'
+  },
   emptyState: { alignItems: 'center', marginTop: 40 },
   emptyText: { color: '#94a3b8' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' }
