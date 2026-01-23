@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { db } from '../../firebaseConfig';
 import { doc, getDoc, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp, deleteDoc } from 'firebase/firestore';
@@ -21,7 +21,7 @@ export default function HistorialAlumno() {
           setAlumno(docSnap.data());
         }
       } catch (error) {
-        console.error(error);
+        console.error("Error al obtener alumno:", error);
       }
     };
 
@@ -48,26 +48,26 @@ export default function HistorialAlumno() {
         titulo: `Plan ${proximoNumero}`,
         numero: proximoNumero,
         fechaCreacion: serverTimestamp(),
-        completado: false
       });
     } catch (error) {
       console.error("Error al crear plan:", error);
     }
   };
 
-  const confirmarEliminarPlan = (planId: string, titulo: string) => {
-    Alert.alert(
-      "Eliminar Plan",
-      `¿Estás seguro de que quieres borrar el ${titulo}? Esta acción no se puede deshacer.`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        { 
-          text: "Eliminar", 
-          style: "destructive", 
-          onPress: () => eliminarPlan(planId) 
-        }
-      ]
-    );
+  const confirmarEliminar = (planId: string, titulo: string) => {
+    if (Platform.OS === 'web') {
+      const confirmar = window.confirm(`¿Estás seguro de eliminar el ${titulo}?`);
+      if (confirmar) eliminarPlan(planId);
+    } else {
+      Alert.alert(
+        "Eliminar Plan",
+        `¿Borrar el ${titulo}?`,
+        [
+          { text: "Cancelar", style: "cancel" },
+          { text: "Eliminar", style: "destructive", onPress: () => eliminarPlan(planId) }
+        ]
+      );
+    }
   };
 
   const eliminarPlan = async (planId: string) => {
@@ -84,13 +84,10 @@ export default function HistorialAlumno() {
     const altura = parseFloat(alumno.datosFisicos?.altura) || 0;
     const edad = parseInt(alumno.datosFisicos?.edad) || 0;
     const genero = alumno.datosFisicos?.genero;
-    
-    // Factor de actividad (puedes vincularlo a tu lógica de METs después)
     const factorActividad = 1.4; 
 
     let tmb = (10 * peso) + (6.25 * altura) - (5 * edad);
     tmb = genero === 'mujer' ? tmb - 161 : tmb + 5;
-    
     const get = tmb * factorActividad;
     const obj = alumno.nutricion?.objetivo?.toLowerCase() || '';
     let final = get;
@@ -116,13 +113,14 @@ export default function HistorialAlumno() {
   return (
     <View style={styles.outerContainer}>
       <View style={styles.mainContainer}>
+        {/* Header con regreso a Mis Alumnos */}
         <View style={styles.header}>
           <Pressable onPress={() => router.replace('/(admin)/alumnos' as any)} style={styles.backBtn}>
             <FontAwesome5 name="arrow-left" size={18} color="#1e293b" />
           </Pressable>
           <View>
             <Text style={styles.headerTitle}>{nombre}</Text>
-            <Text style={styles.headerSub}>Historial de Planes</Text>
+            <Text style={styles.headerSub}>Gestión de Historial</Text>
           </View>
         </View>
 
@@ -134,7 +132,7 @@ export default function HistorialAlumno() {
               <View style={styles.divider} />
               <View style={styles.miniRow}>
                 <Text style={styles.miniLabel}>Basal: {metricas.tmb}</Text>
-                <Text style={styles.miniLabel}>Total: {metricas.get}</Text>
+                <Text style={styles.miniLabel}>Gasto Total: {metricas.get}</Text>
               </View>
             </View>
           )}
@@ -149,19 +147,25 @@ export default function HistorialAlumno() {
 
           {planes.map((plan) => (
             <View key={plan.id} style={styles.folderCard}>
+              {/* Área Principal: Navega al Editor */}
               <Pressable 
                 style={styles.folderMain}
-                onPress={() => router.push({ pathname: '/(admin)/editorPlan' as any, params: { planId: plan.id, alumnoId: id } })}
+                onPress={() => router.push({ 
+                  pathname: '/(admin)/editorPlan' as any, 
+                  params: { planId: plan.id, alumnoId: id, nombreAlumno: nombre } 
+                })}
               >
                 <FontAwesome5 name="folder" size={24} color="#3b82f6" />
                 <View style={styles.folderInfo}>
                   <Text style={styles.folderTitle}>{plan.titulo}</Text>
-                  <Text style={styles.folderSub}>{plan.fechaCreacion?.toDate().toLocaleDateString() || 'Reciente'}</Text>
+                  <Text style={styles.folderSub}>Toca para editar alimentación/entreno</Text>
                 </View>
+                <FontAwesome5 name="chevron-right" size={16} color="#cbd5e1" />
               </Pressable>
               
+              {/* Botón de Borrar Separado */}
               <Pressable 
-                onPress={() => confirmarEliminarPlan(plan.id, plan.titulo)}
+                onPress={() => confirmarEliminar(plan.id, plan.titulo)}
                 style={styles.btnDelete}
               >
                 <FontAwesome5 name="trash-alt" size={16} color="#ef4444" />
@@ -171,7 +175,7 @@ export default function HistorialAlumno() {
 
           {planes.length === 0 && (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No hay planes creados aún.</Text>
+              <Text style={styles.emptyText}>No hay planes. Haz clic en "Nuevo" para empezar.</Text>
             </View>
           )}
         </ScrollView>
@@ -189,7 +193,7 @@ const styles = StyleSheet.create({
   headerSub: { fontSize: 12, color: '#64748b' },
   scrollContent: { padding: 20 },
   metricsCard: { backgroundColor: '#1e293b', borderRadius: 20, padding: 25, alignItems: 'center', marginBottom: 25 },
-  cardLabel: { color: '#94a3b8', fontSize: 12, fontWeight: 'bold', letterSpacing: 1 },
+  cardLabel: { color: '#94a3b8', fontSize: 11, fontWeight: 'bold', letterSpacing: 1 },
   caloriesMain: { color: '#fff', fontSize: 42, fontWeight: 'bold', marginVertical: 10 },
   divider: { width: '100%', height: 1, backgroundColor: '#334155', marginVertical: 15 },
   miniRow: { flexDirection: 'row', gap: 20 },
@@ -212,19 +216,20 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
+    padding: 18,
   },
   folderInfo: { flex: 1, marginLeft: 15 },
   folderTitle: { fontSize: 16, fontWeight: 'bold', color: '#1e293b' },
-  folderSub: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
+  folderSub: { fontSize: 11, color: '#94a3b8', marginTop: 2 },
   btnDelete: {
     paddingHorizontal: 20,
-    height: '100%',
+    height: 80, // Ajustado para ser fácil de tocar
     justifyContent: 'center',
+    backgroundColor: '#fff5f5',
     borderLeftWidth: 1,
-    borderLeftColor: '#f1f5f9'
+    borderLeftColor: '#fee2e2'
   },
   emptyState: { alignItems: 'center', marginTop: 40 },
-  emptyText: { color: '#94a3b8' },
+  emptyText: { color: '#94a3b8', fontSize: 13 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' }
 });
