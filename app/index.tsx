@@ -1,8 +1,7 @@
 import { useRouter } from 'expo-router';
-import { auth, db } from '../firebaseConfig'; // Importamos db para consistencia
+import { auth } from '../firebaseConfig'; 
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
 import { View, ActivityIndicator, Image, StyleSheet, Animated, Platform } from 'react-native';
 
 export default function Index() {
@@ -11,32 +10,36 @@ export default function Index() {
   const CORREO_COACH = "inner.arth@gmail.com";
 
   useEffect(() => {
-    // 1. Animación de entrada (Fade In del logo)
+    // 1. Animación corregida para Web
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 800,
-      useNativeDriver: true,
+      // FIX: useNativeDriver debe ser false en Web para evitar el error que mencionaste
+      useNativeDriver: Platform.OS !== 'web', 
     }).start();
 
     // 2. Escuchar el estado de autenticación
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      // Esperamos los 2.5 segundos que definiste para impacto visual
-      setTimeout(async () => {
-        if (!user) {
-          // Si no hay usuario, al login
-          router.replace('/AuthScreen');
-        } else {
-          // Limpieza de email para comparación segura
-          const userEmail = user.email?.toLowerCase().trim();
-          const coachEmail = CORREO_COACH.toLowerCase().trim();
-
-          if (userEmail === coachEmail) {
-            // Es el administrador
-            router.replace('/(admin)/coach');
+    const unsub = onAuthStateChanged(auth, (user) => {
+      // Usamos un bloque try/catch para ver errores de ruta en la consola
+      setTimeout(() => {
+        try {
+          if (!user) {
+            router.replace('/AuthScreen');
           } else {
-            // Es un alumno
-            router.replace('/(client)');
+            const userEmail = user.email?.toLowerCase().trim();
+            const coachEmail = CORREO_COACH.toLowerCase().trim();
+
+            if (userEmail === coachEmail) {
+              console.log("Navegando a Coach...");
+              router.replace('/(admin)/coach');
+            } else {
+              console.log("Navegando a Alumno...");
+              // IMPORTANTE: Verifica que la carpeta se llame exactamente (client)
+              router.replace('/(client)');
+            }
           }
+        } catch (error) {
+          console.error("Error en la navegación:", error);
         }
       }, 2500);
     });
