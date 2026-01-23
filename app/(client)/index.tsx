@@ -39,7 +39,7 @@ export default function MainApp() {
       if (usuario) {
         await usuario.reload(); 
         const userActualizado = auth.currentUser;
-        if (userActualizado?.emailVerified || userActualizado?.email?.toLowerCase().trim() === CORREO_COACH) {
+        if (userActualizado) {
           setUser(userActualizado);
           setRole(userActualizado.email?.toLowerCase().trim() === CORREO_COACH ? 'coach' : 'alumno');
         } else {
