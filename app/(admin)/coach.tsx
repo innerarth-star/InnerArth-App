@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, Pressable, ActivityIndicator, Platform, SafeAreaView, ScrollView, Image } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Pressable, ActivityIndicator, Platform, ScrollView, Image } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
 import { collection, query, onSnapshot, doc, deleteDoc, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
@@ -25,13 +25,19 @@ export default function CoachPanel() {
     if (!clienteSeleccionado) return;
     try {
       if (accion === 'aceptar') {
-        await addDoc(collection(db, "alumnos_activos"), { ...clienteSeleccionado, fechaAceptado: serverTimestamp() });
+        // Se mueve a la colección que lee la nueva pestaña de Alumnos
+        await addDoc(collection(db, "alumnos_activos"), { 
+          ...clienteSeleccionado, 
+          fechaAceptado: serverTimestamp() 
+        });
       }
       await deleteDoc(doc(db, "revisiones_pendientes", clienteSeleccionado.id));
+      // Regresamos a la lista de pendientes (Evita pantalla en blanco)
       setClienteSeleccionado(null);
     } catch (e) { console.error(e); }
   };
 
+  // --- TU PDF ORIGINAL (SIN CAMBIOS) ---
   const generarPDFReal = (c: any) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -84,10 +90,10 @@ export default function CoachPanel() {
   if (clienteSeleccionado) {
     const c = clienteSeleccionado;
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.toolbar}>
           <Pressable onPress={() => setClienteSeleccionado(null)} style={styles.btnNav}><FontAwesome5 name="arrow-left" size={14} color="#334155" /><Text style={{fontWeight:'bold', marginLeft:10}}>VOLVER</Text></Pressable>
-          <Pressable onPress={() => generarPDFReal(c)} style={styles.btnPdfAccion}><FontAwesome5 name="file-pdf" size={16} color="#fff" /><Text style={{color:'#fff', fontWeight:'bold', marginLeft:10}}>DESCARGAR EXPEDIENTE COMPLETO</Text></Pressable>
+          <Pressable onPress={() => generarPDFReal(c)} style={styles.btnPdfAccion}><FontAwesome5 name="file-pdf" size={16} color="#fff" /><Text style={{color:'#fff', fontWeight:'bold', marginLeft:10}}>DESCARGAR EXPEDIENTE</Text></Pressable>
         </View>
 
         <ScrollView contentContainerStyle={styles.reporteScroll}>
@@ -144,28 +150,27 @@ export default function CoachPanel() {
               <View style={styles.gridMedidas}>{Object.entries(c.frecuenciaAlimentos || {}).map(([a,f])=><ItemDato key={a} label={a} value={f} />)}</View>
             </View>
 
-            <View style={styles.bloque}><Text style={styles.bloqueTitulo}>9. CONSENTIMIENTO</Text><Text style={styles.itemValue}>Términos y Condiciones Aceptados conforme al Index.</Text></View>
             <View style={styles.bloque}><Text style={styles.bloqueTitulo}>10. FIRMA</Text>
               {c.firma?.includes('data:image') ? <Image source={{ uri: c.firma }} style={styles.firmaImagen} resizeMode="contain" /> : <Text style={styles.firmaNombre}>{c.firma}</Text>}
             </View>
 
             <View style={styles.accionesFinales}>
-              <Pressable style={styles.btnRechazar} onPress={() => gestionarCliente('rechazar')}><Text style={{color:'#ef4444', fontWeight:'bold'}}>ELIMINAR SOLICITUD</Text></Pressable>
+              <Pressable style={styles.btnRechazar} onPress={() => gestionarCliente('rechazar')}><Text style={{color:'#ef4444', fontWeight:'bold'}}>ELIMINAR</Text></Pressable>
               <Pressable style={styles.btnAceptar} onPress={() => gestionarCliente('aceptar')}><Text style={{color:'#fff', fontWeight:'bold'}}>ACEPTAR ALUMNO</Text></Pressable>
             </View>
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerLista}><View style={styles.headerInner}><Text style={styles.headerTitle}>InnerArth Coach</Text><Pressable onPress={() => signOut(auth)}><Text style={{color:'#ef4444', fontWeight:'bold'}}>Salir</Text></Pressable></View></View>
+    <View style={styles.container}>
+      <View style={styles.headerLista}><View style={styles.headerInner}><Text style={styles.headerTitle}>Pendientes</Text><Pressable onPress={() => signOut(auth)}><Text style={{color:'#ef4444', fontWeight:'bold'}}>Salir</Text></Pressable></View></View>
       <View style={styles.listWrapper}><FlatList data={clientes} keyExtractor={(item) => item.id} renderItem={({ item }) => (
         <Pressable style={styles.cardLista} onPress={() => setClienteSeleccionado(item)}><View><Text style={styles.nombreLista}>{item.nombre}</Text><Text style={styles.emailLista}>{item.email}</Text></View><FontAwesome5 name="chevron-right" size={14} color="#cbd5e1" /></Pressable>
       )} contentContainerStyle={{ padding: 20 }} /></View>
-    </SafeAreaView>
+    </View>
   );
 }
 
