@@ -30,11 +30,10 @@ export default function Index() {
             const coachEmail = CORREO_COACH.toLowerCase().trim();
 
             if (userEmail === coachEmail) {
-              console.log("Navegando a Coach...");
-              router.replace('/(admin)/coach');
+              console.log("Acceso ADMIN - Redirigiendo a Coach");
+              router.replace('/(admin)/coach'); // Ruta exacta al archivo coach.tsx
             } else {
-              console.log("Navegando a Alumno...");
-              // IMPORTANTE: Verifica que la carpeta se llame exactamente (client)
+              console.log("Acceso ALUMNO - Redirigiendo a Cliente");
               router.replace('/(client)');
             }
           }

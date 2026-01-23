@@ -1,24 +1,35 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { FontAwesome5 } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 
-export default function ClientLayout() {
+export default function AdminLayout() {
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f1f5f9' }} edges={['top']}>
-      <Tabs screenOptions={{ 
-        tabBarActiveTintColor: '#3b82f6', 
-        headerShown: false,
-        tabBarStyle: { height: 65, paddingBottom: 10, paddingTop: 5 } 
-      }}>
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Mi Plan',
-            tabBarIcon: ({ color }) => <FontAwesome5 name="clipboard-list" size={20} color={color} />,
-          }}
-        />
-      </Tabs>
-    </SafeAreaView>
+    <Tabs screenOptions={{ 
+      tabBarActiveTintColor: '#3b82f6', 
+      headerShown: false,
+      tabBarStyle: { height: 65, paddingBottom: 10, paddingTop: 5 } 
+    }}>
+      <Tabs.Screen
+        name="coach" // Debe ser igual a app/(admin)/coach.tsx
+        options={{
+          title: 'Pendientes',
+          tabBarIcon: ({ color }) => <FontAwesome5 name="user-clock" size={20} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="alumnos" // Debe ser igual a app/(admin)/alumnos.tsx
+        options={{
+          title: 'Mis Alumnos',
+          tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={20} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="AdminAlimnetos" // Debe ser igual a app/(admin)/AdminAlimnetos.tsx
+        options={{
+          title: 'Biblioteca',
+          tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
+        }}
+      />
+    </Tabs>
   );
 }
