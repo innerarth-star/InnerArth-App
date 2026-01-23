@@ -12,6 +12,7 @@ export default function MisAlumnos() {
   const router = useRouter();
 
   useEffect(() => {
+    // Escucha en tiempo real de la colección de alumnos aceptados
     const q = query(collection(db, "alumnos_activos"), orderBy("nombre", "asc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const lista: any[] = [];
@@ -20,60 +21,81 @@ export default function MisAlumnos() {
       });
       setAlumnos(lista);
       setCargando(false);
+    }, (error) => {
+      console.error("Error en Firestore:", error);
+      setCargando(false);
     });
     return () => unsubscribe();
   }, []);
 
+  // Filtro de búsqueda por nombre
   const alumnosFiltrados = alumnos.filter(a => 
     a.nombre?.toLowerCase().includes(busqueda.toLowerCase())
   );
 
-  if (cargando) return (
-    <View style={styles.center}><ActivityIndicator size="large" color="#3b82f6" /></View>
-  );
+  if (cargando) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.container}>
-      {/* Título e Info */}
+    <View style={styles.mainContainer}>
+      {/* Cabecera superior con contador */}
       <View style={styles.header}>
-        <Text style={styles.mainTitle}>Mis Alumnos</Text>
-        <Text style={styles.countText}>{alumnos.length} Alumnos</Text>
-      </View>
-      
-      {/* Buscador */}
-      <View style={styles.searchContainer}>
-        <FontAwesome5 name="search" size={14} color="#94a3b8" />
-        <TextInput 
-          placeholder="Buscar alumno..." 
-          style={styles.input} 
-          value={busqueda}
-          onChangeText={setBusqueda}
-          placeholderTextColor="#94a3b8"
-        />
+        <View>
+          <Text style={styles.title}>Mis Alumnos</Text>
+          <Text style={styles.subTitle}>Gestión de activos</Text>
+        </View>
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{alumnos.length}</Text>
+        </View>
       </View>
 
+      {/* Buscador */}
+      <View style={styles.searchSection}>
+        <View style={styles.searchBar}>
+          <FontAwesome5 name="search" size={14} color="#94a3b8" />
+          <TextInput 
+            placeholder="Buscar por nombre..." 
+            style={styles.input} 
+            value={busqueda}
+            onChangeText={setBusqueda}
+            placeholderTextColor="#94a3b8"
+          />
+        </View>
+      </View>
+
+      {/* Lista de Alumnos */}
       <FlatList
         data={alumnosFiltrados}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <Pressable 
             style={styles.card}
-            onPress={() => router.push({ pathname: '/(admin)/historial', params: { id: item.id, nombre: item.nombre } })}
+            onPress={() => router.push({ 
+              pathname: '/(admin)/historial' as any, 
+              params: { id: item.id, nombre: item.nombre } 
+            })}
           >
-            <View style={styles.infoCol}>
-              <Text style={styles.nameText}>{item.nombre}</Text>
-              <Text style={styles.subText}>{item.nutricion?.objetivo || 'Sin objetivo'}</Text>
+            <View style={styles.cardInfo}>
+              <Text style={styles.alumnoNombre}>{item.nombre}</Text>
+              <Text style={styles.alumnoObjetivo}>
+                {item.nutricion?.objetivo || 'Sin objetivo definido'}
+              </Text>
             </View>
-            
-            {/* Solo la flecha para entrar al historial */}
-            <View style={styles.arrowIcon}>
+            <View style={styles.arrowContainer}>
               <FontAwesome5 name="chevron-right" size={16} color="#cbd5e1" />
             </View>
           </Pressable>
         )}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={styles.listPadding}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No hay alumnos activos.</Text>
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyText}>No se encontraron alumnos.</Text>
+          </View>
         }
       />
     </View>
@@ -81,83 +103,112 @@ export default function MisAlumnos() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#f8fafc' 
+  mainContainer: {
+    flex: 1, // Esto evita que se "alargue" o se salga de los bordes
+    backgroundColor: '#f1f5f9',
   },
-  center: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center' 
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f1f5f9'
   },
-  header: { 
-    paddingHorizontal: 20, 
-    paddingTop: 15, 
-    paddingBottom: 10,
+  header: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 15,
+    backgroundColor: '#fff',
   },
-  mainTitle: { 
-    fontSize: 22, 
-    fontWeight: 'bold', 
-    color: '#1e293b' 
+  title: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#0f172a',
   },
-  countText: {
-    fontSize: 12,
+  subTitle: {
+    fontSize: 13,
     color: '#64748b',
-    fontWeight: '600'
+    marginTop: -2,
   },
-  searchContainer: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: '#fff', 
-    marginHorizontal: 20, 
-    paddingHorizontal: 15, 
-    borderRadius: 12, 
-    borderWidth: 1, 
+  badge: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  searchSection: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    height: 48,
+    borderWidth: 1,
     borderColor: '#e2e8f0',
-    marginBottom: 10
   },
-  input: { 
-    flex: 1, 
-    paddingVertical: 10, 
-    marginLeft: 10, 
-    color: '#1e293b' 
+  input: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 16,
+    color: '#1e293b',
   },
-  listContent: { 
+  listPadding: {
     padding: 20,
-    paddingTop: 5
+    paddingBottom: 40, // Espacio extra para que el último item no choque con las pestañas
   },
-  card: { 
-    backgroundColor: '#fff', 
-    padding: 18, 
-    borderRadius: 16, 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: 12, 
-    borderWidth: 1, 
-    borderColor: '#e2e8f0'
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    // Sombra para dar profundidad
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  infoCol: { 
-    flex: 1 
+  cardInfo: {
+    flex: 1,
   },
-  nameText: { 
-    fontSize: 16, 
-    fontWeight: 'bold', 
-    color: '#1e293b' 
+  alumnoNombre: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1e293b',
   },
-  subText: { 
-    fontSize: 12, 
-    color: '#64748b', 
-    marginTop: 2 
+  alumnoObjetivo: {
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 4,
+    textTransform: 'capitalize'
   },
-  arrowIcon: {
-    paddingLeft: 10
+  arrowContainer: {
+    marginLeft: 10,
   },
-  emptyText: { 
-    textAlign: 'center', 
-    color: '#94a3b8', 
-    marginTop: 50 
+  emptyBox: {
+    alignItems: 'center',
+    marginTop: 50,
+  },
+  emptyText: {
+    color: '#94a3b8',
+    fontSize: 14,
   }
 });
