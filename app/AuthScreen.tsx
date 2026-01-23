@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Keyboard, Image } from 'react-native';
-import { auth } from '../firebaseConfig';
+// Añadimos db para guardar el perfil
+import { auth, db } from '../firebaseConfig'; 
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore'; 
 import { useRouter } from 'expo-router';
 
 export default function AuthScreen() {
@@ -13,7 +15,9 @@ export default function AuthScreen() {
   const router = useRouter();
 
   const handleAuth = async () => {
-    if (!email || !password) {
+    const cleanEmail = email.trim().toLowerCase(); // Limpiamos el email para evitar errores de mayúsculas
+
+    if (!cleanEmail || !password) {
       const msg = "Por favor llena todos los campos.";
       if (Platform.OS === 'web') alert(msg); else Alert.alert("Error", msg);
       return;
@@ -24,18 +28,28 @@ export default function AuthScreen() {
 
     try {
       if (isRegistering) {
-        // 1. REGISTRO SIN VERIFICACIÓN DE EMAIL
-        await createUserWithEmailAndPassword(auth, email.trim(), password);
+        // 1. REGISTRO
+        const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+        const user = userCredential.user;
+
+        // 2. CREACIÓN DE PERFIL EN FIRESTORE (Indispensable para entrar)
+        // Aquí definimos si es Coach (admin) o Alumno
+        const isAdmin = cleanEmail === 'inner.arth@gmail.com';
+        
+        await setDoc(doc(db, "usuarios", user.uid), {
+          uid: user.uid,
+          email: cleanEmail,
+          rol: isAdmin ? 'coach' : 'alumno', // Solo el email indicado será coach
+          createdAt: serverTimestamp()
+        });
+
         const msg = "¡Cuenta creada con éxito!";
         if (Platform.OS === 'web') alert(msg); else Alert.alert("Éxito", msg);
         
-        // Al registrarse, Firebase inicia sesión automáticamente. 
-        // El router.replace se ejecutará a través del onAuthStateChanged en tu index principal,
-        // o puedes forzarlo aquí:
         router.replace('/' as any);
       } else {
-        // 2. LOGIN DIRECTO (SIN REVISAR emailVerified)
-        await signInWithEmailAndPassword(auth, email.trim(), password);
+        // 3. LOGIN DIRECTO
+        await signInWithEmailAndPassword(auth, cleanEmail, password);
         router.replace('/' as any);
       }
     } catch (error: any) {
@@ -57,7 +71,7 @@ export default function AuthScreen() {
       return;
     }
     try {
-      await sendPasswordResetEmail(auth, email.trim());
+      await sendPasswordResetEmail(auth, email.trim().toLowerCase());
       alert("Enviado. Revisa tu correo para restablecer tu contraseña.");
     } catch (error: any) {
       alert("Error: Asegúrate de que el correo sea válido.");
