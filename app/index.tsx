@@ -1,52 +1,53 @@
 import { useRouter } from 'expo-router';
-import { auth } from '../firebaseConfig';
+import { auth, db } from '../firebaseConfig'; // Importamos db para consistencia
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { View, ActivityIndicator, Image, StyleSheet, Animated } from 'react-native';
+import { doc, getDoc } from 'firebase/firestore';
+import { View, ActivityIndicator, Image, StyleSheet, Animated, Platform } from 'react-native';
 
 export default function Index() {
-  const [loadingAuth, setLoadingAuth] = useState(true);
-  const [showContent, setShowContent] = useState(true);
   const fadeAnim = useState(new Animated.Value(0))[0];
   const router = useRouter();
   const CORREO_COACH = "inner.arth@gmail.com";
 
   useEffect(() => {
-    // 1. Animación de entrada
+    // 1. Animación de entrada (Fade In del logo)
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 800,
       useNativeDriver: true,
     }).start();
 
-    // 2. Escuchar Firebase
-    const unsub = onAuthStateChanged(auth, (user) => {
-      // Forzamos a que el logo se vea al menos 2.5 segundos para impacto visual
-      setTimeout(() => {
+    // 2. Escuchar el estado de autenticación
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      // Esperamos los 2.5 segundos que definiste para impacto visual
+      setTimeout(async () => {
         if (!user) {
+          // Si no hay usuario, al login
           router.replace('/AuthScreen');
         } else {
-          const isCoach = user.email?.toLowerCase().trim() === CORREO_COACH.toLowerCase().trim();
-          if (isCoach) {
+          // Limpieza de email para comparación segura
+          const userEmail = user.email?.toLowerCase().trim();
+          const coachEmail = CORREO_COACH.toLowerCase().trim();
+
+          if (userEmail === coachEmail) {
+            // Es el administrador
             router.replace('/(admin)/coach');
           } else {
+            // Es un alumno
             router.replace('/(client)');
           }
         }
-        // Solo ocultamos la carga después de intentar navegar
-        setLoadingAuth(false);
-      }, 2500); 
+      }, 2500);
     });
 
-    return unsub;
+    return () => unsub();
   }, []);
 
-  // Esta es la vista que DEBE aparecer
   return (
     <View style={styles.container}>
       <Animated.View style={{ opacity: fadeAnim, alignItems: 'center' }}>
         <Image 
-          // Asegúrate de que el nombre coincida con tu archivo en assets
           source={require('../assets/images/splash-icon.png')} 
           style={styles.logo}
           resizeMode="contain"
@@ -62,7 +63,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000000', // Fondo negro para que no se vea blanco
+    backgroundColor: '#000000',
   },
   logo: {
     width: 250, 
