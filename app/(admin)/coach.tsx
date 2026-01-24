@@ -25,11 +25,12 @@ const gestionarCliente = async (accion: 'aceptar' | 'rechazar') => {
   if (!clienteSeleccionado) return;
   try {
     if (accion === 'aceptar') {
-      // Usamos setDoc con el UID del usuario para que el ID sea fijo y conocido
+      // USAMOS EL UID COMO ID DEL DOCUMENTO
       const alumnoRef = doc(db, "alumnos_activos", clienteSeleccionado.uid); 
+      
       await setDoc(alumnoRef, { 
         ...clienteSeleccionado, 
-        idAlumno: clienteSeleccionado.uid, // Guardamos su UID como referencia
+        id: clienteSeleccionado.uid, // Guardamos el UID dentro también
         fechaAceptado: serverTimestamp() 
       });
     }
