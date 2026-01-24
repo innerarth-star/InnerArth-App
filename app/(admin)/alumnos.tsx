@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, TextInput, Pressable, ActivityIndicator, Platform } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TextInput, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { db } from '../../firebaseConfig';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { FontAwesome5 } from '@expo/vector-icons';
@@ -12,18 +12,22 @@ export default function MisAlumnos() {
   const router = useRouter();
 
   useEffect(() => {
-    // Escuchamos la colección de alumnos activos
     const q = query(collection(db, "alumnos_activos"), orderBy("nombre", "asc"));
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const lista: any[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
-        // IMPORTANTE: Usamos el data.uid como ID principal para que el Historial 
-        // pueda encontrar el expediente. Si no existe, usamos el id del documento.
+        
+        // --- TRIPLE VALIDACIÓN DE ID ---
+        // 1. Prioridad: El UID que guardamos dentro del objeto al aceptar
+        // 2. Respaldo: El ID del documento de Firebase
+        // 3. Emergencia: Cualquier campo 'id' que exista dentro
+        const idReal = data.uid || data.id || doc.id;
+
         lista.push({ 
-          id: data.uid || doc.id, 
-          ...data 
+          ...data,
+          id: idReal, // Sobreescribimos el id con el valor real para el router
         });
       });
       setAlumnos(lista);
@@ -40,29 +44,19 @@ export default function MisAlumnos() {
     a.nombre?.toLowerCase().includes(busqueda.toLowerCase())
   );
 
-  if (cargando) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#3b82f6" />
-      </View>
-    );
-  }
+  if (cargando) return <View style={styles.center}><ActivityIndicator size="large" color="#3b82f6" /></View>;
 
   return (
     <View style={styles.outerContainer}>
       <View style={styles.mainContainer}>
-        {/* Cabecera */}
         <View style={styles.header}>
           <View>
             <Text style={styles.title}>Mis Alumnos</Text>
             <Text style={styles.subTitle}>Gestión de activos</Text>
           </View>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{alumnos.length}</Text>
-          </View>
+          <View style={styles.badge}><Text style={styles.badgeText}>{alumnos.length}</Text></View>
         </View>
 
-        {/* Buscador */}
         <View style={styles.searchSection}>
           <View style={styles.searchBar}>
             <FontAwesome5 name="search" size={14} color="#94a3b8" />
@@ -76,15 +70,15 @@ export default function MisAlumnos() {
           </View>
         </View>
 
-        {/* Lista de Alumnos */}
         <FlatList
           data={alumnosFiltrados}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => item.id || index.toString()}
           renderItem={({ item }) => (
             <Pressable 
               style={styles.card}
               onPress={() => {
-                // Navegamos pasando el ID (que ahora es el UID real)
+                // LOG DE SEGURIDAD: Revisa tu consola al presionar
+                console.log("Navegando con ID:", item.id);
                 router.push({ 
                   pathname: '/(admin)/historial' as any, 
                   params: { id: item.id, nombre: item.nombre } 
@@ -101,9 +95,7 @@ export default function MisAlumnos() {
             </Pressable>
           )}
           contentContainerStyle={styles.listPadding}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>No se encontraron alumnos.</Text>
-          }
+          ListEmptyComponent={<Text style={styles.emptyText}>No se encontraron alumnos.</Text>}
         />
       </View>
     </View>
@@ -111,32 +103,10 @@ export default function MisAlumnos() {
 }
 
 const styles = StyleSheet.create({
-  outerContainer: {
-    flex: 1,
-    backgroundColor: '#f1f5f9',
-    alignItems: 'center', 
-  },
-  mainContainer: {
-    flex: 1,
-    width: '100%',
-    maxWidth: 800, 
-    backgroundColor: '#f1f5f9',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f1f5f9'
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 15,
-    backgroundColor: '#fff',
-  },
+  outerContainer: { flex: 1, backgroundColor: '#f1f5f9', alignItems: 'center' },
+  mainContainer: { flex: 1, width: '100%', maxWidth: 800, backgroundColor: '#f1f5f9' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 15, backgroundColor: '#fff' },
   title: { fontSize: 26, fontWeight: '800', color: '#0f172a' },
   subTitle: { fontSize: 13, color: '#64748b' },
   badge: { backgroundColor: '#3b82f6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
