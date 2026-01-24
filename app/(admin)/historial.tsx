@@ -10,7 +10,10 @@ export default function HistorialAlumno() {
   const [alumno, setAlumno] = useState<any>(null);
   const [planes, setPlanes] = useState<any[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [ajusteCalorico, setAjusteCalorico] = useState(300);
   const router = useRouter();
+
+  const rangosAjuste = [100, 200, 300, 400, 500];
 
   useEffect(() => {
     const obtenerDatos = async () => {
@@ -48,6 +51,7 @@ export default function HistorialAlumno() {
         titulo: `Plan ${proximoNumero}`,
         numero: proximoNumero,
         fechaCreacion: serverTimestamp(),
+        ajusteAplicado: ajusteCalorico
       });
     } catch (error) {
       console.error("Error al crear plan:", error);
@@ -84,21 +88,24 @@ export default function HistorialAlumno() {
     const altura = parseFloat(alumno.datosFisicos?.altura) || 0;
     const edad = parseInt(alumno.datosFisicos?.edad) || 0;
     const genero = alumno.datosFisicos?.genero;
+    
+    // Aquí podrías usar una lógica más compleja de METs si la tienes guardada
     const factorActividad = 1.4; 
 
     let tmb = (10 * peso) + (6.25 * altura) - (5 * edad);
     tmb = genero === 'mujer' ? tmb - 161 : tmb + 5;
     const get = tmb * factorActividad;
+    
     const obj = alumno.nutricion?.objetivo?.toLowerCase() || '';
     let final = get;
     let tipo = "Mantenimiento";
 
     if (obj.includes('perder') || obj.includes('definicion')) {
-      final = get - 500;
-      tipo = "Déficit";
+      final = get - ajusteCalorico;
+      tipo = `Déficit (-${ajusteCalorico})`;
     } else if (obj.includes('ganar') || obj.includes('volumen')) {
-      final = get + 400;
-      tipo = "Superávit";
+      final = get + ajusteCalorico;
+      tipo = `Superávit (+${ajusteCalorico})`;
     }
 
     return { tmb: Math.round(tmb), get: Math.round(get), final: Math.round(final), tipo };
@@ -113,14 +120,13 @@ export default function HistorialAlumno() {
   return (
     <View style={styles.outerContainer}>
       <View style={styles.mainContainer}>
-        {/* Header con regreso a Mis Alumnos */}
         <View style={styles.header}>
           <Pressable onPress={() => router.replace('/(admin)/alumnos' as any)} style={styles.backBtn}>
             <FontAwesome5 name="arrow-left" size={18} color="#1e293b" />
           </Pressable>
           <View>
             <Text style={styles.headerTitle}>{nombre}</Text>
-            <Text style={styles.headerSub}>Gestión de Historial</Text>
+            <Text style={styles.headerSub}>Ajuste Metabólico y Planes</Text>
           </View>
         </View>
 
@@ -129,6 +135,22 @@ export default function HistorialAlumno() {
             <View style={styles.metricsCard}>
               <Text style={styles.cardLabel}>OBJETIVO: {metricas.tipo}</Text>
               <Text style={styles.caloriesMain}>{metricas.final} kcal</Text>
+              
+              <Text style={styles.selectorTitle}>Ajustar Margen (kcal):</Text>
+              <View style={styles.selectorRow}>
+                {rangosAjuste.map((valor) => (
+                  <Pressable 
+                    key={valor} 
+                    onPress={() => setAjusteCalorico(valor)}
+                    style={[styles.chip, ajusteCalorico === valor && styles.chipActive]}
+                  >
+                    <Text style={[styles.chipText, ajusteCalorico === valor && styles.chipTextActive]}>
+                      {valor}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
               <View style={styles.divider} />
               <View style={styles.miniRow}>
                 <Text style={styles.miniLabel}>Basal: {metricas.tmb}</Text>
@@ -147,7 +169,6 @@ export default function HistorialAlumno() {
 
           {planes.map((plan) => (
             <View key={plan.id} style={styles.folderCard}>
-              {/* Área Principal: Navega al Editor */}
               <Pressable 
                 style={styles.folderMain}
                 onPress={() => router.push({ 
@@ -158,16 +179,12 @@ export default function HistorialAlumno() {
                 <FontAwesome5 name="folder" size={24} color="#3b82f6" />
                 <View style={styles.folderInfo}>
                   <Text style={styles.folderTitle}>{plan.titulo}</Text>
-                  <Text style={styles.folderSub}>Toca para editar alimentación/entreno</Text>
+                  <Text style={styles.folderSub}>Margen: {plan.ajusteAplicado || '300'} kcal</Text>
                 </View>
                 <FontAwesome5 name="chevron-right" size={16} color="#cbd5e1" />
               </Pressable>
               
-              {/* Botón de Borrar Separado */}
-              <Pressable 
-                onPress={() => confirmarEliminar(plan.id, plan.titulo)}
-                style={styles.btnDelete}
-              >
+              <Pressable onPress={() => confirmarEliminar(plan.id, plan.titulo)} style={styles.btnDelete}>
                 <FontAwesome5 name="trash-alt" size={16} color="#ef4444" />
               </Pressable>
             </View>
@@ -192,44 +209,29 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#1e293b' },
   headerSub: { fontSize: 12, color: '#64748b' },
   scrollContent: { padding: 20 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   metricsCard: { backgroundColor: '#1e293b', borderRadius: 20, padding: 25, alignItems: 'center', marginBottom: 25 },
-  cardLabel: { color: '#94a3b8', fontSize: 11, fontWeight: 'bold', letterSpacing: 1 },
-  caloriesMain: { color: '#fff', fontSize: 42, fontWeight: 'bold', marginVertical: 10 },
-  divider: { width: '100%', height: 1, backgroundColor: '#334155', marginVertical: 15 },
+  cardLabel: { color: '#94a3b8', fontSize: 11, fontWeight: 'bold', letterSpacing: 1, textTransform: 'uppercase' },
+  caloriesMain: { color: '#fff', fontSize: 44, fontWeight: 'bold', marginVertical: 10 },
+  selectorTitle: { color: '#cbd5e1', fontSize: 12, marginTop: 15, marginBottom: 10 },
+  selectorRow: { flexDirection: 'row', gap: 8, marginBottom: 5 },
+  chip: { backgroundColor: '#334155', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#475569' },
+  chipActive: { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
+  chipText: { color: '#94a3b8', fontSize: 12, fontWeight: 'bold' },
+  chipTextActive: { color: '#fff' },
+  divider: { width: '100%', height: 1, backgroundColor: '#334155', marginVertical: 20 },
   miniRow: { flexDirection: 'row', gap: 20 },
   miniLabel: { color: '#cbd5e1', fontSize: 13 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
   btnAdd: { backgroundColor: '#3b82f6', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 10, gap: 8 },
   btnAddText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
-  folderCard: { 
-    backgroundColor: '#fff', 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    borderRadius: 16, 
-    marginBottom: 12, 
-    borderWidth: 1, 
-    borderColor: '#e2e8f0',
-    overflow: 'hidden'
-  },
-  folderMain: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 18,
-  },
+  folderCard: { backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0', overflow: 'hidden' },
+  folderMain: { flex: 1, flexDirection: 'row', alignItems: 'center', padding: 18 },
   folderInfo: { flex: 1, marginLeft: 15 },
   folderTitle: { fontSize: 16, fontWeight: 'bold', color: '#1e293b' },
   folderSub: { fontSize: 11, color: '#94a3b8', marginTop: 2 },
-  btnDelete: {
-    paddingHorizontal: 20,
-    height: 80, // Ajustado para ser fácil de tocar
-    justifyContent: 'center',
-    backgroundColor: '#fff5f5',
-    borderLeftWidth: 1,
-    borderLeftColor: '#fee2e2'
-  },
+  btnDelete: { paddingHorizontal: 20, height: 80, justifyContent: 'center', backgroundColor: '#fff5f5', borderLeftWidth: 1, borderLeftColor: '#fee2e2' },
   emptyState: { alignItems: 'center', marginTop: 40 },
-  emptyText: { color: '#94a3b8', fontSize: 13 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' }
+  emptyText: { color: '#94a3b8', fontSize: 13 }
 });
