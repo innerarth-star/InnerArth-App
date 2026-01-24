@@ -58,52 +58,48 @@ export default function HistorialAlumno() {
     }
   };
 
-  const confirmarEliminar = (planId: string, titulo: string) => {
-    if (Platform.OS === 'web') {
-      const confirmar = window.confirm(`¿Estás seguro de eliminar el ${titulo}?`);
-      if (confirmar) eliminarPlan(planId);
-    } else {
-      Alert.alert(
-        "Eliminar Plan",
-        `¿Borrar el ${titulo}?`,
-        [
-          { text: "Cancelar", style: "cancel" },
-          { text: "Eliminar", style: "destructive", onPress: () => eliminarPlan(planId) }
-        ]
-      );
-    }
-  };
-
-  const eliminarPlan = async (planId: string) => {
+  const eliminarPlan = async (pId: string) => {
     try {
-      await deleteDoc(doc(db, "alumnos_activos", id as string, "planes", planId));
-    } catch (error) {
-      console.error("Error al eliminar:", error);
-    }
+      await deleteDoc(doc(db, "alumnos_activos", id as string, "planes", pId));
+    } catch (error) { console.error(error); }
   };
 
   const calcularMetricas = () => {
     if (!alumno) return null;
-    const peso = parseFloat(alumno.datosFisicos?.peso) || 0;
-    const altura = parseFloat(alumno.datosFisicos?.altura) || 0;
-    const edad = parseInt(alumno.datosFisicos?.edad) || 0;
-    const genero = alumno.datosFisicos?.genero;
-    
-    // Aquí podrías usar una lógica más compleja de METs si la tienes guardada
-    const factorActividad = 1.4; 
 
+    // EXTRACCIÓN SEGÚN TU INDEX.TSX
+    const peso = parseFloat(alumno.datosFisicos?.peso || 0);
+    const altura = parseFloat(alumno.datosFisicos?.altura || 0);
+    const edad = parseInt(alumno.datosFisicos?.edad || 0);
+    const genero = (alumno.datosFisicos?.genero || 'hombre').toLowerCase();
+    
+    if (!peso || !altura || !edad) return null;
+
+    // LÓGICA DE ACTIVIDAD BASADA EN IPAQ (SECCIÓN 5)
+    // Traducimos los días de actividad vigorosa/moderada a un factor
+    const diasVigorosos = parseInt(alumno.ipaq?.vDias || 0);
+    const diasModerados = parseInt(alumno.ipaq?.mDias || 0);
+    
+    let factorActividad = 1.2; // Sedentario por defecto
+    if (diasVigorosos >= 3) factorActividad = 1.725; // Muy activo
+    else if (diasVigorosos > 0 || diasModerados >= 3) factorActividad = 1.55; // Moderado
+    else if (diasModerados > 0) factorActividad = 1.375; // Ligero
+
+    // FÓRMULA MIFFLIN-ST JEOR
     let tmb = (10 * peso) + (6.25 * altura) - (5 * edad);
     tmb = genero === 'mujer' ? tmb - 161 : tmb + 5;
+    
     const get = tmb * factorActividad;
     
-    const obj = alumno.nutricion?.objetivo?.toLowerCase() || '';
+    // OBJETIVO SEGÚN TU NUTRICION.OBJETIVO (SECCIÓN 7)
+    const obj = (alumno.nutricion?.objetivo || '').toLowerCase();
     let final = get;
     let tipo = "Mantenimiento";
 
-    if (obj.includes('perder') || obj.includes('definicion')) {
+    if (obj.includes('perder') || obj.includes('definicion') || obj.includes('bajar')) {
       final = get - ajusteCalorico;
       tipo = `Déficit (-${ajusteCalorico})`;
-    } else if (obj.includes('ganar') || obj.includes('volumen')) {
+    } else if (obj.includes('ganar') || obj.includes('volumen') || obj.includes('subir')) {
       final = get + ajusteCalorico;
       tipo = `Superávit (+${ajusteCalorico})`;
     }
@@ -113,9 +109,7 @@ export default function HistorialAlumno() {
 
   const metricas = calcularMetricas();
 
-  if (cargando) return (
-    <View style={styles.center}><ActivityIndicator size="large" color="#3b82f6" /></View>
-  );
+  if (cargando) return <View style={styles.center}><ActivityIndicator size="large" color="#3b82f6" /></View>;
 
   return (
     <View style={styles.outerContainer}>
@@ -126,17 +120,17 @@ export default function HistorialAlumno() {
           </Pressable>
           <View>
             <Text style={styles.headerTitle}>{nombre}</Text>
-            <Text style={styles.headerSub}>Ajuste Metabólico y Planes</Text>
+            <Text style={styles.headerSub}>Análisis de Gasto Energético</Text>
           </View>
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          {metricas && (
+          {metricas ? (
             <View style={styles.metricsCard}>
               <Text style={styles.cardLabel}>OBJETIVO: {metricas.tipo}</Text>
               <Text style={styles.caloriesMain}>{metricas.final} kcal</Text>
               
-              <Text style={styles.selectorTitle}>Ajustar Margen (kcal):</Text>
+              <Text style={styles.selectorTitle}>Ajustar margen para el plan:</Text>
               <View style={styles.selectorRow}>
                 {rangosAjuste.map((valor) => (
                   <Pressable 
@@ -144,26 +138,29 @@ export default function HistorialAlumno() {
                     onPress={() => setAjusteCalorico(valor)}
                     style={[styles.chip, ajusteCalorico === valor && styles.chipActive]}
                   >
-                    <Text style={[styles.chipText, ajusteCalorico === valor && styles.chipTextActive]}>
-                      {valor}
-                    </Text>
+                    <Text style={[styles.chipText, ajusteCalorico === valor && styles.chipTextActive]}>{valor}</Text>
                   </Pressable>
                 ))}
               </View>
 
               <View style={styles.divider} />
               <View style={styles.miniRow}>
-                <Text style={styles.miniLabel}>Basal: {metricas.tmb}</Text>
-                <Text style={styles.miniLabel}>Gasto Total: {metricas.get}</Text>
+                <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.tmb}</Text><Text style={styles.miniLab}>Basal (TMB)</Text></View>
+                <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.get}</Text><Text style={styles.miniLab}>Mantenimiento</Text></View>
               </View>
+            </View>
+          ) : (
+            <View style={styles.errorCard}>
+              <FontAwesome5 name="info-circle" size={20} color="#3b82f6" />
+              <Text style={styles.errorText}>Faltan datos de peso, altura o edad en el expediente para calcular.</Text>
             </View>
           )}
 
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Planes</Text>
             <Pressable style={styles.btnAdd} onPress={crearNuevoPlan}>
-              <FontAwesome5 name="plus" size={14} color="#fff" />
-              <Text style={styles.btnAddText}>Nuevo</Text>
+              <FontAwesome5 name="plus" size={12} color="#fff" />
+              <Text style={styles.btnAddText}>Nuevo Plan</Text>
             </Pressable>
           </View>
 
@@ -176,25 +173,21 @@ export default function HistorialAlumno() {
                   params: { planId: plan.id, alumnoId: id, nombreAlumno: nombre } 
                 })}
               >
-                <FontAwesome5 name="folder" size={24} color="#3b82f6" />
+                <FontAwesome5 name="folder-open" size={20} color="#3b82f6" />
                 <View style={styles.folderInfo}>
                   <Text style={styles.folderTitle}>{plan.titulo}</Text>
-                  <Text style={styles.folderSub}>Margen: {plan.ajusteAplicado || '300'} kcal</Text>
+                  <Text style={styles.folderSub}>Margen: {plan.ajusteAplicado} kcal</Text>
                 </View>
-                <FontAwesome5 name="chevron-right" size={16} color="#cbd5e1" />
+                <FontAwesome5 name="chevron-right" size={14} color="#cbd5e1" />
               </Pressable>
-              
-              <Pressable onPress={() => confirmarEliminar(plan.id, plan.titulo)} style={styles.btnDelete}>
-                <FontAwesome5 name="trash-alt" size={16} color="#ef4444" />
+              <Pressable onPress={() => {
+                if(Platform.OS === 'web'){ if(confirm("¿Borrar?")) eliminarPlan(plan.id) }
+                else { Alert.alert("Borrar", "¿Confirmas?", [{text:"No"}, {text:"Si", onPress:()=>eliminarPlan(plan.id)}])}
+              }} style={styles.btnDelete}>
+                <FontAwesome5 name="trash-alt" size={14} color="#ef4444" />
               </Pressable>
             </View>
           ))}
-
-          {planes.length === 0 && (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No hay planes. Haz clic en "Nuevo" para empezar.</Text>
-            </View>
-          )}
         </ScrollView>
       </View>
     </View>
@@ -206,32 +199,34 @@ const styles = StyleSheet.create({
   mainContainer: { flex: 1, width: '100%', maxWidth: 800, backgroundColor: '#f1f5f9' },
   header: { flexDirection: 'row', alignItems: 'center', padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#e2e8f0' },
   backBtn: { padding: 10, marginRight: 10 },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#1e293b' },
-  headerSub: { fontSize: 12, color: '#64748b' },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
+  headerSub: { fontSize: 11, color: '#64748b' },
   scrollContent: { padding: 20 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  metricsCard: { backgroundColor: '#1e293b', borderRadius: 20, padding: 25, alignItems: 'center', marginBottom: 25 },
-  cardLabel: { color: '#94a3b8', fontSize: 11, fontWeight: 'bold', letterSpacing: 1, textTransform: 'uppercase' },
-  caloriesMain: { color: '#fff', fontSize: 44, fontWeight: 'bold', marginVertical: 10 },
-  selectorTitle: { color: '#cbd5e1', fontSize: 12, marginTop: 15, marginBottom: 10 },
-  selectorRow: { flexDirection: 'row', gap: 8, marginBottom: 5 },
-  chip: { backgroundColor: '#334155', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#475569' },
+  metricsCard: { backgroundColor: '#1e293b', borderRadius: 24, padding: 25, alignItems: 'center', marginBottom: 25 },
+  cardLabel: { color: '#3b82f6', fontSize: 10, fontWeight: 'bold', letterSpacing: 1.2, marginBottom: 5 },
+  caloriesMain: { color: '#fff', fontSize: 48, fontWeight: 'bold' },
+  selectorTitle: { color: '#94a3b8', fontSize: 11, marginTop: 20, marginBottom: 10 },
+  selectorRow: { flexDirection: 'row', gap: 6 },
+  chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#475569', backgroundColor: '#334155' },
   chipActive: { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
-  chipText: { color: '#94a3b8', fontSize: 12, fontWeight: 'bold' },
+  chipText: { color: '#94a3b8', fontSize: 11, fontWeight: 'bold' },
   chipTextActive: { color: '#fff' },
   divider: { width: '100%', height: 1, backgroundColor: '#334155', marginVertical: 20 },
-  miniRow: { flexDirection: 'row', gap: 20 },
-  miniLabel: { color: '#cbd5e1', fontSize: 13 },
+  miniRow: { flexDirection: 'row', width: '100%', justifyContent: 'space-around' },
+  miniItem: { alignItems: 'center' },
+  miniVal: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  miniLab: { color: '#64748b', fontSize: 10, marginTop: 4 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
-  btnAdd: { backgroundColor: '#3b82f6', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 10, gap: 8 },
-  btnAddText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
-  folderCard: { backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0', overflow: 'hidden' },
-  folderMain: { flex: 1, flexDirection: 'row', alignItems: 'center', padding: 18 },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#1e293b' },
+  btnAdd: { backgroundColor: '#3b82f6', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, gap: 6 },
+  btnAddText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
+  folderCard: { backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', borderRadius: 16, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0', overflow: 'hidden' },
+  folderMain: { flex: 1, flexDirection: 'row', alignItems: 'center', padding: 15 },
   folderInfo: { flex: 1, marginLeft: 15 },
-  folderTitle: { fontSize: 16, fontWeight: 'bold', color: '#1e293b' },
+  folderTitle: { fontSize: 15, fontWeight: 'bold', color: '#1e293b' },
   folderSub: { fontSize: 11, color: '#94a3b8', marginTop: 2 },
-  btnDelete: { paddingHorizontal: 20, height: 80, justifyContent: 'center', backgroundColor: '#fff5f5', borderLeftWidth: 1, borderLeftColor: '#fee2e2' },
-  emptyState: { alignItems: 'center', marginTop: 40 },
-  emptyText: { color: '#94a3b8', fontSize: 13 }
+  btnDelete: { paddingHorizontal: 15, height: 70, justifyContent: 'center', backgroundColor: '#fff5f5' },
+  errorCard: { backgroundColor: '#fff', padding: 20, borderRadius: 16, alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: '#3b82f6', gap: 10 },
+  errorText: { color: '#64748b', fontSize: 12, textAlign: 'center' }
 });
