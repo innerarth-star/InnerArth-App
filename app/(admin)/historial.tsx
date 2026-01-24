@@ -18,21 +18,32 @@ export default function HistorialAlumno() {
 useEffect(() => {
   const obtenerDatos = async () => {
     if (!id) return;
+    setCargando(true);
     try {
-      console.log("Buscando ID en Firebase:", id);
+      console.log("Intentando recuperar ID:", id);
       const docRef = doc(db, "alumnos_activos", id as string);
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
-        console.log("¡Datos encontrados!", docSnap.data());
+        console.log("¡Datos recuperados con éxito!", docSnap.data());
         setAlumno(docSnap.data());
       } else {
-        console.error("No existe el documento en alumnos_activos con el ID:", id);
-        // Ojo: Si usaste addDoc para crear al alumno, el ID es automático,
-        // asegúrate de que estás pasando el ID correcto desde la lista.
+        // SI NO EXISTE, NO TE QUEDES PENSANDO
+        console.error("EL DOCUMENTO NO EXISTE EN FIREBASE. ID:", id);
+        Alert.alert(
+          "Error de enlace", 
+          "Este expediente ya no existe o el ID cambió. Volviendo a la lista...",
+          [{ text: "OK", onPress: () => router.replace('/(admin)/alumnos' as any) }]
+        );
+        // Si estás en Web y Alert no sale:
+        if (Platform.OS === 'web') {
+           setTimeout(() => router.replace('/(admin)/alumnos' as any), 2000);
+        }
       }
     } catch (error) {
-      console.error("Error de conexión:", error);
+      console.error("Error crítico de conexión:", error);
+    } finally {
+      setCargando(false);
     }
   };
   obtenerDatos();
