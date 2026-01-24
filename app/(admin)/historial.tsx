@@ -61,38 +61,39 @@ export default function HistorialAlumno() {
   const eliminarPlan = async (pId: string) => {
     try {
       await deleteDoc(doc(db, "alumnos_activos", id as string, "planes", pId));
-    } catch (error) { console.error(error); }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const calcularMetricas = () => {
     if (!alumno) return null;
 
-    // EXTRACCIÓN SEGÚN TU INDEX.TSX
-    const peso = parseFloat(alumno.datosFisicos?.peso || 0);
-    const altura = parseFloat(alumno.datosFisicos?.altura || 0);
-    const edad = parseInt(alumno.datosFisicos?.edad || 0);
-    const genero = (alumno.datosFisicos?.genero || 'hombre').toLowerCase();
+    // Extracción basada en tu ClienteScreen
+    const peso = parseFloat(alumno.datosFisicos?.peso || alumno.peso || 0);
+    const altura = parseFloat(alumno.datosFisicos?.altura || alumno.altura || alumno.estatura || 0);
+    const edad = parseInt(alumno.datosFisicos?.edad || alumno.edad || 0);
+    const genero = (alumno.datosFisicos?.genero || alumno.genero || 'hombre').toLowerCase();
     
     if (!peso || !altura || !edad) return null;
 
-    // LÓGICA DE ACTIVIDAD BASADA EN IPAQ (SECCIÓN 5)
-    // Traducimos los días de actividad vigorosa/moderada a un factor
-    const diasVigorosos = parseInt(alumno.ipaq?.vDias || 0);
-    const diasModerados = parseInt(alumno.ipaq?.mDias || 0);
+    // Lógica IPAQ para Factor de Actividad
+    const vDias = parseInt(alumno.ipaq?.vDias || 0);
+    const mDias = parseInt(alumno.ipaq?.mDias || 0);
     
-    let factorActividad = 1.2; // Sedentario por defecto
-    if (diasVigorosos >= 3) factorActividad = 1.725; // Muy activo
-    else if (diasVigorosos > 0 || diasModerados >= 3) factorActividad = 1.55; // Moderado
-    else if (diasModerados > 0) factorActividad = 1.375; // Ligero
+    let factorActividad = 1.2; 
+    if (vDias >= 3) factorActividad = 1.725; 
+    else if (vDias > 0 || mDias >= 3) factorActividad = 1.55; 
+    else if (mDias > 0) factorActividad = 1.375;
 
     // FÓRMULA MIFFLIN-ST JEOR
     let tmb = (10 * peso) + (6.25 * altura) - (5 * edad);
-    tmb = genero === 'mujer' ? tmb - 161 : tmb + 5;
+    tmb = genero.includes('mujer') ? tmb - 161 : tmb + 5;
     
     const get = tmb * factorActividad;
     
-    // OBJETIVO SEGÚN TU NUTRICION.OBJETIVO (SECCIÓN 7)
-    const obj = (alumno.nutricion?.objetivo || '').toLowerCase();
+    // Objetivo basado en nutricion.objetivo
+    const obj = (alumno.nutricion?.objetivo || alumno.objetivo || '').toLowerCase();
     let final = get;
     let tipo = "Mantenimiento";
 
@@ -109,11 +110,14 @@ export default function HistorialAlumno() {
 
   const metricas = calcularMetricas();
 
-  if (cargando) return <View style={styles.center}><ActivityIndicator size="large" color="#3b82f6" /></View>;
+  if (cargando) return (
+    <View style={styles.center}><ActivityIndicator size="large" color="#3b82f6" /></View>
+  );
 
   return (
     <View style={styles.outerContainer}>
       <View style={styles.mainContainer}>
+        {/* Header con regreso a Mis Alumnos */}
         <View style={styles.header}>
           <Pressable onPress={() => router.replace('/(admin)/alumnos' as any)} style={styles.backBtn}>
             <FontAwesome5 name="arrow-left" size={18} color="#1e293b" />
@@ -145,14 +149,20 @@ export default function HistorialAlumno() {
 
               <View style={styles.divider} />
               <View style={styles.miniRow}>
-                <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.tmb}</Text><Text style={styles.miniLab}>Basal (TMB)</Text></View>
-                <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.get}</Text><Text style={styles.miniLab}>Mantenimiento</Text></View>
+                <View style={styles.miniItem}>
+                  <Text style={styles.miniVal}>{metricas.tmb}</Text>
+                  <Text style={styles.miniLab}>Basal (TMB)</Text>
+                </View>
+                <View style={styles.miniItem}>
+                  <Text style={styles.miniVal}>{metricas.get}</Text>
+                  <Text style={styles.miniLab}>Mantenimiento</Text>
+                </View>
               </View>
             </View>
           ) : (
             <View style={styles.errorCard}>
               <FontAwesome5 name="info-circle" size={20} color="#3b82f6" />
-              <Text style={styles.errorText}>Faltan datos de peso, altura o edad en el expediente para calcular.</Text>
+              <Text style={styles.errorText}>Faltan datos físicos (peso, altura, edad) en el expediente para calcular.</Text>
             </View>
           )}
 
@@ -176,12 +186,13 @@ export default function HistorialAlumno() {
                 <FontAwesome5 name="folder-open" size={20} color="#3b82f6" />
                 <View style={styles.folderInfo}>
                   <Text style={styles.folderTitle}>{plan.titulo}</Text>
-                  <Text style={styles.folderSub}>Margen: {plan.ajusteAplicado} kcal</Text>
+                  <Text style={styles.folderSub}>Margen aplicado: {plan.ajusteAplicado} kcal</Text>
                 </View>
                 <FontAwesome5 name="chevron-right" size={14} color="#cbd5e1" />
               </Pressable>
+              
               <Pressable onPress={() => {
-                if(Platform.OS === 'web'){ if(confirm("¿Borrar?")) eliminarPlan(plan.id) }
+                if(Platform.OS === 'web'){ if(confirm("¿Borrar plan?")) eliminarPlan(plan.id) }
                 else { Alert.alert("Borrar", "¿Confirmas?", [{text:"No"}, {text:"Si", onPress:()=>eliminarPlan(plan.id)}])}
               }} style={styles.btnDelete}>
                 <FontAwesome5 name="trash-alt" size={14} color="#ef4444" />
@@ -204,7 +215,7 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 20 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   metricsCard: { backgroundColor: '#1e293b', borderRadius: 24, padding: 25, alignItems: 'center', marginBottom: 25 },
-  cardLabel: { color: '#3b82f6', fontSize: 10, fontWeight: 'bold', letterSpacing: 1.2, marginBottom: 5 },
+  cardLabel: { color: '#3b82f6', fontSize: 10, fontWeight: 'bold', letterSpacing: 1.2, marginBottom: 5, textTransform: 'uppercase' },
   caloriesMain: { color: '#fff', fontSize: 48, fontWeight: 'bold' },
   selectorTitle: { color: '#94a3b8', fontSize: 11, marginTop: 20, marginBottom: 10 },
   selectorRow: { flexDirection: 'row', gap: 6 },
@@ -215,7 +226,7 @@ const styles = StyleSheet.create({
   divider: { width: '100%', height: 1, backgroundColor: '#334155', marginVertical: 20 },
   miniRow: { flexDirection: 'row', width: '100%', justifyContent: 'space-around' },
   miniItem: { alignItems: 'center' },
-  miniVal: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  miniVal: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   miniLab: { color: '#64748b', fontSize: 10, marginTop: 4 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
   sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#1e293b' },
@@ -227,6 +238,6 @@ const styles = StyleSheet.create({
   folderTitle: { fontSize: 15, fontWeight: 'bold', color: '#1e293b' },
   folderSub: { fontSize: 11, color: '#94a3b8', marginTop: 2 },
   btnDelete: { paddingHorizontal: 15, height: 70, justifyContent: 'center', backgroundColor: '#fff5f5' },
-  errorCard: { backgroundColor: '#fff', padding: 20, borderRadius: 16, alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: '#3b82f6', gap: 10 },
-  errorText: { color: '#64748b', fontSize: 12, textAlign: 'center' }
+  errorCard: { backgroundColor: '#fff', padding: 25, borderRadius: 16, alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: '#3b82f6', gap: 10 },
+  errorText: { color: '#64748b', fontSize: 12, textAlign: 'center', lineHeight: 18 }
 });
