@@ -31,7 +31,7 @@ export default function AdminLayout() {
 
         {/* 3. BIBLIOTECA DE ALIMENTOS */}
         <Tabs.Screen
-          name="AdminAlimnetos"
+          name="AdminAlimentos"
           options={{
             title: 'Biblioteca',
             tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,

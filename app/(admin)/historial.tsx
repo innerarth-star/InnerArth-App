@@ -15,68 +15,71 @@ export default function HistorialAlumno() {
 
   const rangosAjuste = [100, 200, 300, 400, 500];
 
-  useEffect(() => {
-    const obtenerDatos = async () => {
-      try {
-        const docRef = doc(db, "alumnos_activos", id as string);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setAlumno(docSnap.data());
-        }
-      } catch (error) { console.error(error); }
-    };
-
-    const q = query(collection(db, "alumnos_activos", id as string, "planes"), orderBy("numero", "desc"));
-    const unsubPlanes = onSnapshot(q, (snapshot) => {
-      const lista: any[] = [];
-      snapshot.forEach((doc) => lista.push({ id: doc.id, ...doc.data() }));
-      setPlanes(lista);
-      setCargando(false);
-    });
-
-    obtenerDatos();
-    return () => unsubPlanes();
-  }, [id]);
-
-  const calcularMetricas = () => {
-    if (!alumno) return null;
-
-    // EXTRACCIÓN ROBUSTA (Busca en raíz y en datosFisicos)
-    const peso = parseFloat(alumno.datosFisicos?.peso || alumno.peso || 0);
-    const altura = parseFloat(alumno.datosFisicos?.altura || alumno.altura || alumno.estatura || 0);
-    const edad = parseInt(alumno.datosFisicos?.edad || alumno.edad || 0);
-    const genero = (alumno.datosFisicos?.genero || alumno.genero || 'hombre').toLowerCase();
-    
-    if (!peso || !altura || !edad) return null;
-
-    // LÓGICA DE ACTIVIDAD BASADA EN IPAQ (Sección 5 de tu formulario)
-    const vDias = parseInt(alumno.ipaq?.vDias || 0);
-    const mDias = parseInt(alumno.ipaq?.mDias || 0);
-    
-    let factorActividad = 1.2; 
-    if (vDias >= 3) factorActividad = 1.725; 
-    else if (vDias > 0 || mDias >= 3) factorActividad = 1.55; 
-    else if (mDias > 0) factorActividad = 1.375;
-
-    // FÓRMULA MIFFLIN-ST JEOR
-    let tmb = (10 * peso) + (6.25 * altura) - (5 * edad);
-    tmb = genero.includes('mujer') ? tmb - 161 : tmb + 5;
-    const get = tmb * factorActividad;
-    
-    const obj = (alumno.nutricion?.objetivo || alumno.objetivo || '').toLowerCase();
-    let final = get;
-    let tipo = "Mantenimiento";
-
-    if (obj.includes('perder') || obj.includes('definicion') || obj.includes('bajar')) {
-      final = get - ajusteCalorico;
-      tipo = `Déficit (-${ajusteCalorico})`;
-    } else if (obj.includes('ganar') || obj.includes('volumen') || obj.includes('subir')) {
-      final = get + ajusteCalorico;
-      tipo = `Superávit (+${ajusteCalorico})`;
+useEffect(() => {
+  const obtenerDatos = async () => {
+    if (!id) return;
+    try {
+      console.log("Buscando ID en Firebase:", id);
+      const docRef = doc(db, "alumnos_activos", id as string);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        console.log("¡Datos encontrados!", docSnap.data());
+        setAlumno(docSnap.data());
+      } else {
+        console.error("No existe el documento en alumnos_activos con el ID:", id);
+        // Ojo: Si usaste addDoc para crear al alumno, el ID es automático,
+        // asegúrate de que estás pasando el ID correcto desde la lista.
+      }
+    } catch (error) {
+      console.error("Error de conexión:", error);
     }
-
-    return { tmb: Math.round(tmb), get: Math.round(get), final: Math.round(final), tipo };
   };
+  obtenerDatos();
+}, [id]);
+
+const calcularMetricas = () => {
+  if (!alumno || !alumno.datosFisicos) return null;
+
+  // 1. Extraer del objeto datosFisicos (como lo tienes en el cliente)
+  const peso = parseFloat(alumno.datosFisicos.peso);
+  const altura = parseFloat(alumno.datosFisicos.altura);
+  const edad = parseInt(alumno.datosFisicos.edad);
+  const genero = alumno.datosFisicos.genero; // 'hombre' o 'mujer'
+
+  if (!peso || !altura || !edad) return null;
+
+  // 2. Factor de Actividad (Traducido de tu sección 5: IPAQ)
+  const vDias = parseInt(alumno.ipaq?.vDias || 0);
+  const mDias = parseInt(alumno.ipaq?.mDias || 0);
+  
+  let factorActividad = 1.2; // Sedentario por defecto
+  if (vDias >= 3) factorActividad = 1.725; // Muy activo
+  else if (vDias >= 1 || mDias >= 3) factorActividad = 1.55; // Activo
+  else if (mDias >= 1) factorActividad = 1.375; // Poco activo
+
+  // 3. TMB (Mifflin-St Jeor)
+  let tmb = (10 * peso) + (6.25 * altura) - (5 * edad);
+  tmb = genero === 'mujer' ? tmb - 161 : tmb + 5;
+
+  // 4. GET (Gasto Energético Total)
+  const get = tmb * factorActividad;
+
+  // 5. Ajuste con el selector (ajusteCalorico)
+  const obj = alumno.nutricion?.objetivo?.toLowerCase() || "";
+  let final = get;
+  let tipo = "Mantenimiento";
+
+  if (obj.includes("perder") || obj.includes("definicion")) {
+    final = get - ajusteCalorico;
+    tipo = `Déficit (-${ajusteCalorico})`;
+  } else if (obj.includes("ganar") || obj.includes("volumen")) {
+    final = get + ajusteCalorico;
+    tipo = `Superávit (+${ajusteCalorico})`;
+  }
+
+  return { tmb: Math.round(tmb), get: Math.round(get), final: Math.round(final), tipo };
+};
 
   const metricas = calcularMetricas();
 
