@@ -23,16 +23,10 @@ export default function HistorialAlumno() {
         if (docSnap.exists()) {
           setAlumno(docSnap.data());
         }
-      } catch (error) {
-        console.error("Error al obtener alumno:", error);
-      }
+      } catch (error) { console.error(error); }
     };
 
-    const q = query(
-      collection(db, "alumnos_activos", id as string, "planes"),
-      orderBy("numero", "desc")
-    );
-
+    const q = query(collection(db, "alumnos_activos", id as string, "planes"), orderBy("numero", "desc"));
     const unsubPlanes = onSnapshot(q, (snapshot) => {
       const lista: any[] = [];
       snapshot.forEach((doc) => lista.push({ id: doc.id, ...doc.data() }));
@@ -44,32 +38,10 @@ export default function HistorialAlumno() {
     return () => unsubPlanes();
   }, [id]);
 
-  const crearNuevoPlan = async () => {
-    try {
-      const proximoNumero = planes.length > 0 ? Math.max(...planes.map(p => p.numero)) + 1 : 1;
-      await addDoc(collection(db, "alumnos_activos", id as string, "planes"), {
-        titulo: `Plan ${proximoNumero}`,
-        numero: proximoNumero,
-        fechaCreacion: serverTimestamp(),
-        ajusteAplicado: ajusteCalorico
-      });
-    } catch (error) {
-      console.error("Error al crear plan:", error);
-    }
-  };
-
-  const eliminarPlan = async (pId: string) => {
-    try {
-      await deleteDoc(doc(db, "alumnos_activos", id as string, "planes", pId));
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
   const calcularMetricas = () => {
     if (!alumno) return null;
 
-    // Extracción basada en tu ClienteScreen
+    // EXTRACCIÓN ROBUSTA (Busca en raíz y en datosFisicos)
     const peso = parseFloat(alumno.datosFisicos?.peso || alumno.peso || 0);
     const altura = parseFloat(alumno.datosFisicos?.altura || alumno.altura || alumno.estatura || 0);
     const edad = parseInt(alumno.datosFisicos?.edad || alumno.edad || 0);
@@ -77,7 +49,7 @@ export default function HistorialAlumno() {
     
     if (!peso || !altura || !edad) return null;
 
-    // Lógica IPAQ para Factor de Actividad
+    // LÓGICA DE ACTIVIDAD BASADA EN IPAQ (Sección 5 de tu formulario)
     const vDias = parseInt(alumno.ipaq?.vDias || 0);
     const mDias = parseInt(alumno.ipaq?.mDias || 0);
     
@@ -89,10 +61,8 @@ export default function HistorialAlumno() {
     // FÓRMULA MIFFLIN-ST JEOR
     let tmb = (10 * peso) + (6.25 * altura) - (5 * edad);
     tmb = genero.includes('mujer') ? tmb - 161 : tmb + 5;
-    
     const get = tmb * factorActividad;
     
-    // Objetivo basado en nutricion.objetivo
     const obj = (alumno.nutricion?.objetivo || alumno.objetivo || '').toLowerCase();
     let final = get;
     let tipo = "Mantenimiento";
@@ -110,21 +80,36 @@ export default function HistorialAlumno() {
 
   const metricas = calcularMetricas();
 
-  if (cargando) return (
-    <View style={styles.center}><ActivityIndicator size="large" color="#3b82f6" /></View>
-  );
+  const crearNuevoPlan = async () => {
+    try {
+      const proximoNumero = planes.length > 0 ? Math.max(...planes.map(p => p.numero)) + 1 : 1;
+      await addDoc(collection(db, "alumnos_activos", id as string, "planes"), {
+        titulo: `Plan ${proximoNumero}`,
+        numero: proximoNumero,
+        fechaCreacion: serverTimestamp(),
+        ajusteAplicado: ajusteCalorico
+      });
+    } catch (error) { console.error(error); }
+  };
+
+  const eliminarPlan = async (pId: string) => {
+    try {
+      await deleteDoc(doc(db, "alumnos_activos", id as string, "planes", pId));
+    } catch (error) { console.error(error); }
+  };
+
+  if (cargando) return <View style={styles.center}><ActivityIndicator size="large" color="#3b82f6" /></View>;
 
   return (
     <View style={styles.outerContainer}>
       <View style={styles.mainContainer}>
-        {/* Header con regreso a Mis Alumnos */}
         <View style={styles.header}>
           <Pressable onPress={() => router.replace('/(admin)/alumnos' as any)} style={styles.backBtn}>
             <FontAwesome5 name="arrow-left" size={18} color="#1e293b" />
           </Pressable>
           <View>
             <Text style={styles.headerTitle}>{nombre}</Text>
-            <Text style={styles.headerSub}>Análisis de Gasto Energético</Text>
+            <Text style={styles.headerSub}>Análisis Metabólico</Text>
           </View>
         </View>
 
@@ -133,41 +118,32 @@ export default function HistorialAlumno() {
             <View style={styles.metricsCard}>
               <Text style={styles.cardLabel}>OBJETIVO: {metricas.tipo}</Text>
               <Text style={styles.caloriesMain}>{metricas.final} kcal</Text>
-              
-              <Text style={styles.selectorTitle}>Ajustar margen para el plan:</Text>
+              <Text style={styles.selectorTitle}>Ajustar margen (kcal):</Text>
               <View style={styles.selectorRow}>
                 {rangosAjuste.map((valor) => (
-                  <Pressable 
-                    key={valor} 
-                    onPress={() => setAjusteCalorico(valor)}
-                    style={[styles.chip, ajusteCalorico === valor && styles.chipActive]}
-                  >
+                  <Pressable key={valor} onPress={() => setAjusteCalorico(valor)} style={[styles.chip, ajusteCalorico === valor && styles.chipActive]}>
                     <Text style={[styles.chipText, ajusteCalorico === valor && styles.chipTextActive]}>{valor}</Text>
                   </Pressable>
                 ))}
               </View>
-
               <View style={styles.divider} />
               <View style={styles.miniRow}>
-                <View style={styles.miniItem}>
-                  <Text style={styles.miniVal}>{metricas.tmb}</Text>
-                  <Text style={styles.miniLab}>Basal (TMB)</Text>
-                </View>
-                <View style={styles.miniItem}>
-                  <Text style={styles.miniVal}>{metricas.get}</Text>
-                  <Text style={styles.miniLab}>Mantenimiento</Text>
-                </View>
+                <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.tmb}</Text><Text style={styles.miniLab}>Basal</Text></View>
+                <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.get}</Text><Text style={styles.miniLab}>Total</Text></View>
               </View>
             </View>
           ) : (
             <View style={styles.errorCard}>
-              <FontAwesome5 name="info-circle" size={20} color="#3b82f6" />
-              <Text style={styles.errorText}>Faltan datos físicos (peso, altura, edad) en el expediente para calcular.</Text>
+              <FontAwesome5 name="exclamation-triangle" size={24} color="#f59e0b" />
+              <Text style={styles.errorText}>No se detectan datos de Peso, Altura o Edad.</Text>
+              <Pressable style={styles.btnDebug} onPress={() => console.log("DATA:", alumno)}>
+                <Text style={{color:'#fff', fontSize:10}}>Ver Data en Consola</Text>
+              </Pressable>
             </View>
           )}
 
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Planes</Text>
+            <Text style={styles.sectionTitle}>Planes Históricos</Text>
             <Pressable style={styles.btnAdd} onPress={crearNuevoPlan}>
               <FontAwesome5 name="plus" size={12} color="#fff" />
               <Text style={styles.btnAddText}>Nuevo Plan</Text>
@@ -176,25 +152,12 @@ export default function HistorialAlumno() {
 
           {planes.map((plan) => (
             <View key={plan.id} style={styles.folderCard}>
-              <Pressable 
-                style={styles.folderMain}
-                onPress={() => router.push({ 
-                  pathname: '/(admin)/editorPlan' as any, 
-                  params: { planId: plan.id, alumnoId: id, nombreAlumno: nombre } 
-                })}
-              >
+              <Pressable style={styles.folderMain} onPress={() => router.push({ pathname: '/(admin)/editorPlan' as any, params: { planId: plan.id, alumnoId: id, nombreAlumno: nombre } })}>
                 <FontAwesome5 name="folder-open" size={20} color="#3b82f6" />
-                <View style={styles.folderInfo}>
-                  <Text style={styles.folderTitle}>{plan.titulo}</Text>
-                  <Text style={styles.folderSub}>Margen aplicado: {plan.ajusteAplicado} kcal</Text>
-                </View>
+                <View style={styles.folderInfo}><Text style={styles.folderTitle}>{plan.titulo}</Text><Text style={styles.folderSub}>Margen: {plan.ajusteAplicado || '300'} kcal</Text></View>
                 <FontAwesome5 name="chevron-right" size={14} color="#cbd5e1" />
               </Pressable>
-              
-              <Pressable onPress={() => {
-                if(Platform.OS === 'web'){ if(confirm("¿Borrar plan?")) eliminarPlan(plan.id) }
-                else { Alert.alert("Borrar", "¿Confirmas?", [{text:"No"}, {text:"Si", onPress:()=>eliminarPlan(plan.id)}])}
-              }} style={styles.btnDelete}>
+              <Pressable onPress={() => { if(Platform.OS === 'web'){ if(confirm("¿Borrar?")) eliminarPlan(plan.id) } else { Alert.alert("Borrar", "¿Confirmas?", [{text:"No"}, {text:"Si", onPress:()=>eliminarPlan(plan.id)}])}}} style={styles.btnDelete}>
                 <FontAwesome5 name="trash-alt" size={14} color="#ef4444" />
               </Pressable>
             </View>
@@ -226,7 +189,7 @@ const styles = StyleSheet.create({
   divider: { width: '100%', height: 1, backgroundColor: '#334155', marginVertical: 20 },
   miniRow: { flexDirection: 'row', width: '100%', justifyContent: 'space-around' },
   miniItem: { alignItems: 'center' },
-  miniVal: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  miniVal: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   miniLab: { color: '#64748b', fontSize: 10, marginTop: 4 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
   sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#1e293b' },
@@ -238,6 +201,7 @@ const styles = StyleSheet.create({
   folderTitle: { fontSize: 15, fontWeight: 'bold', color: '#1e293b' },
   folderSub: { fontSize: 11, color: '#94a3b8', marginTop: 2 },
   btnDelete: { paddingHorizontal: 15, height: 70, justifyContent: 'center', backgroundColor: '#fff5f5' },
-  errorCard: { backgroundColor: '#fff', padding: 25, borderRadius: 16, alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: '#3b82f6', gap: 10 },
-  errorText: { color: '#64748b', fontSize: 12, textAlign: 'center', lineHeight: 18 }
+  errorCard: { backgroundColor: '#fff', padding: 25, borderRadius: 16, alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: '#f59e0b', gap: 10 },
+  errorText: { color: '#64748b', fontSize: 12, textAlign: 'center' },
+  btnDebug: { backgroundColor: '#334155', padding: 8, borderRadius: 5 }
 });
