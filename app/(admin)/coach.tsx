@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, FlatList, Pressable, ActivityIndicator, Platform, ScrollView, Image } from 'react-native';
 import { db, auth } from '../../firebaseConfig';
-import { collection, query, onSnapshot, doc, deleteDoc, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, onSnapshot, doc, deleteDoc, orderBy, addDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { FontAwesome5 } from '@expo/vector-icons';
 
@@ -21,21 +21,22 @@ export default function CoachPanel() {
     return () => unsubscribe();
   }, []);
 
-  const gestionarCliente = async (accion: 'aceptar' | 'rechazar') => {
-    if (!clienteSeleccionado) return;
-    try {
-      if (accion === 'aceptar') {
-        // Se mueve a la colección que lee la nueva pestaña de Alumnos
-        await addDoc(collection(db, "alumnos_activos"), { 
-          ...clienteSeleccionado, 
-          fechaAceptado: serverTimestamp() 
-        });
-      }
-      await deleteDoc(doc(db, "revisiones_pendientes", clienteSeleccionado.id));
-      // Regresamos a la lista de pendientes (Evita pantalla en blanco)
-      setClienteSeleccionado(null);
-    } catch (e) { console.error(e); }
-  };
+const gestionarCliente = async (accion: 'aceptar' | 'rechazar') => {
+  if (!clienteSeleccionado) return;
+  try {
+    if (accion === 'aceptar') {
+      // Usamos setDoc con el UID del usuario para que el ID sea fijo y conocido
+      const alumnoRef = doc(db, "alumnos_activos", clienteSeleccionado.uid); 
+      await setDoc(alumnoRef, { 
+        ...clienteSeleccionado, 
+        idAlumno: clienteSeleccionado.uid, // Guardamos su UID como referencia
+        fechaAceptado: serverTimestamp() 
+      });
+    }
+    await deleteDoc(doc(db, "revisiones_pendientes", clienteSeleccionado.id));
+    setClienteSeleccionado(null);
+  } catch (e) { console.error(e); }
+};
 
   // --- TU PDF ORIGINAL (SIN CAMBIOS) ---
   const generarPDFReal = (c: any) => {
