@@ -12,11 +12,19 @@ export default function MisAlumnos() {
   const router = useRouter();
 
   useEffect(() => {
+    // Escuchamos la colección de alumnos activos
     const q = query(collection(db, "alumnos_activos"), orderBy("nombre", "asc"));
+    
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const lista: any[] = [];
       snapshot.forEach((doc) => {
-        lista.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        // IMPORTANTE: Usamos el data.uid como ID principal para que el Historial 
+        // pueda encontrar el expediente. Si no existe, usamos el id del documento.
+        lista.push({ 
+          id: data.uid || doc.id, 
+          ...data 
+        });
       });
       setAlumnos(lista);
       setCargando(false);
@@ -24,6 +32,7 @@ export default function MisAlumnos() {
       console.error("Error en Firestore:", error);
       setCargando(false);
     });
+
     return () => unsubscribe();
   }, []);
 
@@ -67,17 +76,20 @@ export default function MisAlumnos() {
           </View>
         </View>
 
-        {/* Lista */}
+        {/* Lista de Alumnos */}
         <FlatList
           data={alumnosFiltrados}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <Pressable 
               style={styles.card}
-              onPress={() => router.push({ 
-                pathname: '/(admin)/historial' as any, 
-                params: { id: item.id, nombre: item.nombre } 
-              })}
+              onPress={() => {
+                // Navegamos pasando el ID (que ahora es el UID real)
+                router.push({ 
+                  pathname: '/(admin)/historial' as any, 
+                  params: { id: item.id, nombre: item.nombre } 
+                });
+              }}
             >
               <View style={styles.cardInfo}>
                 <Text style={styles.alumnoNombre}>{item.nombre}</Text>
@@ -99,16 +111,15 @@ export default function MisAlumnos() {
 }
 
 const styles = StyleSheet.create({
-  // ESTO ARREGLA EL ESTIRAMIENTO EN WEB
   outerContainer: {
     flex: 1,
     backgroundColor: '#f1f5f9',
-    alignItems: 'center', // Centra el contenido en pantallas anchas
+    alignItems: 'center', 
   },
   mainContainer: {
     flex: 1,
     width: '100%',
-    maxWidth: 800, // Limita el ancho en Web para que no se vea "alargada"
+    maxWidth: 800, 
     backgroundColor: '#f1f5f9',
   },
   center: {
