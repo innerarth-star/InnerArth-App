@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { db } from '../../firebaseConfig';
@@ -10,7 +10,7 @@ export default function HistorialAlumno() {
   const [alumno, setAlumno] = useState<any>(null);
   const [planes, setPlanes] = useState<any[]>([]);
   const [cargando, setCargando] = useState(true);
-  const [ajusteCalorico, setAjusteCalorico] = useState(300);
+  const [ajusteCalorico, setAjusteCalorico] = useState(300); // Estado del botón
   const router = useRouter();
 
   const rangosAjuste = [100, 200, 300, 400, 500];
@@ -40,7 +40,8 @@ export default function HistorialAlumno() {
     cargarDatos();
   }, [id]);
 
-  const calcularMetricas = () => {
+  // USAMOS USEMEMO PARA QUE EL CÁLCULO REACCIONE AL BOTÓN DE AJUSTE
+  const metricas = useMemo(() => {
     if (!alumno || !alumno.datosFisicos) return null;
 
     let peso = parseFloat(alumno.datosFisicos.peso) || 0;
@@ -65,28 +66,30 @@ export default function HistorialAlumno() {
 
     const get = tmb * factor;
     
-    // LOGICA DE SEPARACIÓN: DÉFICIT O SUPERÁVIT
+    // LÓGICA DE SEPARACIÓN Y SUMA/RESTA DINÁMICA
     const obj = (alumno.nutricion?.objetivo || '').toLowerCase();
     let final = get;
     let tipoLabel = "Mantenimiento";
+    let colorObjetivo = "#94a3b8"; // Gris
 
     if (obj.includes('perder') || obj.includes('definicion') || obj.includes('bajar') || obj.includes('deficit')) {
-      final = get - ajusteCalorico;
+      final = get - ajusteCalorico; // RESTA SI ES DÉFICIT
       tipoLabel = `Déficit (-${ajusteCalorico})`;
+      colorObjetivo = "#ef4444"; // Rojo
     } else if (obj.includes('ganar') || obj.includes('volumen') || obj.includes('subir') || obj.includes('superavit')) {
-      final = get + ajusteCalorico;
+      final = get + ajusteCalorico; // SUMA SI ES SUPERÁVIT
       tipoLabel = `Superávit (+${ajusteCalorico})`;
+      colorObjetivo = "#10b981"; // Verde
     }
 
     return { 
       tmb: Math.round(tmb), 
       get: Math.round(get), 
       final: Math.round(final), 
-      tipo: tipoLabel 
+      tipo: tipoLabel,
+      color: colorObjetivo
     };
-  };
-
-  const metricas = calcularMetricas();
+  }, [alumno, ajusteCalorico]); // SE RE-CALCULA CUANDO CAMBIAS EL BOTÓN
 
   const crearNuevoPlan = async () => {
     if (!id || !metricas) return;
@@ -120,13 +123,17 @@ export default function HistorialAlumno() {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {metricas ? (
             <View style={styles.metricsCard}>
-              <Text style={styles.cardLabel}>OBJETIVO: {metricas.tipo}</Text>
+              <Text style={[styles.cardLabel, { color: metricas.color }]}>OBJETIVO: {metricas.tipo}</Text>
               <Text style={styles.caloriesMain}>{metricas.final} kcal</Text>
               
               <Text style={styles.selectorTitle}>Ajustar margen manual (kcal):</Text>
               <View style={styles.selectorRow}>
                 {rangosAjuste.map((v) => (
-                  <Pressable key={v} onPress={() => setAjusteCalorico(v)} style={[styles.chip, ajusteCalorico === v && styles.chipActive]}>
+                  <Pressable 
+                    key={v} 
+                    onPress={() => setAjusteCalorico(v)} 
+                    style={[styles.chip, ajusteCalorico === v && styles.chipActive]}
+                  >
                     <Text style={[styles.chipText, ajusteCalorico === v && styles.chipTextActive]}>{v}</Text>
                   </Pressable>
                 ))}
@@ -177,13 +184,13 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 20 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   metricsCard: { backgroundColor: '#1e293b', borderRadius: 24, padding: 25, alignItems: 'center' },
-  cardLabel: { color: '#3b82f6', fontSize: 10, fontWeight: 'bold' },
+  cardLabel: { fontSize: 11, fontWeight: 'bold', letterSpacing: 1 },
   caloriesMain: { color: '#fff', fontSize: 48, fontWeight: 'bold', marginVertical: 10 },
   selectorTitle: { color: '#94a3b8', fontSize: 11, marginTop: 15, marginBottom: 10 },
   selectorRow: { flexDirection: 'row', gap: 6 },
-  chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#475569', backgroundColor: '#334155' },
+  chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#475569', backgroundColor: '#334155' },
   chipActive: { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
-  chipText: { color: '#94a3b8', fontSize: 11, fontWeight: 'bold' },
+  chipText: { color: '#94a3b8', fontSize: 12, fontWeight: 'bold' },
   chipTextActive: { color: '#fff' },
   divider: { width: '100%', height: 1, backgroundColor: '#334155', marginVertical: 20 },
   miniRow: { flexDirection: 'row', width: '100%', justifyContent: 'space-around' },
@@ -199,6 +206,5 @@ const styles = StyleSheet.create({
   folderCard: { backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', borderRadius: 15, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0', overflow: 'hidden' },
   folderMain: { flex: 1, flexDirection: 'row', alignItems: 'center', padding: 15 },
   folderInfo: { flex: 1, marginLeft: 15 },
-  folderTitle: { fontWeight: 'bold' },
-  btnDelete: { padding: 20, backgroundColor: '#fff5f5' }
+  folderTitle: { fontWeight: 'bold' }
 });
