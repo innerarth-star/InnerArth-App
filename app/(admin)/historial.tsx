@@ -16,17 +16,14 @@ export default function HistorialAlumno() {
   const rangosAjuste = [100, 200, 300, 400, 500];
 
   useEffect(() => {
-    const obtenerTodo = async () => {
+    const cargarDatos = async () => {
       if (!id) return;
-      setCargando(true);
       try {
         const docRef = doc(db, "alumnos_activos", id as string);
         const docSnap = await getDoc(docRef);
-        
         if (docSnap.exists()) {
           setAlumno(docSnap.data());
         }
-
         const q = query(collection(db, "alumnos_activos", id as string, "planes"), orderBy("numero", "desc"));
         const unsub = onSnapshot(q, (snapshot) => {
           const lista: any[] = [];
@@ -34,14 +31,13 @@ export default function HistorialAlumno() {
           setPlanes(lista);
           setCargando(false);
         });
-
         return unsub;
       } catch (e) {
         console.error(e);
         setCargando(false);
       }
     };
-    obtenerTodo();
+    cargarDatos();
   }, [id]);
 
   const calcularMetricas = () => {
@@ -52,16 +48,14 @@ export default function HistorialAlumno() {
     let edad = parseInt(alumno.datosFisicos.edad) || 0;
     const genero = (alumno.datosFisicos.genero || 'hombre').toLowerCase();
 
-    // Corregimos si la altura viene en metros (1.70 -> 170)
     if (altura > 0 && altura < 3) altura = altura * 100;
-
     if (peso <= 0 || altura <= 0 || edad <= 0) return null;
 
-    // Mifflin-St Jeor
+    // TMB Mifflin-St Jeor
     let tmb = (10 * peso) + (6.25 * altura) - (5 * edad);
     tmb = genero === 'mujer' ? tmb - 161 : tmb + 5;
 
-    // Factor Actividad IPAQ
+    // Factor Actividad (IPAQ)
     const vDias = parseInt(alumno.ipaq?.vDias) || 0;
     const mDias = parseInt(alumno.ipaq?.mDias) || 0;
     let factor = 1.2;
@@ -70,15 +64,16 @@ export default function HistorialAlumno() {
     else if (mDias >= 1) factor = 1.375;
 
     const get = tmb * factor;
-    const obj = (alumno.nutricion?.objetivo || '').toLowerCase();
     
+    // LOGICA DE SEPARACIÓN: DÉFICIT O SUPERÁVIT
+    const obj = (alumno.nutricion?.objetivo || '').toLowerCase();
     let final = get;
     let tipoLabel = "Mantenimiento";
 
-    if (obj.includes('perder') || obj.includes('definicion') || obj.includes('bajar')) {
+    if (obj.includes('perder') || obj.includes('definicion') || obj.includes('bajar') || obj.includes('deficit')) {
       final = get - ajusteCalorico;
       tipoLabel = `Déficit (-${ajusteCalorico})`;
-    } else if (obj.includes('ganar') || obj.includes('volumen') || obj.includes('subir')) {
+    } else if (obj.includes('ganar') || obj.includes('volumen') || obj.includes('subir') || obj.includes('superavit')) {
       final = get + ajusteCalorico;
       tipoLabel = `Superávit (+${ajusteCalorico})`;
     }
@@ -91,11 +86,10 @@ export default function HistorialAlumno() {
     };
   };
 
-  // Declaramos metricas antes de las funciones que la usan
   const metricas = calcularMetricas();
 
   const crearNuevoPlan = async () => {
-    if (!id) return;
+    if (!id || !metricas) return;
     try {
       const num = planes.length + 1;
       await addDoc(collection(db, "alumnos_activos", id as string, "planes"), {
@@ -103,18 +97,12 @@ export default function HistorialAlumno() {
         numero: num,
         fechaCreacion: serverTimestamp(),
         ajusteAplicado: ajusteCalorico,
-        caloriasMeta: metricas?.final || 0 // Ahora metricas sí existe aquí
+        caloriasMeta: metricas.final,
+        tipoObjetivo: metricas.tipo
       });
     } catch (e) {
       console.error(e);
-      Alert.alert("Error", "No se pudo crear el plan");
     }
-  };
-
-  const eliminarPlan = async (pId: string) => {
-    try {
-      await deleteDoc(doc(db, "alumnos_activos", id as string, "planes", pId));
-    } catch (e) { console.error(e); }
   };
 
   if (cargando) return <View style={styles.center}><ActivityIndicator size="large" color="#3b82f6" /></View>;
@@ -135,7 +123,7 @@ export default function HistorialAlumno() {
               <Text style={styles.cardLabel}>OBJETIVO: {metricas.tipo}</Text>
               <Text style={styles.caloriesMain}>{metricas.final} kcal</Text>
               
-              <Text style={styles.selectorTitle}>Ajustar margen (kcal):</Text>
+              <Text style={styles.selectorTitle}>Ajustar margen manual (kcal):</Text>
               <View style={styles.selectorRow}>
                 {rangosAjuste.map((v) => (
                   <Pressable key={v} onPress={() => setAjusteCalorico(v)} style={[styles.chip, ajusteCalorico === v && styles.chipActive]}>
@@ -147,13 +135,13 @@ export default function HistorialAlumno() {
               <View style={styles.divider} />
               <View style={styles.miniRow}>
                 <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.tmb}</Text><Text style={styles.miniLab}>Basal</Text></View>
-                <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.get}</Text><Text style={styles.miniLab}>Total</Text></View>
+                <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.get}</Text><Text style={styles.miniLab}>Mantenimiento</Text></View>
               </View>
             </View>
           ) : (
             <View style={styles.errorCard}>
               <FontAwesome5 name="exclamation-circle" size={24} color="#f59e0b" />
-              <Text style={styles.errorText}>Datos incompletos para calcular.</Text>
+              <Text style={styles.errorText}>Faltan datos en el perfil para calcular.</Text>
             </View>
           )}
 
@@ -171,9 +159,6 @@ export default function HistorialAlumno() {
                 <FontAwesome5 name="folder" size={20} color="#3b82f6" />
                 <View style={styles.folderInfo}><Text style={styles.folderTitle}>{p.titulo}</Text></View>
                 <FontAwesome5 name="chevron-right" size={14} color="#cbd5e1" />
-              </Pressable>
-              <Pressable style={styles.btnDelete} onPress={() => eliminarPlan(p.id)}>
-                <FontAwesome5 name="trash-alt" size={14} color="#ef4444" />
               </Pressable>
             </View>
           ))}
