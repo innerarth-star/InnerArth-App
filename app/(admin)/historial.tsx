@@ -10,7 +10,7 @@ export default function HistorialAlumno() {
   const [alumno, setAlumno] = useState<any>(null);
   const [planes, setPlanes] = useState<any[]>([]);
   const [cargando, setCargando] = useState(true);
-  const [ajusteCalorico, setAjusteCalorico] = useState(300); // Estado del botón
+  const [ajusteCalorico, setAjusteCalorico] = useState(300); 
   const router = useRouter();
 
   const rangosAjuste = [100, 200, 300, 400, 500];
@@ -40,7 +40,6 @@ export default function HistorialAlumno() {
     cargarDatos();
   }, [id]);
 
-  // USAMOS USEMEMO PARA QUE EL CÁLCULO REACCIONE AL BOTÓN DE AJUSTE
   const metricas = useMemo(() => {
     if (!alumno || !alumno.datosFisicos) return null;
 
@@ -66,20 +65,28 @@ export default function HistorialAlumno() {
 
     const get = tmb * factor;
     
-    // LÓGICA DE SEPARACIÓN Y SUMA/RESTA DINÁMICA
+    // --- LÓGICA DE DETECCIÓN DE ESTADO ---
     const obj = (alumno.nutricion?.objetivo || '').toLowerCase();
     let final = get;
     let tipoLabel = "Mantenimiento";
-    let colorObjetivo = "#94a3b8"; // Gris
+    let colorEstado = "#64748b"; // Gris (Mantenimiento)
 
-    if (obj.includes('perder') || obj.includes('definicion') || obj.includes('bajar') || obj.includes('deficit')) {
-      final = get - ajusteCalorico; // RESTA SI ES DÉFICIT
+    // Palabras clave para Déficit
+    const palabrasDeficit = ['perder', 'bajar', 'definición', 'definicion', 'grasa', 'deficit', 'déficit'];
+    // Palabras clave para Superávit
+    const palabrasSuperavit = ['ganar', 'subir', 'volumen', 'masa', 'músculo', 'musculo', 'superavit', 'superávit'];
+
+    const esDeficit = palabrasDeficit.some(p => obj.includes(p));
+    const esSuperavit = palabrasSuperavit.some(p => obj.includes(p));
+
+    if (esDeficit) {
+      final = get - ajusteCalorico;
       tipoLabel = `Déficit (-${ajusteCalorico})`;
-      colorObjetivo = "#ef4444"; // Rojo
-    } else if (obj.includes('ganar') || obj.includes('volumen') || obj.includes('subir') || obj.includes('superavit')) {
-      final = get + ajusteCalorico; // SUMA SI ES SUPERÁVIT
+      colorEstado = "#ef4444"; // Rojo
+    } else if (esSuperavit) {
+      final = get + ajusteCalorico;
       tipoLabel = `Superávit (+${ajusteCalorico})`;
-      colorObjetivo = "#10b981"; // Verde
+      colorEstado = "#10b981"; // Verde
     }
 
     return { 
@@ -87,9 +94,9 @@ export default function HistorialAlumno() {
       get: Math.round(get), 
       final: Math.round(final), 
       tipo: tipoLabel,
-      color: colorObjetivo
+      color: colorEstado
     };
-  }, [alumno, ajusteCalorico]); // SE RE-CALCULA CUANDO CAMBIAS EL BOTÓN
+  }, [alumno, ajusteCalorico]);
 
   const crearNuevoPlan = async () => {
     if (!id || !metricas) return;
@@ -101,7 +108,7 @@ export default function HistorialAlumno() {
         fechaCreacion: serverTimestamp(),
         ajusteAplicado: ajusteCalorico,
         caloriasMeta: metricas.final,
-        tipoObjetivo: metricas.tipo
+        tipoEstado: metricas.tipo
       });
     } catch (e) {
       console.error(e);
@@ -123,7 +130,10 @@ export default function HistorialAlumno() {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {metricas ? (
             <View style={styles.metricsCard}>
-              <Text style={[styles.cardLabel, { color: metricas.color }]}>OBJETIVO: {metricas.tipo}</Text>
+              <View style={[styles.badge, { backgroundColor: metricas.color + '20', borderColor: metricas.color }]}>
+                <Text style={[styles.badgeText, { color: metricas.color }]}>{metricas.tipo.toUpperCase()}</Text>
+              </View>
+              
               <Text style={styles.caloriesMain}>{metricas.final} kcal</Text>
               
               <Text style={styles.selectorTitle}>Ajustar margen manual (kcal):</Text>
@@ -142,13 +152,13 @@ export default function HistorialAlumno() {
               <View style={styles.divider} />
               <View style={styles.miniRow}>
                 <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.tmb}</Text><Text style={styles.miniLab}>Basal</Text></View>
-                <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.get}</Text><Text style={styles.miniLab}>Mantenimiento</Text></View>
+                <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.get}</Text><Text style={styles.miniLab}>GET</Text></View>
               </View>
             </View>
           ) : (
             <View style={styles.errorCard}>
-              <FontAwesome5 name="exclamation-circle" size={24} color="#f59e0b" />
-              <Text style={styles.errorText}>Faltan datos en el perfil para calcular.</Text>
+              <FontAwesome5 name="exclamation-triangle" size={24} color="#f59e0b" />
+              <Text style={styles.errorText}>Datos incompletos para calcular.</Text>
             </View>
           )}
 
@@ -164,7 +174,10 @@ export default function HistorialAlumno() {
             <View key={p.id} style={styles.folderCard}>
               <Pressable style={styles.folderMain} onPress={() => router.push({ pathname: '/(admin)/editorPlan' as any, params: { planId: p.id, alumnoId: id, nombreAlumno: nombre } })}>
                 <FontAwesome5 name="folder" size={20} color="#3b82f6" />
-                <View style={styles.folderInfo}><Text style={styles.folderTitle}>{p.titulo}</Text></View>
+                <View style={styles.folderInfo}>
+                   <Text style={styles.folderTitle}>{p.titulo}</Text>
+                   <Text style={styles.folderSub}>{p.tipoEstado} - {p.caloriasMeta} kcal</Text>
+                </View>
                 <FontAwesome5 name="chevron-right" size={14} color="#cbd5e1" />
               </Pressable>
             </View>
@@ -184,8 +197,9 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 20 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   metricsCard: { backgroundColor: '#1e293b', borderRadius: 24, padding: 25, alignItems: 'center' },
-  cardLabel: { fontSize: 11, fontWeight: 'bold', letterSpacing: 1 },
-  caloriesMain: { color: '#fff', fontSize: 48, fontWeight: 'bold', marginVertical: 10 },
+  badge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, borderWidth: 1, marginBottom: 10 },
+  badgeText: { fontSize: 10, fontWeight: 'bold' },
+  caloriesMain: { color: '#fff', fontSize: 48, fontWeight: 'bold', marginVertical: 5 },
   selectorTitle: { color: '#94a3b8', fontSize: 11, marginTop: 15, marginBottom: 10 },
   selectorRow: { flexDirection: 'row', gap: 6 },
   chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#475569', backgroundColor: '#334155' },
@@ -197,14 +211,15 @@ const styles = StyleSheet.create({
   miniItem: { alignItems: 'center' },
   miniVal: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   miniLab: { color: '#64748b', fontSize: 10, marginTop: 4 },
-  errorCard: { backgroundColor: '#fff', padding: 30, borderRadius: 20, alignItems: 'center', gap: 10 },
-  errorText: { color: '#64748b' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 30, marginBottom: 15 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold' },
-  btnAdd: { backgroundColor: '#3b82f6', flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 8, gap: 8 },
+  btnAdd: { backgroundColor: '#3b82f6', padding: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
   btnAddText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
   folderCard: { backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', borderRadius: 15, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0', overflow: 'hidden' },
   folderMain: { flex: 1, flexDirection: 'row', alignItems: 'center', padding: 15 },
   folderInfo: { flex: 1, marginLeft: 15 },
-  folderTitle: { fontWeight: 'bold' }
+  folderTitle: { fontWeight: 'bold' },
+  folderSub: { fontSize: 11, color: '#94a3b8' },
+  errorCard: { backgroundColor: '#fff', padding: 30, borderRadius: 20, alignItems: 'center', gap: 10 },
+  errorText: { color: '#64748b' }
 });
