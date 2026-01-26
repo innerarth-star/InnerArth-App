@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { db } from '../../firebaseConfig';
-import { doc, getDoc, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp } from 'firebase/firestore';
 import { FontAwesome5 } from '@expo/vector-icons';
 
 export default function HistorialAlumno() {
@@ -10,9 +10,11 @@ export default function HistorialAlumno() {
   const [alumno, setAlumno] = useState<any>(null);
   const [planes, setPlanes] = useState<any[]>([]);
   const [cargando, setCargando] = useState(true);
+  
+  const [modo, setModo] = useState<'mantenimiento' | 'deficit' | 'superavit'>('mantenimiento');
   const [ajusteCalorico, setAjusteCalorico] = useState(300); 
-  const router = useRouter();
 
+  const router = useRouter();
   const rangosAjuste = [100, 200, 300, 400, 500];
 
   useEffect(() => {
@@ -22,7 +24,11 @@ export default function HistorialAlumno() {
         const docRef = doc(db, "alumnos_activos", id as string);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          setAlumno(docSnap.data());
+          const data = docSnap.data();
+          setAlumno(data);
+          const obj = (data.nutricion?.objetivo || '').toLowerCase();
+          if (obj.includes('perder') || obj.includes('bajar')) setModo('deficit');
+          else if (obj.includes('ganar') || obj.includes('subir')) setModo('superavit');
         }
         const q = query(collection(db, "alumnos_activos", id as string, "planes"), orderBy("numero", "desc"));
         const unsub = onSnapshot(q, (snapshot) => {
@@ -32,31 +38,25 @@ export default function HistorialAlumno() {
           setCargando(false);
         });
         return unsub;
-      } catch (e) {
-        console.error(e);
-        setCargando(false);
-      }
+      } catch (e) { setCargando(false); }
     };
     cargarDatos();
   }, [id]);
 
-  // --- EL MOTOR DE CÁLCULO ---
   const metricas = useMemo(() => {
     if (!alumno || !alumno.datosFisicos) return null;
 
-    let peso = parseFloat(alumno.datosFisicos.peso) || 0;
-    let altura = parseFloat(alumno.datosFisicos.altura) || 0;
-    let edad = parseInt(alumno.datosFisicos.edad) || 0;
-    const genero = (alumno.datosFisicos.genero || 'hombre').toLowerCase();
+    let peso = parseFloat(alumno.datosFisicos.weight || alumno.datosFisicos.peso || 0);
+    let altura = parseFloat(alumno.datosFisicos.height || alumno.datosFisicos.altura || 0);
+    let edad = parseInt(alumno.datosFisicos.age || alumno.datosFisicos.edad || 0);
+    const genero = (alumno.datosFisicos.gender || alumno.datosFisicos.genero || 'hombre').toLowerCase();
 
     if (altura > 0 && altura < 3) altura = altura * 100;
     if (peso <= 0 || altura <= 0 || edad <= 0) return null;
 
-    // TMB Mifflin-St Jeor
     let tmb = (10 * peso) + (6.25 * altura) - (5 * edad);
     tmb = genero === 'mujer' ? tmb - 161 : tmb + 5;
 
-    // Factor Actividad (IPAQ)
     const vDias = parseInt(alumno.ipaq?.vDias) || 0;
     const mDias = parseInt(alumno.ipaq?.mDias) || 0;
     let factor = 1.2;
@@ -66,38 +66,16 @@ export default function HistorialAlumno() {
 
     const get = tmb * factor;
     
-    // LÓGICA DE DETECCIÓN DE OBJETIVO
-    const obj = (alumno.nutricion?.objetivo || '').toLowerCase();
-    const palabrasDeficit = ['perder', 'bajar', 'definición', 'definicion', 'grasa', 'deficit', 'déficit'];
-    const palabrasSuperavit = ['ganar', 'subir', 'volumen', 'masa', 'músculo', 'musculo', 'superavit', 'superávit'];
-
-    const esDeficit = palabrasDeficit.some(p => obj.includes(p));
-    const esSuperavit = palabrasSuperavit.some(p => obj.includes(p));
-
     let final = get;
-    let tipoLabel = "Mantenimiento";
-    let colorEstado = "#64748b";
-
-    if (esDeficit) {
-      final = get - ajusteCalorico; // AQUI RESTA
-      tipoLabel = `Déficit (-${ajusteCalorico})`;
-      colorEstado = "#ef4444";
-    } else if (esSuperavit) {
-      final = get + ajusteCalorico; // AQUI SUMA
-      tipoLabel = `Superávit (+${ajusteCalorico})`;
-      colorEstado = "#10b981";
-    }
-
-    console.log(`DEBUG: GET base: ${get} | Ajuste: ${ajusteCalorico} | Final: ${final}`);
+    if (modo === 'deficit') final = get - ajusteCalorico;
+    if (modo === 'superavit') final = get + ajusteCalorico;
 
     return { 
       tmb: Math.round(tmb), 
       get: Math.round(get), 
-      final: Math.round(final), 
-      tipo: tipoLabel,
-      color: colorEstado
+      final: Math.round(final)
     };
-  }, [alumno, ajusteCalorico]); // Escucha cambios en el botón
+  }, [alumno, ajusteCalorico, modo]);
 
   const crearNuevoPlan = async () => {
     if (!id || !metricas) return;
@@ -107,13 +85,11 @@ export default function HistorialAlumno() {
         titulo: `Plan ${num}`,
         numero: num,
         fechaCreacion: serverTimestamp(),
-        ajusteAplicado: ajusteCalorico,
-        caloriasMeta: metricas.final,
-        tipoEstado: metricas.tipo
+        modo,
+        ajuste: ajusteCalorico,
+        caloriasMeta: metricas.final
       });
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { Alert.alert("Error", "No se guardó el plan"); }
   };
 
   if (cargando) return <View style={styles.center}><ActivityIndicator size="large" color="#3b82f6" /></View>;
@@ -122,7 +98,7 @@ export default function HistorialAlumno() {
     <View style={styles.outerContainer}>
       <View style={styles.mainContainer}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.replace('/(admin)/alumnos' as any)} style={styles.backBtn}>
+          <Pressable onPress={() => router.replace('/alumnos' as any)} style={styles.backBtn}>
             <FontAwesome5 name="arrow-left" size={18} color="#1e293b" />
           </Pressable>
           <Text style={styles.headerTitle}>{nombre}</Text>
@@ -131,58 +107,54 @@ export default function HistorialAlumno() {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {metricas ? (
             <View style={styles.metricsCard}>
-              <View style={[styles.badge, { backgroundColor: metricas.color + '20', borderColor: metricas.color }]}>
-                <Text style={[styles.badgeText, { color: metricas.color }]}>{metricas.tipo.toUpperCase()}</Text>
-              </View>
-              
               <Text style={styles.caloriesMain}>{metricas.final} kcal</Text>
               
-              <Text style={styles.selectorTitle}>Cambiar Margen Manual:</Text>
+              <View style={styles.modeRow}>
+                <Pressable onPress={() => setModo('deficit')} style={[styles.modeBtn, modo === 'deficit' && {backgroundColor: '#ef4444'}]}>
+                  <Text style={styles.modeBtnText}>Déficit</Text>
+                </Pressable>
+                <Pressable onPress={() => setModo('mantenimiento')} style={[styles.modeBtn, modo === 'mantenimiento' && {backgroundColor: '#64748b'}]}>
+                  <Text style={styles.modeBtnText}>Mantenimiento</Text>
+                </Pressable>
+                <Pressable onPress={() => setModo('superavit')} style={[styles.modeBtn, modo === 'superavit' && {backgroundColor: '#10b981'}]}>
+                  <Text style={styles.modeBtnText}>Superávit</Text>
+                </Pressable>
+              </View>
+
+              <Text style={styles.selectorTitle}>Ajustar Margen Manual (Kcal):</Text>
               <View style={styles.selectorRow}>
                 {rangosAjuste.map((v) => (
-                  <Pressable 
-                    key={v} 
-                    onPress={() => {
-                        console.log("Cambiando ajuste a:", v);
-                        setAjusteCalorico(v);
-                    }} 
-                    style={[styles.chip, ajusteCalorico === v && styles.chipActive]}
-                  >
-                    <Text style={[styles.chipText, ajusteCalorico === v && styles.chipTextActive]}>{v}</Text>
+                  <Pressable key={v} onPress={() => setAjusteCalorico(v)} style={[styles.chip, ajusteCalorico === v && styles.chipActive]}>
+                    <Text style={[styles.chipText, ajusteCalorico === v && { color: '#fff' }]}>{v}</Text>
                   </Pressable>
                 ))}
               </View>
 
               <View style={styles.divider} />
               <View style={styles.miniRow}>
-                <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.tmb}</Text><Text style={styles.miniLab}>Basal</Text></View>
-                <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.get}</Text><Text style={styles.miniLab}>Mantenimiento</Text></View>
+                <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.tmb}</Text><Text style={styles.miniLab}>TMB</Text></View>
+                <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.get}</Text><Text style={styles.miniLab}>GET</Text></View>
               </View>
             </View>
           ) : (
-            <View style={styles.errorCard}>
-              <FontAwesome5 name="exclamation-triangle" size={24} color="#f59e0b" />
-              <Text style={styles.errorText}>No se pueden calcular calorías. Revisa peso/altura en el perfil.</Text>
-            </View>
+            <View style={styles.errorCard}><Text>Error: Revisa peso/altura en Firebase</Text></View>
           )}
 
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Planes</Text>
             <Pressable style={styles.btnAdd} onPress={crearNuevoPlan}>
-              <FontAwesome5 name="plus" size={12} color="#fff" />
-              <Text style={styles.btnAddText}>NUEVO PLAN</Text>
+              <Text style={styles.btnAddText}>+ CREAR PLAN</Text>
             </Pressable>
           </View>
 
           {planes.map((p) => (
             <View key={p.id} style={styles.folderCard}>
-              <Pressable style={styles.folderMain} onPress={() => router.push({ pathname: '/(admin)/editorPlan' as any, params: { planId: p.id, alumnoId: id, nombreAlumno: nombre } })}>
+              <Pressable style={styles.folderMain} onPress={() => router.push({ pathname: '/editorPlan' as any, params: { planId: p.id, alumnoId: id, nombreAlumno: nombre } })}>
                 <FontAwesome5 name="folder" size={20} color="#3b82f6" />
                 <View style={styles.folderInfo}>
                    <Text style={styles.folderTitle}>{p.titulo}</Text>
-                   <Text style={styles.folderSub}>{p.tipoEstado} | Meta: {p.caloriasMeta} kcal</Text>
+                   <Text style={styles.folderSub}>{p.modo?.toUpperCase()} | {p.caloriasMeta} kcal</Text>
                 </View>
-                <FontAwesome5 name="chevron-right" size={14} color="#cbd5e1" />
               </Pressable>
             </View>
           ))}
@@ -194,36 +166,35 @@ export default function HistorialAlumno() {
 
 const styles = StyleSheet.create({
   outerContainer: { flex: 1, backgroundColor: '#f1f5f9', alignItems: 'center' },
-  mainContainer: { flex: 1, width: '100%', maxWidth: 800, backgroundColor: '#f1f5f9' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#e2e8f0' },
+  mainContainer: { flex: 1, width: '100%', maxWidth: 800 },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 20, backgroundColor: '#fff' },
   backBtn: { padding: 10, marginRight: 10 },
   headerTitle: { fontSize: 18, fontWeight: 'bold' },
   scrollContent: { padding: 20 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   metricsCard: { backgroundColor: '#1e293b', borderRadius: 24, padding: 25, alignItems: 'center' },
-  badge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, borderWidth: 1, marginBottom: 10 },
-  badgeText: { fontSize: 10, fontWeight: 'bold' },
-  caloriesMain: { color: '#fff', fontSize: 54, fontWeight: 'bold', marginVertical: 5 },
-  selectorTitle: { color: '#94a3b8', fontSize: 11, marginTop: 15, marginBottom: 10 },
-  selectorRow: { flexDirection: 'row', gap: 6 },
-  chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#475569', backgroundColor: '#334155' },
-  chipActive: { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
-  chipText: { color: '#94a3b8', fontSize: 12, fontWeight: 'bold' },
-  chipTextActive: { color: '#fff' },
+  caloriesMain: { color: '#fff', fontSize: 58, fontWeight: 'bold', marginBottom: 20 },
+  modeRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+  modeBtn: { paddingHorizontal: 15, paddingVertical: 8, borderRadius: 10, backgroundColor: '#334155' },
+  modeBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
+  selectorTitle: { color: '#94a3b8', fontSize: 11, marginBottom: 10 },
+  selectorRow: { flexDirection: 'row', gap: 8 },
+  chip: { padding: 10, borderRadius: 8, backgroundColor: '#334155' },
+  chipActive: { backgroundColor: '#3b82f6' },
+  chipText: { color: '#94a3b8', fontSize: 12 },
   divider: { width: '100%', height: 1, backgroundColor: '#334155', marginVertical: 20 },
   miniRow: { flexDirection: 'row', width: '100%', justifyContent: 'space-around' },
   miniItem: { alignItems: 'center' },
   miniVal: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  miniLab: { color: '#64748b', fontSize: 10, marginTop: 4 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 30, marginBottom: 15 },
+  miniLab: { color: '#64748b', fontSize: 10 },
+  errorCard: { backgroundColor: '#fff', padding: 20, borderRadius: 15, alignItems: 'center' },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold' },
-  btnAdd: { backgroundColor: '#3b82f6', padding: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  btnAddText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
-  folderCard: { backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', borderRadius: 15, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0', overflow: 'hidden' },
-  folderMain: { flex: 1, flexDirection: 'row', alignItems: 'center', padding: 15 },
-  folderInfo: { flex: 1, marginLeft: 15 },
+  btnAdd: { backgroundColor: '#3b82f6', padding: 10, borderRadius: 8 },
+  btnAddText: { color: '#fff', fontWeight: 'bold' },
+  folderCard: { backgroundColor: '#fff', borderRadius: 15, marginTop: 10, borderWidth: 1, borderColor: '#e2e8f0' },
+  folderMain: { flexDirection: 'row', padding: 15, alignItems: 'center' },
+  folderInfo: { marginLeft: 15 },
   folderTitle: { fontWeight: 'bold' },
-  folderSub: { fontSize: 11, color: '#94a3b8' },
-  errorCard: { backgroundColor: '#fff', padding: 30, borderRadius: 20, alignItems: 'center', gap: 10 },
-  errorText: { color: '#64748b', textAlign: 'center' }
+  folderSub: { fontSize: 11, color: '#94a3b8' }
 });
