@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { db } from '../../firebaseConfig';
-import { doc, getDoc, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { FontAwesome5 } from '@expo/vector-icons';
 
 export default function HistorialAlumno() {
@@ -11,19 +11,18 @@ export default function HistorialAlumno() {
   const [planes, setPlanes] = useState<any[]>([]);
   const [cargando, setCargando] = useState(true);
   
-  // ESTADOS DE CONTROL MANUAL (COACH)
   const [modo, setModo] = useState<'mantenimiento' | 'deficit' | 'superavit'>('mantenimiento');
   const [ajusteCalorico, setAjusteCalorico] = useState(300); 
-  const [factorManual, setFactorManual] = useState(1.2); // Default Sedentario
+  const [factorManual, setFactorManual] = useState(1.2);
 
   const router = useRouter();
   const rangosAjuste = [100, 200, 300, 400, 500];
   
   const nivelesActividad = [
-    { label: 'Sedentario', valor: 1.2, desc: 'Poca actividad' },
-    { label: 'Ligero', valor: 1.375, desc: '1-3 días/sem' },
-    { label: 'Moderado', valor: 1.55, desc: '3-5 días/sem' },
-    { label: 'Fuerte', valor: 1.725, desc: '6-7 días/sem' },
+    { label: 'Sedentario', valor: 1.2 },
+    { label: 'Ligero', valor: 1.375 },
+    { label: 'Moderado', valor: 1.55 },
+    { label: 'Fuerte', valor: 1.725 },
   ];
 
   useEffect(() => {
@@ -35,8 +34,6 @@ export default function HistorialAlumno() {
         if (docSnap.exists()) {
           const data = docSnap.data();
           setAlumno(data);
-          
-          // Pre-selección de modo por texto (opcional)
           const obj = (data.nutricion?.objetivo || '').toLowerCase();
           if (obj.includes('perder') || obj.includes('bajar')) setModo('deficit');
           else if (obj.includes('ganar') || obj.includes('subir')) setModo('superavit');
@@ -56,31 +53,22 @@ export default function HistorialAlumno() {
 
   const metricas = useMemo(() => {
     if (!alumno || !alumno.datosFisicos) return null;
-
     let peso = parseFloat(alumno.datosFisicos.peso || 0);
     let altura = parseFloat(alumno.datosFisicos.altura || 0);
     let edad = parseInt(alumno.datosFisicos.edad || 0);
     const genero = (alumno.datosFisicos.genero || 'hombre').toLowerCase();
-
     if (altura > 0 && altura < 3) altura = altura * 100;
     if (peso <= 0 || altura <= 0 || edad <= 0) return null;
 
-    // TMB Mifflin-St Jeor
     let tmb = (10 * peso) + (6.25 * altura) - (5 * edad);
     tmb = genero === 'mujer' ? tmb - 161 : tmb + 5;
-
-    // USAMOS EL FACTOR SELECCIONADO POR EL COACH
     const get = tmb * factorManual;
     
     let final = get;
     if (modo === 'deficit') final = get - ajusteCalorico;
     if (modo === 'superavit') final = get + ajusteCalorico;
 
-    return { 
-      tmb: Math.round(tmb), 
-      get: Math.round(get), 
-      final: Math.round(final)
-    };
+    return { tmb: Math.round(tmb), get: Math.round(get), final: Math.round(final) };
   }, [alumno, ajusteCalorico, modo, factorManual]);
 
   const crearNuevoPlan = async () => {
@@ -96,8 +84,20 @@ export default function HistorialAlumno() {
         factorActividad: factorManual,
         caloriasMeta: metricas.final
       });
-      Alert.alert("Éxito", "Plan generado correctamente");
+      Alert.alert("Éxito", "Plan generado");
     } catch (e) { Alert.alert("Error", "No se guardó el plan"); }
+  };
+
+  const eliminarPlan = (planId: string) => {
+    Alert.alert("Eliminar Plan", "¿Estás seguro de que quieres borrar este plan?", [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Borrar", style: "destructive", onPress: async () => {
+          try {
+            await deleteDoc(doc(db, "alumnos_activos", id as string, "planes", planId));
+          } catch (e) { console.error(e); }
+        }
+      }
+    ]);
   };
 
   if (cargando) return <View style={styles.center}><ActivityIndicator size="large" color="#3b82f6" /></View>;
@@ -117,7 +117,6 @@ export default function HistorialAlumno() {
             <View style={styles.metricsCard}>
               <Text style={styles.caloriesMain}>{metricas.final} kcal</Text>
               
-              {/* SELECTOR DE MODO */}
               <View style={styles.row}>
                 <Pressable onPress={() => setModo('deficit')} style={[styles.modeBtn, modo === 'deficit' && {backgroundColor: '#ef4444'}]}>
                   <Text style={styles.btnText}>Déficit</Text>
@@ -130,17 +129,16 @@ export default function HistorialAlumno() {
                 </Pressable>
               </View>
 
-              <Text style={styles.subTitle}>Factor de Actividad Manual:</Text>
+              <Text style={styles.subTitle}>Factor Actividad:</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollFactor}>
                 {nivelesActividad.map((n) => (
                   <Pressable key={n.valor} onPress={() => setFactorManual(n.valor)} style={[styles.factorCard, factorManual === n.valor && styles.factorCardActive]}>
                     <Text style={[styles.factorLabel, factorManual === n.valor && {color:'#fff'}]}>{n.label}</Text>
-                    <Text style={[styles.factorVal, factorManual === n.valor && {color:'#fff'}]}>x{n.valor}</Text>
                   </Pressable>
                 ))}
               </ScrollView>
 
-              <Text style={styles.subTitle}>Margen de Ajuste (Kcal):</Text>
+              <Text style={styles.subTitle}>Ajuste Kcal:</Text>
               <View style={styles.row}>
                 {rangosAjuste.map((v) => (
                   <Pressable key={v} onPress={() => setAjusteCalorico(v)} style={[styles.chip, ajusteCalorico === v && styles.chipActive]}>
@@ -152,29 +150,38 @@ export default function HistorialAlumno() {
               <View style={styles.divider} />
               <View style={styles.miniRow}>
                 <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.tmb}</Text><Text style={styles.miniLab}>Basal</Text></View>
-                <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.get}</Text><Text style={styles.miniLab}>Mantenimiento</Text></View>
+                <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.get}</Text><Text style={styles.miniLab}>Mant.</Text></View>
               </View>
             </View>
           ) : (
-            <View style={styles.errorCard}><Text>Faltan datos físicos del alumno.</Text></View>
+            <View style={styles.errorCard}><Text>Faltan datos físicos.</Text></View>
           )}
 
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Planes</Text>
             <Pressable style={styles.btnAdd} onPress={crearNuevoPlan}>
-              <Text style={styles.btnAddText}>+ CREAR PLAN</Text>
+              <Text style={styles.btnAddText}>+ NUEVO PLAN</Text>
             </Pressable>
           </View>
 
           {planes.map((p) => (
             <View key={p.id} style={styles.folderCard}>
-              <Pressable style={styles.folderMain} onPress={() => router.push({ pathname: '/(admin)/editorPlan' as any, params: { planId: p.id, alumnoId: id, nombreAlumno: nombre } })}>
+              <Pressable 
+                style={styles.folderMain} 
+                onPress={() => router.push({ 
+                  pathname: '/(admin)/editorPlan' as any, 
+                  params: { planId: p.id, alumnoId: id, nombreAlumno: nombre } 
+                })}
+              >
                 <FontAwesome5 name="folder" size={20} color="#3b82f6" />
                 <View style={styles.folderInfo}>
                    <Text style={styles.folderTitle}>{p.titulo}</Text>
                    <Text style={styles.folderSub}>{p.modo?.toUpperCase()} | {p.caloriasMeta} kcal</Text>
                 </View>
-                <FontAwesome5 name="chevron-right" size={14} color="#cbd5e1" />
+              </Pressable>
+              {/* BOTON ELIMINAR */}
+              <Pressable style={styles.deleteBtn} onPress={() => eliminarPlan(p.id)}>
+                <FontAwesome5 name="trash-alt" size={16} color="#ef4444" />
               </Pressable>
             </View>
           ))}
@@ -198,10 +205,9 @@ const styles = StyleSheet.create({
   btnText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
   subTitle: { color: '#94a3b8', fontSize: 11, marginTop: 20, marginBottom: 10, alignSelf: 'flex-start' },
   scrollFactor: { width: '100%', marginBottom: 10 },
-  factorCard: { backgroundColor: '#334155', padding: 12, borderRadius: 12, marginRight: 10, width: 100, alignItems: 'center', borderWidth: 1, borderColor: '#475569' },
-  factorCardActive: { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
+  factorCard: { backgroundColor: '#334155', padding: 12, borderRadius: 12, marginRight: 10, alignItems: 'center' },
+  factorCardActive: { backgroundColor: '#3b82f6' },
   factorLabel: { color: '#94a3b8', fontSize: 10, fontWeight: 'bold' },
-  factorVal: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
   chip: { paddingHorizontal: 15, paddingVertical: 8, borderRadius: 8, backgroundColor: '#334155' },
   chipActive: { backgroundColor: '#3b82f6' },
   chipText: { color: '#94a3b8', fontSize: 12, fontWeight: 'bold' },
@@ -214,11 +220,12 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: 'bold' },
   btnAdd: { backgroundColor: '#3b82f6', padding: 10, borderRadius: 8 },
   btnAddText: { color: '#fff', fontWeight: 'bold' },
-  folderCard: { backgroundColor: '#fff', borderRadius: 15, marginTop: 10, borderWidth: 1, borderColor: '#e2e8f0' },
-  folderMain: { flexDirection: 'row', padding: 15, alignItems: 'center' },
+  folderCard: { backgroundColor: '#fff', borderRadius: 15, marginTop: 10, borderWidth: 1, borderColor: '#e2e8f0', flexDirection: 'row', alignItems: 'center' },
+  folderMain: { flexDirection: 'row', padding: 15, alignItems: 'center', flex: 1 },
   folderInfo: { marginLeft: 15, flex: 1 },
   folderTitle: { fontWeight: 'bold' },
   folderSub: { fontSize: 11, color: '#94a3b8' },
+  deleteBtn: { padding: 20 },
   errorCard: { backgroundColor: '#fff', padding: 20, borderRadius: 15 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' }
 });
