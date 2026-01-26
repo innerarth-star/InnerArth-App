@@ -40,6 +40,7 @@ export default function HistorialAlumno() {
     cargarDatos();
   }, [id]);
 
+  // --- EL MOTOR DE CÁLCULO ---
   const metricas = useMemo(() => {
     if (!alumno || !alumno.datosFisicos) return null;
 
@@ -65,29 +66,29 @@ export default function HistorialAlumno() {
 
     const get = tmb * factor;
     
-    // --- LÓGICA DE DETECCIÓN DE ESTADO ---
+    // LÓGICA DE DETECCIÓN DE OBJETIVO
     const obj = (alumno.nutricion?.objetivo || '').toLowerCase();
-    let final = get;
-    let tipoLabel = "Mantenimiento";
-    let colorEstado = "#64748b"; // Gris (Mantenimiento)
-
-    // Palabras clave para Déficit
     const palabrasDeficit = ['perder', 'bajar', 'definición', 'definicion', 'grasa', 'deficit', 'déficit'];
-    // Palabras clave para Superávit
     const palabrasSuperavit = ['ganar', 'subir', 'volumen', 'masa', 'músculo', 'musculo', 'superavit', 'superávit'];
 
     const esDeficit = palabrasDeficit.some(p => obj.includes(p));
     const esSuperavit = palabrasSuperavit.some(p => obj.includes(p));
 
+    let final = get;
+    let tipoLabel = "Mantenimiento";
+    let colorEstado = "#64748b";
+
     if (esDeficit) {
-      final = get - ajusteCalorico;
+      final = get - ajusteCalorico; // AQUI RESTA
       tipoLabel = `Déficit (-${ajusteCalorico})`;
-      colorEstado = "#ef4444"; // Rojo
+      colorEstado = "#ef4444";
     } else if (esSuperavit) {
-      final = get + ajusteCalorico;
+      final = get + ajusteCalorico; // AQUI SUMA
       tipoLabel = `Superávit (+${ajusteCalorico})`;
-      colorEstado = "#10b981"; // Verde
+      colorEstado = "#10b981";
     }
+
+    console.log(`DEBUG: GET base: ${get} | Ajuste: ${ajusteCalorico} | Final: ${final}`);
 
     return { 
       tmb: Math.round(tmb), 
@@ -96,7 +97,7 @@ export default function HistorialAlumno() {
       tipo: tipoLabel,
       color: colorEstado
     };
-  }, [alumno, ajusteCalorico]);
+  }, [alumno, ajusteCalorico]); // Escucha cambios en el botón
 
   const crearNuevoPlan = async () => {
     if (!id || !metricas) return;
@@ -136,12 +137,15 @@ export default function HistorialAlumno() {
               
               <Text style={styles.caloriesMain}>{metricas.final} kcal</Text>
               
-              <Text style={styles.selectorTitle}>Ajustar margen manual (kcal):</Text>
+              <Text style={styles.selectorTitle}>Cambiar Margen Manual:</Text>
               <View style={styles.selectorRow}>
                 {rangosAjuste.map((v) => (
                   <Pressable 
                     key={v} 
-                    onPress={() => setAjusteCalorico(v)} 
+                    onPress={() => {
+                        console.log("Cambiando ajuste a:", v);
+                        setAjusteCalorico(v);
+                    }} 
                     style={[styles.chip, ajusteCalorico === v && styles.chipActive]}
                   >
                     <Text style={[styles.chipText, ajusteCalorico === v && styles.chipTextActive]}>{v}</Text>
@@ -152,13 +156,13 @@ export default function HistorialAlumno() {
               <View style={styles.divider} />
               <View style={styles.miniRow}>
                 <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.tmb}</Text><Text style={styles.miniLab}>Basal</Text></View>
-                <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.get}</Text><Text style={styles.miniLab}>GET</Text></View>
+                <View style={styles.miniItem}><Text style={styles.miniVal}>{metricas.get}</Text><Text style={styles.miniLab}>Mantenimiento</Text></View>
               </View>
             </View>
           ) : (
             <View style={styles.errorCard}>
               <FontAwesome5 name="exclamation-triangle" size={24} color="#f59e0b" />
-              <Text style={styles.errorText}>Datos incompletos para calcular.</Text>
+              <Text style={styles.errorText}>No se pueden calcular calorías. Revisa peso/altura en el perfil.</Text>
             </View>
           )}
 
@@ -176,7 +180,7 @@ export default function HistorialAlumno() {
                 <FontAwesome5 name="folder" size={20} color="#3b82f6" />
                 <View style={styles.folderInfo}>
                    <Text style={styles.folderTitle}>{p.titulo}</Text>
-                   <Text style={styles.folderSub}>{p.tipoEstado} - {p.caloriasMeta} kcal</Text>
+                   <Text style={styles.folderSub}>{p.tipoEstado} | Meta: {p.caloriasMeta} kcal</Text>
                 </View>
                 <FontAwesome5 name="chevron-right" size={14} color="#cbd5e1" />
               </Pressable>
@@ -199,7 +203,7 @@ const styles = StyleSheet.create({
   metricsCard: { backgroundColor: '#1e293b', borderRadius: 24, padding: 25, alignItems: 'center' },
   badge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, borderWidth: 1, marginBottom: 10 },
   badgeText: { fontSize: 10, fontWeight: 'bold' },
-  caloriesMain: { color: '#fff', fontSize: 48, fontWeight: 'bold', marginVertical: 5 },
+  caloriesMain: { color: '#fff', fontSize: 54, fontWeight: 'bold', marginVertical: 5 },
   selectorTitle: { color: '#94a3b8', fontSize: 11, marginTop: 15, marginBottom: 10 },
   selectorRow: { flexDirection: 'row', gap: 6 },
   chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#475569', backgroundColor: '#334155' },
@@ -209,7 +213,7 @@ const styles = StyleSheet.create({
   divider: { width: '100%', height: 1, backgroundColor: '#334155', marginVertical: 20 },
   miniRow: { flexDirection: 'row', width: '100%', justifyContent: 'space-around' },
   miniItem: { alignItems: 'center' },
-  miniVal: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  miniVal: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   miniLab: { color: '#64748b', fontSize: 10, marginTop: 4 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 30, marginBottom: 15 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold' },
@@ -221,5 +225,5 @@ const styles = StyleSheet.create({
   folderTitle: { fontWeight: 'bold' },
   folderSub: { fontSize: 11, color: '#94a3b8' },
   errorCard: { backgroundColor: '#fff', padding: 30, borderRadius: 20, alignItems: 'center', gap: 10 },
-  errorText: { color: '#64748b' }
+  errorText: { color: '#64748b', textAlign: 'center' }
 });
