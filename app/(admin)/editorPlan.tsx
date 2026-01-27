@@ -22,52 +22,49 @@ export default function EditorPlan() {
   const [planData, setPlanData] = useState<any>(null);
   const [cargando, setCargando] = useState(true);
 
-  // Estados para Macros (g por kg)
+  // --- ESTADOS DIETA ---
   const [gProteina, setGProteina] = useState(2.0);
   const [gGrasa, setGGrasa] = useState(0.8);
-
-  // Estados para Buscador de Dieta
   const [busqueda, setBusqueda] = useState('');
   const [alimentosRepo, setAlimentosRepo] = useState<any[]>([]);
   const [comidaSeleccionada, setComidaSeleccionada] = useState(1);
-
-  // Modal para editar gramos de alimento
   const [modalVisible, setModalVisible] = useState(false);
   const [alimentoEditando, setAlimentoEditando] = useState<any>(null);
   const [cantidadInput, setCantidadInput] = useState('');
+
+  // --- ESTADOS ENTRENO ---
+  const [busquedaEj, setBusquedaEj] = useState('');
+  const [ejerciciosRepo, setEjerciciosRepo] = useState<any[]>([]);
 
   useEffect(() => {
     if (!planId || !alumnoId) return;
 
     const cargarDatos = async () => {
-      // 1. Datos del Alumno
       const aSnap = await getDoc(doc(db, "alumnos_activos", alumnoId as string));
       if (aSnap.exists()) setAlumno(aSnap.data());
 
-      // 2. Datos del Plan (en tiempo real)
       const unsubPlan = onSnapshot(doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string), (doc) => {
-        if (doc.exists()) {
-          const data = doc.data();
-          setPlanData(data);
-          if (data.gProteina) setGProteina(data.gProteina);
-          if (data.gGrasa) setGGrasa(data.gGrasa);
-        }
+        if (doc.exists()) setPlanData(doc.data());
       });
 
-      // 3. Biblioteca de Alimentos (Colección "alimentos")
-      const unsubRepo = onSnapshot(collection(db, "alimentos"), (snap) => {
+      const unsubAlimentos = onSnapshot(collection(db, "alimentos"), (snap) => {
         const items: any[] = [];
         snap.forEach(d => items.push({ id: d.id, ...d.data() }));
         setAlimentosRepo(items);
+      });
+
+      const unsubEjercicios = onSnapshot(collection(db, "ejercicios"), (snap) => {
+        const items: any[] = [];
+        snap.forEach(d => items.push({ id: d.id, ...d.data() }));
+        setEjerciciosRepo(items);
         setCargando(false);
       });
 
-      return () => { unsubPlan(); unsubRepo(); };
+      return () => { unsubPlan(); unsubAlimentos(); unsubEjercicios(); };
     };
     cargarDatos();
   }, [planId, alumnoId]);
 
-  // Lógica de cálculo de macros
   const objetivos = useMemo(() => {
     if (!alumno || !planData) return null;
     const peso = parseFloat(alumno.datosFisicos?.peso || 70);
@@ -82,41 +79,27 @@ export default function EditorPlan() {
   const consumoActual = useMemo(() => {
     if (!planData?.comidasReal) return { p: 0, g: 0, c: 0, kcal: 0 };
     return planData.comidasReal.reduce((acc: any, al: any) => {
-      const factor = al.cantidad || 0; 
-      acc.p += (al.proteina || 0) * factor;
-      acc.g += (al.grasa || 0) * factor;
-      acc.c += (al.carbohidratos || 0) * factor;
-      acc.kcal += (al.calorias || 0) * factor;
+      const f = al.cantidad || 0; 
+      acc.p += (al.proteina || 0) * f;
+      acc.g += (al.grasa || 0) * f;
+      acc.carbohidratos += (al.carbohidratos || 0) * f;
+      acc.kcal += (al.calorias || 0) * f;
       return acc;
     }, { p: 0, g: 0, c: 0, kcal: 0 });
   }, [planData?.comidasReal]);
 
-  // Funciones de Dieta
-  const finalizarDieta = async () => {
-    try {
-      const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
-      await updateDoc(planRef, {
-        estatusDieta: "Completado",
-        totalesFinalesDieta: {
-            proteina: Math.round(consumoActual.p),
-            grasa: Math.round(consumoActual.g),
-            carbohidratos: Math.round(consumoActual.c),
-            calorias: Math.round(consumoActual.kcal)
-        },
-        fechaGuardadoDieta: serverTimestamp()
-      });
-      setTab('entreno');
-    } catch (e) {
-      Alert.alert("Error", "No se pudo guardar la dieta.");
-    }
-  };
-
+  // --- FUNCIONES ACCIÓN DIETA ---
   const agregarAlimento = async (item: any) => {
     const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
     await updateDoc(planRef, {
       comidasReal: arrayUnion({ ...item, idInstancia: Date.now(), numComida: comidaSeleccionada, cantidad: 1 })
     });
     setBusqueda('');
+  };
+
+  const quitarAlimento = async (item: any) => {
+    const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
+    await updateDoc(planRef, { comidasReal: arrayRemove(item) });
   };
 
   const guardarGramos = async () => {
@@ -131,6 +114,36 @@ export default function EditorPlan() {
     } catch (e) { Alert.alert("Error", "No se pudo actualizar."); }
   };
 
+  const finalizarDieta = async () => {
+    try {
+      const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
+      await updateDoc(planRef, { estatusDieta: "Completado", fechaGuardadoDieta: serverTimestamp() });
+      setTab('entreno');
+    } catch (e) { Alert.alert("Error", "No se pudo guardar."); }
+  };
+
+  // --- FUNCIONES ACCIÓN ENTRENO ---
+  const agregarEjercicio = async (ej: any) => {
+    const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
+    await updateDoc(planRef, {
+      rutinaReal: arrayUnion({ ...ej, idInstancia: Date.now(), seriesReps: "", notas: "" })
+    });
+    setBusquedaEj('');
+  };
+
+  const actualizarDetalleEjercicio = async (idInstancia: number, campo: string, valor: string) => {
+    const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
+    const nuevaRutina = planData.rutinaReal.map((r: any) => 
+      r.idInstancia === idInstancia ? { ...r, [campo]: valor } : r
+    );
+    await updateDoc(planRef, { rutinaReal: nuevaRutina });
+  };
+
+  const eliminarEjercicio = async (ej: any) => {
+    const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
+    await updateDoc(planRef, { rutinaReal: arrayRemove(ej) });
+  };
+
   const numComidas = parseInt(alumno?.nutricion?.comidasDes) || 1;
 
   if (cargando) return <View style={styles.center}><ActivityIndicator color="#3b82f6" size="large" /></View>;
@@ -139,24 +152,18 @@ export default function EditorPlan() {
     <View style={styles.outerContainer}>
       <View style={styles.mainContainer}>
         
-        {/* Header - Navegación corregida a Alumnos */}
+        {/* Header */}
         <View style={styles.header}>
-          <Pressable 
-            onPress={() => router.push('/(admin)/alumnos' as any)} 
-            style={styles.backBtn}
-          >
+          <Pressable onPress={() => router.push('/(admin)/alumnos' as any)} style={styles.backBtn}>
             <FontAwesome5 name="arrow-left" size={20} color="#1e293b" />
           </Pressable>
           <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>{nombreAlumno}</Text>
-            <Text style={styles.headerSub}>Frecuencia: {numComidas} comidas</Text>
-          </View>
-          <View style={styles.kcalBadge}>
-            <Text style={styles.kcalBadgeText}>{objetivos?.kcalMeta} kcal</Text>
+            <Text style={styles.headerSub}>{tab === 'dieta' ? `Dieta: ${numComidas} comidas` : 'Rutina de Entrenamiento'}</Text>
           </View>
         </View>
 
-        {/* Tabs de navegación interna */}
+        {/* Tabs */}
         <View style={styles.tabs}>
           <Pressable onPress={() => setTab('dieta')} style={[styles.tab, tab === 'dieta' && styles.tabActive]}>
             <Text style={[styles.tabText, tab === 'dieta' && styles.tabTextActive]}>DIETA</Text>
@@ -169,10 +176,10 @@ export default function EditorPlan() {
         {tab === 'dieta' && (
           <View style={styles.trackerContainer}>
             <View style={styles.trackerRow}>
-              <TrackerItem label="REST. KCAL" restante={Math.round((objetivos?.kcalMeta || 0) - consumoActual.kcal)} color="#1e293b" />
-              <TrackerItem label="REST. PROT" restante={Math.round((objetivos?.pMeta || 0) - consumoActual.p)} color="#3b82f6" />
-              <TrackerItem label="REST. GRASA" restante={Math.round((objetivos?.gMeta || 0) - consumoActual.g)} color="#f59e0b" />
-              <TrackerItem label="REST. CARBS" restante={Math.round((objetivos?.cMeta || 0) - consumoActual.c)} color="#10b981" />
+              <TrackerItem label="KCAL" restante={Math.round((objetivos?.kcalMeta || 0) - consumoActual.kcal)} color="#1e293b" />
+              <TrackerItem label="PROT" restante={Math.round((objetivos?.pMeta || 0) - consumoActual.p)} color="#3b82f6" />
+              <TrackerItem label="GRASA" restante={Math.round((objetivos?.gMeta || 0) - consumoActual.g)} color="#f59e0b" />
+              <TrackerItem label="CARBS" restante={Math.round((objetivos?.cMeta || 0) - consumoActual.carbohidratos)} color="#10b981" />
             </View>
           </View>
         )}
@@ -180,7 +187,7 @@ export default function EditorPlan() {
         <ScrollView contentContainerStyle={styles.scroll}>
           {tab === 'dieta' ? (
             <View>
-              {/* BUSCADOR DE ALIMENTOS */}
+              {/* BUSCADOR DIETA */}
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>Agregar a Comida {comidaSeleccionada}</Text>
                 <View style={styles.row}>
@@ -190,7 +197,7 @@ export default function EditorPlan() {
                     </Pressable>
                   ))}
                 </View>
-                <TextInput placeholder="Buscar en biblioteca..." style={styles.searchBar} value={busqueda} onChangeText={setBusqueda} />
+                <TextInput placeholder="Buscar alimento..." style={styles.searchBar} value={busqueda} onChangeText={setBusqueda} />
                 {busqueda !== '' && (
                   <View style={styles.dropdown}>
                     {alimentosRepo.filter(a => a.nombre.toLowerCase().includes(busqueda.toLowerCase())).map(al => (
@@ -203,9 +210,8 @@ export default function EditorPlan() {
                 )}
               </View>
 
-              {/* BLOQUES DE CADA COMIDA */}
               {Array.from({ length: numComidas }).map((_, i) => (
-                <View key={i} style={[styles.mealBlock, {marginTop: 15}]}>
+                <View key={i} style={styles.mealBlock}>
                   <Text style={styles.mealTitle}>Comida {i + 1}</Text>
                   <View style={styles.mealBox}>
                     {planData?.comidasReal?.filter((c: any) => c.numComida === (i + 1)).map((c: any) => (
@@ -214,48 +220,67 @@ export default function EditorPlan() {
                            <Text style={{fontWeight: 'bold', fontSize: 13}}>{c.nombre.toUpperCase()}</Text>
                            <Text style={{fontSize: 11, color: '#3b82f6'}}>{c.cantidad} {c.unidadMedida} • {Math.round(c.calorias * c.cantidad)} kcal</Text>
                         </Pressable>
-                        <Pressable onPress={() => {
-                          const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
-                          updateDoc(planRef, { comidasReal: arrayRemove(c) });
-                        }}>
-                          <FontAwesome5 name="trash" size={14} color="#ef4444" />
-                        </Pressable>
+                        <Pressable onPress={() => quitarAlimento(c)}><FontAwesome5 name="trash" size={14} color="#ef4444" /></Pressable>
                       </View>
                     ))}
                   </View>
                 </View>
               ))}
-              <View style={{height: 100}} />
             </View>
           ) : (
-            <View style={styles.placeholder}>
-              <FontAwesome5 name="dumbbell" size={50} color="#cbd5e1" />
-              <Text style={{marginTop: 20, fontWeight: 'bold', color: '#1e293b'}}>RUTINA DE ENTRENAMIENTO</Text>
-              <Text style={{color: '#64748b', textAlign: 'center', marginTop: 5}}>Configuremos los ejercicios para este alumno.</Text>
-              
-              <TouchableOpacity style={styles.btnAgregarEjercicios}>
-                  <FontAwesome5 name="plus" size={14} color="#fff" />
-                  <Text style={{color: '#fff', fontWeight: 'bold'}}>Añadir Ejercicio</Text>
-              </TouchableOpacity>
+            <View>
+              {/* BUSCADOR ENTRENO */}
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>Añadir Ejercicio</Text>
+                <TextInput placeholder="Ej: Sentadilla..." style={styles.searchBar} value={busquedaEj} onChangeText={setBusquedaEj} />
+                {busquedaEj !== '' && (
+                  <View style={styles.dropdown}>
+                    {ejerciciosRepo.filter(e => e.nombre.toLowerCase().includes(busquedaEj.toLowerCase())).map(ej => (
+                      <Pressable key={ej.id} style={styles.dropItem} onPress={() => agregarEjercicio(ej)}>
+                        <View><Text style={{fontWeight: 'bold'}}>{ej.nombre.toUpperCase()}</Text><Text style={{fontSize: 10, color: '#64748b'}}>{ej.grupo}</Text></View>
+                        <FontAwesome5 name="plus" size={12} color="#1e293b" />
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              <View style={{marginTop: 20}}>
+                {planData?.rutinaReal?.map((ej: any) => (
+                  <View key={ej.idInstancia} style={styles.ejercicioCard}>
+                    <View style={styles.ejHeader}>
+                      <View style={{flex: 1}}><Text style={styles.ejNombre}>{ej.nombre.toUpperCase()}</Text><Text style={styles.ejGrupo}>{ej.grupo}</Text></View>
+                      <Pressable onPress={() => eliminarEjercicio(ej)}><FontAwesome5 name="times-circle" size={20} color="#ef4444" /></Pressable>
+                    </View>
+                    <View style={styles.ejInputs}>
+                       <View style={{flex: 1}}>
+                          <Text style={styles.ejInputLabel}>Series x Reps</Text>
+                          <TextInput style={styles.smallInput} placeholder="4x12" defaultValue={ej.seriesReps} onChangeText={(t) => actualizarDetalleEjercicio(ej.idInstancia, 'seriesReps', t)} />
+                       </View>
+                       <View style={{flex: 2}}>
+                          <Text style={styles.ejInputLabel}>Notas</Text>
+                          <TextInput style={styles.smallInput} placeholder="Descanso..." defaultValue={ej.notas} onChangeText={(t) => actualizarDetalleEjercicio(ej.idInstancia, 'notas', t)} />
+                       </View>
+                    </View>
+                  </View>
+                ))}
+              </View>
             </View>
           )}
+          <View style={{height: 120}} />
         </ScrollView>
 
-        {/* Botón flotante para guardar dieta (Sticky Footer) */}
+        {/* Footer Dieta */}
         {tab === 'dieta' && (
           <View style={styles.footerSticky}>
-            <TouchableOpacity 
-              activeOpacity={0.8} 
-              style={styles.btnFinalizar} 
-              onPress={finalizarDieta}
-            >
-              <Text style={styles.btnFinalizarText}>GUARDAR DIETA Y CONTINUAR</Text>
+            <TouchableOpacity style={styles.btnFinalizar} onPress={finalizarDieta}>
+              <Text style={styles.btnFinalizarText}>GUARDAR DIETA Y PASAR A ENTRENO</Text>
               <FontAwesome5 name="chevron-right" size={14} color="#fff" />
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Modal de edición de gramos */}
+        {/* Modal Gramos */}
         <Modal visible={modalVisible} transparent animationType="slide">
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
@@ -268,7 +293,6 @@ export default function EditorPlan() {
             </View>
           </View>
         </Modal>
-
       </View>
     </View>
   );
@@ -282,8 +306,6 @@ const styles = StyleSheet.create({
   backBtn: { padding: 10 },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
   headerSub: { fontSize: 12, color: '#3b82f6', fontWeight: 'bold' },
-  kcalBadge: { backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
-  kcalBadgeText: { color: '#fff', fontWeight: 'bold', fontSize: 11 },
   tabs: { flexDirection: 'row', backgroundColor: '#fff', padding: 5, borderBottomWidth: 1, borderColor: '#e2e8f0' },
   tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 8 },
   tabActive: { backgroundColor: '#eff6ff' },
@@ -297,35 +319,30 @@ const styles = StyleSheet.create({
   scroll: { padding: 20 },
   card: { backgroundColor: '#fff', padding: 15, borderRadius: 15, borderWidth: 1, borderColor: '#e2e8f0' },
   cardTitle: { fontSize: 13, fontWeight: 'bold', marginBottom: 10, color: '#1e293b' },
-  label: { fontSize: 10, fontWeight: 'bold', color: '#64748b', marginBottom: 5 },
   row: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 10 },
-  chip: { padding: 8, borderRadius: 6, backgroundColor: '#f1f5f9', minWidth: 40, alignItems: 'center' },
   miniChip: { padding: 8, borderRadius: 6, backgroundColor: '#f1f5f9', minWidth: 40, alignItems: 'center' },
-  chipProt: { backgroundColor: '#3b82f6' },
-  chipGra: { backgroundColor: '#f59e0b' },
-  chipText: { fontSize: 11, fontWeight: 'bold', color: '#475569' },
-  divider: { height: 1, backgroundColor: '#f1f5f9', marginVertical: 15 },
-  macrosDisplay: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 10 },
-  mBox: { alignItems: 'center' },
-  mVal: { fontSize: 24, fontWeight: 'bold', color: '#1e293b' },
-  mLab: { fontSize: 10, color: '#94a3b8', fontWeight: 'bold' },
-  btnSave: { backgroundColor: '#1e293b', padding: 15, borderRadius: 12, alignItems: 'center' },
-  btnSaveText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
   searchBar: { backgroundColor: '#f8fafc', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0' },
   dropdown: { backgroundColor: '#fff', borderRadius: 10, marginTop: 5, borderWidth: 1, borderColor: '#e2e8f0', elevation: 5 },
-  dropItem: { padding: 15, flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  mealBlock: { marginBottom: 10 },
+  dropItem: { padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  mealBlock: { marginTop: 15 },
   mealTitle: { fontWeight: 'bold', fontSize: 14, color: '#1e293b', marginBottom: 5 },
   mealBox: { backgroundColor: '#fff', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#e2e8f0', minHeight: 60 },
   comidaRow: { flexDirection: 'row', backgroundColor: '#f8fafc', padding: 12, borderRadius: 10, marginBottom: 5, alignItems: 'center' },
   footerSticky: { position: 'absolute', bottom: 0, width: '100%', padding: 20, backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#e2e8f0' },
   btnFinalizar: { backgroundColor: '#22c55e', padding: 16, borderRadius: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
-  btnFinalizarText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+  btnFinalizarText: { color: '#fff', fontWeight: 'bold' },
+  ejercicioCard: { backgroundColor: '#fff', padding: 15, borderRadius: 15, marginBottom: 15, borderWidth: 1, borderColor: '#e2e8f0' },
+  ejHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 15 },
+  ejNombre: { fontWeight: 'bold', fontSize: 14, color: '#1e293b' },
+  ejGrupo: { fontSize: 11, color: '#3b82f6', fontWeight: 'bold' },
+  ejInputs: { flexDirection: 'row', gap: 15 },
+  ejInputLabel: { fontSize: 10, fontWeight: 'bold', color: '#64748b', marginBottom: 4 },
+  smallInput: { backgroundColor: '#f8fafc', padding: 8, borderRadius: 8, borderWidth: 1, borderColor: '#cbd5e1', fontSize: 13 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { backgroundColor: '#fff', width: '80%', padding: 20, borderRadius: 20, alignItems: 'center' },
   modalTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 15 },
   modalInput: { backgroundColor: '#f1f5f9', width: '100%', padding: 12, borderRadius: 10, fontSize: 24, textAlign: 'center', fontWeight: 'bold' },
   btnModal: { flex: 1, padding: 12, borderRadius: 10, alignItems: 'center' },
-  placeholder: { flex: 1, alignItems: 'center', marginTop: 50 },
-  btnAgregarEjercicios: { backgroundColor: '#1e293b', padding: 15, borderRadius: 12, marginTop: 20, flexDirection: 'row', gap: 10, alignItems: 'center', paddingHorizontal: 30 }
+  kcalBadge: { backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
+  kcalBadgeText: { color: '#fff', fontWeight: 'bold', fontSize: 11 },
 });
