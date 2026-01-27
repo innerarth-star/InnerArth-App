@@ -127,30 +127,31 @@ export default function EditorPlan() {
   };
 
   // FUNCIÓN PRINCIPAL DE GUARDADO FINAL
-  const publicarPlanFinal = async () => {
-    if (!planData?.comidasReal || planData.comidasReal.length === 0) {
-      Alert.alert("Atención", "El plan no tiene alimentos agregados.");
-      return;
-    }
-    try {
-      const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
-      await updateDoc(planRef, {
-        estatus: "Completado",
-        totalesFinales: {
-            proteina: Math.round(consumoActual.p),
-            grasa: Math.round(consumoActual.g),
-            carbohidratos: Math.round(consumoActual.c),
-            calorias: Math.round(consumoActual.kcal)
-        },
-        fechaEntrega: serverTimestamp()
-      });
-      Alert.alert("Plan Publicado", "El alumno ya puede ver su plan actualizado.", [
-        { text: "OK", onPress: () => router.back() }
-      ]);
-    } catch (e) {
-      Alert.alert("Error", "No se pudo publicar el plan.");
-    }
-  };
+const publicarPlanFinal = async () => {
+  if (!planData?.comidasReal || planData.comidasReal.length === 0) {
+    Alert.alert("Atención", "El plan no tiene alimentos agregados.");
+    return;
+  }
+  try {
+    const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
+    await updateDoc(planRef, {
+      estatusDieta: "Completado", // Marcamos solo la dieta
+      totalesFinalesDieta: {
+          proteina: Math.round(consumoActual.p),
+          grasa: Math.round(consumoActual.g),
+          carbohidratos: Math.round(consumoActual.c),
+          calorias: Math.round(consumoActual.kcal)
+      },
+      fechaGuardadoDieta: serverTimestamp()
+    });
+
+    Alert.alert("Dieta Guardada", "Nutrición lista. Ahora vamos a configurar el entrenamiento.", [
+      { text: "Continuar", onPress: () => setTab('entreno') } // <--- AQUÍ PASA A ENTRENO
+    ]);
+  } catch (e) {
+    Alert.alert("Error", "No se pudo guardar la dieta.");
+  }
+};
 
   const numComidas = parseInt(alumno?.nutricion?.comidasDes) || 1;
 
