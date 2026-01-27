@@ -14,13 +14,16 @@ export default function EditorPlan() {
   const [planData, setPlanData] = useState<any>(null);
   const [cargando, setCargando] = useState(true);
 
+  // Macros g/kg
   const [gProteina, setGProteina] = useState(2.0);
   const [gGrasa, setGGrasa] = useState(0.8);
 
+  // Buscador
   const [busqueda, setBusqueda] = useState('');
   const [alimentosRepo, setAlimentosRepo] = useState<any[]>([]);
   const [comidaSeleccionada, setComidaSeleccionada] = useState(1);
 
+  // Modal para editar gramos
   const [modalVisible, setModalVisible] = useState(false);
   const [alimentoEditando, setAlimentoEditando] = useState<any>(null);
   const [cantidadInput, setCantidadInput] = useState('');
@@ -51,7 +54,6 @@ export default function EditorPlan() {
     cargarDatos();
   }, [planId, alumnoId]);
 
-  // CÁLCULO DE MACROS OBJETIVO (LO QUE DEBERÍA COMER)
   const objetivos = useMemo(() => {
     if (!alumno || !planData) return null;
     const peso = parseFloat(alumno.datosFisicos?.peso || 70);
@@ -62,14 +64,10 @@ export default function EditorPlan() {
     return { pMeta, gMeta, cMeta, kcalMeta };
   }, [alumno, planData, gProteina, gGrasa]);
 
-  // CÁLCULO DE CONSUMO ACTUAL (LO QUE YA AGREGÓ)
   const consumoActual = useMemo(() => {
     if (!planData?.comidasReal) return { p: 0, g: 0, c: 0, kcal: 0 };
     return planData.comidasReal.reduce((acc: any, al: any) => {
-      // Si la unidad es 'gr', dividimos entre 1 ya que tus datos están por 1g. 
-      // Si tus datos fueran por 100g, dividiríamos entre 100.
-      const factor = al.unidadMedida === 'gr' ? al.cantidad : al.cantidad; 
-      
+      const factor = al.cantidad || 0; 
       acc.p += (al.proteina || 0) * factor;
       acc.g += (al.grasa || 0) * factor;
       acc.c += (al.carbohidratos || 0) * factor;
@@ -83,10 +81,10 @@ export default function EditorPlan() {
       const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
       await updateDoc(planRef, {
         gProteina, gGrasa, 
-        macrosFinales: objetivos,
-        fechaEdicion: serverTimestamp()
+        macrosObjetivo: objetivos,
+        fechaActualizacion: serverTimestamp()
       });
-      Alert.alert("Éxito", "Macros fijados correctamente.");
+      Alert.alert("Éxito", "Objetivos de macros fijados.");
     } catch (e) { Alert.alert("Error", "No se pudo guardar."); }
   };
 
@@ -97,7 +95,7 @@ export default function EditorPlan() {
         ...item, 
         idInstancia: Date.now(), 
         numComida: comidaSeleccionada,
-        cantidad: item.unidadMedida === 'gr' ? 100 : 1 // 100g por defecto o 1 pieza
+        cantidad: item.unidadMedida === 'gr' ? 100 : 1 
       })
     });
     setBusqueda('');
@@ -128,6 +126,32 @@ export default function EditorPlan() {
     await updateDoc(planRef, { comidasReal: arrayRemove(item) });
   };
 
+  // FUNCIÓN PRINCIPAL DE GUARDADO FINAL
+  const publicarPlanFinal = async () => {
+    if (!planData?.comidasReal || planData.comidasReal.length === 0) {
+      Alert.alert("Atención", "El plan no tiene alimentos agregados.");
+      return;
+    }
+    try {
+      const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
+      await updateDoc(planRef, {
+        estatus: "Completado",
+        totalesFinales: {
+            proteina: Math.round(consumoActual.p),
+            grasa: Math.round(consumoActual.g),
+            carbohidratos: Math.round(consumoActual.c),
+            calorias: Math.round(consumoActual.kcal)
+        },
+        fechaEntrega: serverTimestamp()
+      });
+      Alert.alert("Plan Publicado", "El alumno ya puede ver su plan actualizado.", [
+        { text: "OK", onPress: () => router.back() }
+      ]);
+    } catch (e) {
+      Alert.alert("Error", "No se pudo publicar el plan.");
+    }
+  };
+
   const numComidas = parseInt(alumno?.nutricion?.comidasDes) || 1;
 
   if (cargando) return <View style={styles.center}><ActivityIndicator color="#3b82f6" size="large" /></View>;
@@ -137,7 +161,7 @@ export default function EditorPlan() {
       <View style={styles.mainContainer}>
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={() => router.replace('/(admin)/alumnos' as any)} style={styles.backBtn}>
+          <Pressable onPress={() => router.back()} style={styles.backBtn}>
             <FontAwesome5 name="arrow-left" size={20} color="#1e293b" />
           </Pressable>
           <View style={{ flex: 1 }}>
@@ -149,7 +173,7 @@ export default function EditorPlan() {
           </View>
         </View>
 
-        {/* BARRA DE DESCUENTO DE MACROS (RESTANTE) */}
+        {/* Tracker de Descuento */}
         <View style={styles.trackerContainer}>
             <View style={styles.trackerRow}>
                 <TrackerItem label="CALORÍAS" restante={Math.round((objetivos?.kcalMeta || 0) - consumoActual.kcal)} color="#1e293b" />
@@ -162,9 +186,8 @@ export default function EditorPlan() {
         <ScrollView contentContainerStyle={styles.scroll}>
           {tab === 'dieta' && (
             <View>
-              {/* CONFIGURACIÓN DE MACROS */}
               <View style={styles.card}>
-                <Text style={styles.cardTitle}>1. Fijar Objetivos Diarios</Text>
+                <Text style={styles.cardTitle}>1. Objetivos Diarios</Text>
                 <Text style={styles.label}>Proteína (g/kg)</Text>
                 <View style={styles.row}>
                   {[1.5, 1.8, 2.0, 2.2, 2.5].map(v => (
@@ -182,13 +205,12 @@ export default function EditorPlan() {
                   ))}
                 </View>
                 <Pressable style={styles.btnSave} onPress={guardarConfiguracion}>
-                  <Text style={styles.btnSaveText}>GUARDAR OBJETIVOS</Text>
+                  <Text style={styles.btnSaveText}>FIJAR OBJETIVOS</Text>
                 </Pressable>
               </View>
 
-              {/* BUSCADOR */}
               <View style={[styles.card, {marginTop: 20}]}>
-                <Text style={styles.cardTitle}>2. Buscar y Agregar Alimentos</Text>
+                <Text style={styles.cardTitle}>2. Biblioteca de Alimentos</Text>
                 <View style={styles.row}>
                   {Array.from({ length: numComidas }).map((_, i) => (
                     <Pressable key={i} onPress={() => setComidaSeleccionada(i+1)} style={[styles.miniChip, comidaSeleccionada === (i+1) && {backgroundColor: '#3b82f6'}]}>
@@ -196,21 +218,20 @@ export default function EditorPlan() {
                     </Pressable>
                   ))}
                 </View>
-                <TextInput placeholder="Ej: Pollo, Arroz..." style={styles.searchBar} value={busqueda} onChangeText={setBusqueda} />
+                <TextInput placeholder="Buscar..." style={styles.searchBar} value={busqueda} onChangeText={setBusqueda} />
                 {busqueda !== '' && (
                   <View style={styles.dropdown}>
                     {alimentosRepo.filter(a => a.nombre.toLowerCase().includes(busqueda.toLowerCase())).map(al => (
                       <Pressable key={al.id} style={styles.dropItem} onPress={() => agregarAlimento(al)}>
-                        <Text style={{fontSize: 13}}>{al.nombre.toUpperCase()}</Text>
-                        <Text style={{fontSize: 10, color: '#3b82f6'}}>+ Añadir a C{comidaSeleccionada}</Text>
+                        <Text>{al.nombre.toUpperCase()}</Text>
+                        <Text style={{fontSize: 10, color: '#3b82f6'}}>+ C{comidaSeleccionada}</Text>
                       </Pressable>
                     ))}
                   </View>
                 )}
               </View>
 
-              {/* BLOQUES DE COMIDA */}
-              <View style={{marginTop: 20, marginBottom: 50}}>
+              <View style={{marginTop: 20}}>
                 {Array.from({ length: numComidas }).map((_, i) => (
                   <View key={i} style={styles.mealBlock}>
                     <Text style={styles.mealTitle}>Comida {i + 1}</Text>
@@ -226,30 +247,36 @@ export default function EditorPlan() {
                           </Pressable>
                         </View>
                       ))}
-                      {(!planData?.comidasReal || planData?.comidasReal?.filter((c: any) => c.numComida === (i + 1)).length === 0) && (
-                        <Text style={styles.mealPlaceholder}>Toca un alimento arriba para agregarlo aquí</Text>
-                      )}
                     </View>
                   </View>
                 ))}
               </View>
+
+              {/* BOTÓN FINAL DE GUARDADO */}
+              <TouchableOpacity 
+                activeOpacity={0.8}
+                style={styles.btnPublicar} 
+                onPress={publicarPlanFinal}
+              >
+                <FontAwesome5 name="check-circle" size={18} color="#fff" />
+                <Text style={styles.btnPublicarText}>PUBLICAR PLAN DE ALIMENTACIÓN</Text>
+              </TouchableOpacity>
+              
+              <View style={{height: 50}} />
             </View>
           )}
         </ScrollView>
 
-        {/* MODAL PARA EDITAR CANTIDAD */}
         <Modal visible={modalVisible} transparent animationType="slide">
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>¿Cuántos {alimentoEditando?.unidadMedida}?</Text>
-              <Text style={styles.modalSub}>{alimentoEditando?.nombre.toUpperCase()}</Text>
+              <Text style={styles.modalTitle}>Ajustar {alimentoEditando?.unidadMedida}</Text>
               <TextInput 
                 style={styles.modalInput} 
                 keyboardType="numeric" 
                 value={cantidadInput} 
                 onChangeText={setCantidadInput}
                 autoFocus
-                placeholder="0"
               />
               <View style={[styles.row, {marginTop: 20}]}>
                 <Pressable style={[styles.btnModal, {backgroundColor: '#e2e8f0'}]} onPress={() => setModalVisible(false)}>
@@ -267,13 +294,15 @@ export default function EditorPlan() {
   );
 }
 
-// Sub-componente para los items del tracker
 const TrackerItem = ({ label, restante, color }: any) => (
     <View style={styles.trackerItem}>
         <Text style={[styles.trackerVal, { color: restante < 0 ? '#ef4444' : color }]}>{restante}</Text>
         <Text style={styles.trackerLabel}>{label}</Text>
     </View>
 );
+
+// Agregado TouchableOpacity para el botón final
+import { TouchableOpacity } from 'react-native';
 
 const styles = StyleSheet.create({
   outerContainer: { flex: 1, backgroundColor: '#f1f5f9', alignItems: 'center' },
@@ -285,49 +314,41 @@ const styles = StyleSheet.create({
   headerSub: { fontSize: 12, color: '#3b82f6', fontWeight: 'bold' },
   kcalBadge: { backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
   kcalBadgeText: { color: '#fff', fontWeight: 'bold', fontSize: 11 },
-  
   trackerContainer: { backgroundColor: '#fff', paddingVertical: 15, borderBottomWidth: 1, borderColor: '#e2e8f0' },
   trackerRow: { flexDirection: 'row', justifyContent: 'space-around' },
   trackerItem: { alignItems: 'center' },
   trackerVal: { fontSize: 18, fontWeight: '900' },
   trackerLabel: { fontSize: 9, color: '#64748b', fontWeight: 'bold' },
-
-  tabs: { flexDirection: 'row', backgroundColor: '#fff', padding: 5 },
-  tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 8 },
-  tabActive: { backgroundColor: '#eff6ff' },
-  tabText: { fontWeight: 'bold', color: '#94a3b8' },
-  tabTextActive: { color: '#3b82f6' },
   scroll: { padding: 20 },
   card: { backgroundColor: '#fff', padding: 20, borderRadius: 20, borderWidth: 1, borderColor: '#e2e8f0' },
   cardTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 15, color: '#1e293b' },
   label: { fontSize: 11, fontWeight: 'bold', color: '#64748b', marginBottom: 5 },
-  row: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+  row: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
   chip: { padding: 10, borderRadius: 8, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', minWidth: 45, alignItems: 'center' },
   miniChip: { padding: 8, borderRadius: 6, backgroundColor: '#e2e8f0', minWidth: 35, alignItems: 'center' },
   chipProt: { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
   chipGra: { backgroundColor: '#f59e0b', borderColor: '#f59e0b' },
-  chipCarb: { backgroundColor: '#10b981', borderColor: '#10b981' },
   chipText: { fontSize: 12, fontWeight: 'bold', color: '#475569' },
   divider: { height: 1, backgroundColor: '#f1f5f9', marginVertical: 15 },
   macrosDisplay: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 10 },
   mBox: { alignItems: 'center' },
   mVal: { fontSize: 24, fontWeight: 'bold', color: '#1e293b' },
   mLab: { fontSize: 10, color: '#94a3b8', fontWeight: 'bold' },
-  btnSave: { backgroundColor: '#1e293b', padding: 15, borderRadius: 12, alignItems: 'center', marginTop: 15 },
+  btnSave: { backgroundColor: '#1e293b', padding: 15, borderRadius: 12, alignItems: 'center', marginTop: 10 },
   btnSaveText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
-  searchBar: { backgroundColor: '#f8fafc', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0', marginTop: 5 },
-  dropdown: { backgroundColor: '#fff', borderRadius: 10, marginTop: 5, borderWidth: 1, borderColor: '#e2e8f0', elevation: 5 },
+  searchBar: { backgroundColor: '#f8fafc', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0', marginTop: 10 },
+  dropdown: { backgroundColor: '#fff', borderRadius: 10, marginTop: 5, borderWidth: 1, borderColor: '#e2e8f0', elevation: 3 },
   dropItem: { padding: 15, flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
   mealBlock: { marginBottom: 15 },
   mealTitle: { fontWeight: 'bold', fontSize: 14, color: '#1e293b', marginBottom: 5 },
-  mealBox: { backgroundColor: '#fff', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#cbd5e1' },
-  comidaRow: { flexDirection: 'row', backgroundColor: '#f8fafc', padding: 10, borderRadius: 8, marginBottom: 5, alignItems: 'center' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: '#fff', width: '85%', padding: 25, borderRadius: 25, alignItems: 'center' },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
-  modalSub: { fontSize: 13, color: '#3b82f6', marginVertical: 5 },
-  modalInput: { backgroundColor: '#f1f5f9', width: '100%', padding: 15, borderRadius: 15, fontSize: 24, textAlign: 'center', fontWeight: 'bold', marginTop: 10 },
-  btnModal: { flex: 1, padding: 15, borderRadius: 12, alignItems: 'center' },
-  mealPlaceholder: { fontSize: 11, color: '#94a3b8', fontStyle: 'italic', textAlign: 'center', padding: 10 },
-  placeholder: { padding: 50, alignItems: 'center' }
+  mealBox: { backgroundColor: '#fff', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#e2e8f0' },
+  comidaRow: { flexDirection: 'row', backgroundColor: '#f8fafc', padding: 12, borderRadius: 10, marginBottom: 5, alignItems: 'center' },
+  btnPublicar: { backgroundColor: '#22c55e', padding: 18, borderRadius: 15, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, marginTop: 30, elevation: 4 },
+  btnPublicarText: { color: '#fff', fontWeight: '900', fontSize: 14 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { backgroundColor: '#fff', width: '80%', padding: 25, borderRadius: 20, alignItems: 'center' },
+  modalTitle: { fontSize: 18, fontWeight: 'bold' },
+  modalInput: { backgroundColor: '#f1f5f9', width: '100%', padding: 15, borderRadius: 10, fontSize: 24, textAlign: 'center', fontWeight: 'bold', marginTop: 15 },
+  btnModal: { flex: 1, padding: 12, borderRadius: 10, alignItems: 'center' },
+  mealPlaceholder: { fontSize: 12, color: '#94a3b8', fontStyle: 'italic', padding: 10, textAlign: 'center' }
 });
