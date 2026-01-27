@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator, Alert, TextInput } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator, Alert, TextInput, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { db } from '../../firebaseConfig';
 import { doc, getDoc, onSnapshot, updateDoc, serverTimestamp, collection, arrayUnion, arrayRemove } from 'firebase/firestore';
@@ -14,26 +14,27 @@ export default function EditorPlan() {
   const [planData, setPlanData] = useState<any>(null);
   const [cargando, setCargando] = useState(true);
 
-  // Estados para Macros (g por kg)
+  // Macros g/kg
   const [gProteina, setGProteina] = useState(2.0);
   const [gGrasa, setGGrasa] = useState(0.8);
 
-  // Estados para Buscador
+  // Buscador
   const [busqueda, setBusqueda] = useState('');
   const [alimentosRepo, setAlimentosRepo] = useState<any[]>([]);
   const [comidaSeleccionada, setComidaSeleccionada] = useState(1);
+
+  // Modal para editar gramos
+  const [modalVisible, setModalVisible] = useState(false);
+  const [alimentoEditando, setAlimentoEditando] = useState<any>(null);
+  const [cantidadInput, setCantidadInput] = useState('');
 
   useEffect(() => {
     if (!planId || !alumnoId) return;
 
     const cargarDatos = async () => {
-      // 1. Obtener datos del alumno (Usando comidasDes como indicaste)
       const aSnap = await getDoc(doc(db, "alumnos_activos", alumnoId as string));
-      if (aSnap.exists()) {
-        setAlumno(aSnap.data());
-      }
+      if (aSnap.exists()) setAlumno(aSnap.data());
 
-      // 2. Escuchar cambios en el plan
       const unsubPlan = onSnapshot(doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string), (doc) => {
         if (doc.exists()) {
           const data = doc.data();
@@ -43,8 +44,8 @@ export default function EditorPlan() {
         }
       });
 
-      // 3. Cargar Biblioteca de alimentos
-      const unsubRepo = onSnapshot(collection(db, "biblioteca_alimentos"), (snap) => {
+      // CONEXIÓN CORREGIDA: Apunta a "alimentos" como en tu AdminAlimentos
+      const unsubRepo = onSnapshot(collection(db, "alimentos"), (snap) => {
         const items: any[] = [];
         snap.forEach(d => items.push({ id: d.id, ...d.data() }));
         setAlimentosRepo(items);
@@ -56,15 +57,12 @@ export default function EditorPlan() {
     cargarDatos();
   }, [planId, alumnoId]);
 
-  // Cálculo de calorías y carbohidratos restantes
   const resumenMacros = useMemo(() => {
     if (!alumno || !planData) return null;
     const peso = parseFloat(alumno.datosFisicos?.peso || 70);
     const kcalMeta = planData.caloriasMeta || 0;
-
     const pGrams = Math.round(peso * gProteina);
     const gGrams = Math.round(peso * gGrasa);
-    
     const kcalActuales = (pGrams * 4) + (gGrams * 9);
     const cGrams = Math.max(0, Math.round((kcalMeta - kcalActuales) / 4));
     
@@ -75,32 +73,47 @@ export default function EditorPlan() {
     try {
       const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
       await updateDoc(planRef, {
-        gProteina, 
-        gGrasa, 
+        gProteina, gGrasa, 
         gCarbo: resumenMacros?.cGrams || 0,
         macrosFinales: resumenMacros,
         fechaEdicion: serverTimestamp()
       });
       Alert.alert("Éxito", "Macros fijados correctamente.");
-    } catch (e) { 
-        Alert.alert("Error", "No se pudo guardar."); 
-    }
+    } catch (e) { Alert.alert("Error", "No se pudo guardar."); }
   };
 
   const agregarAlimento = async (item: any) => {
+    const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
+    // Agregamos con cantidad 1 por defecto (o 100 si prefieres)
+    await updateDoc(planRef, {
+      comidasReal: arrayUnion({ 
+        ...item, 
+        idInstancia: Date.now(), 
+        numComida: comidaSeleccionada,
+        cantidad: 1 
+      })
+    });
+    setBusqueda('');
+  };
+
+  const abrirEditorGramos = (alimento: any) => {
+    setAlimentoEditando(alimento);
+    setCantidadInput(alimento.cantidad.toString());
+    setModalVisible(true);
+  };
+
+  const guardarGramos = async () => {
+    if (!alimentoEditando) return;
     try {
-        const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
-        await updateDoc(planRef, {
-          comidasReal: arrayUnion({ 
-            ...item, 
-            idInstancia: Date.now(), 
-            numComida: comidaSeleccionada 
-          })
-        });
-        setBusqueda('');
-    } catch (e) {
-        Alert.alert("Error", "No se pudo añadir el alimento.");
-    }
+      const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
+      const nuevasComidas = planData.comidasReal.map((c: any) => 
+        c.idInstancia === alimentoEditando.idInstancia 
+        ? { ...c, cantidad: parseFloat(cantidadInput || "0") } 
+        : c
+      );
+      await updateDoc(planRef, { comidasReal: nuevasComidas });
+      setModalVisible(false);
+    } catch (e) { Alert.alert("Error", "No se pudo actualizar."); }
   };
 
   const quitarAlimento = async (item: any) => {
@@ -108,7 +121,6 @@ export default function EditorPlan() {
     await updateDoc(planRef, { comidasReal: arrayRemove(item) });
   };
 
-  // AQUÍ ESTÁ LA CORRECCIÓN: Leemos 'comidasDes'
   const numComidas = parseInt(alumno?.nutricion?.comidasDes) || 1;
 
   if (cargando) return <View style={styles.center}><ActivityIndicator color="#3b82f6" size="large" /></View>;
@@ -136,7 +148,6 @@ export default function EditorPlan() {
               {/* SECCIÓN MACROS */}
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>Fijar Macros (g/kg)</Text>
-                
                 <Text style={styles.label}>Proteína</Text>
                 <View style={styles.row}>
                   {[1.5, 1.8, 2.0, 2.2, 2.5].map(v => (
@@ -145,7 +156,6 @@ export default function EditorPlan() {
                     </Pressable>
                   ))}
                 </View>
-
                 <Text style={[styles.label, {marginTop: 15}]}>Grasa</Text>
                 <View style={styles.row}>
                   {[0.5, 0.6, 0.7, 0.8, 1.0].map(v => (
@@ -154,51 +164,41 @@ export default function EditorPlan() {
                     </Pressable>
                   ))}
                 </View>
-
                 <View style={styles.divider} />
                 <View style={styles.macrosDisplay}>
                   <View style={styles.mBox}><Text style={styles.mVal}>{resumenMacros?.pGrams}g</Text><Text style={styles.mLab}>PROT</Text></View>
                   <View style={styles.mBox}><Text style={styles.mVal}>{resumenMacros?.gGrams}g</Text><Text style={styles.mLab}>GRASA</Text></View>
                   <View style={styles.mBox}><Text style={[styles.mVal, {color: '#10b981'}]}>{resumenMacros?.cGrams}g</Text><Text style={styles.mLab}>CARBS*</Text></View>
                 </View>
-
                 <Pressable style={styles.btnSave} onPress={guardarConfiguracion}>
-                  <Text style={styles.btnSaveText}>FIJAR MACROS Y CALORÍAS</Text>
+                  <Text style={styles.btnSaveText}>FIJAR MACROS</Text>
                 </Pressable>
               </View>
 
-              {/* SECCIÓN BUSCADOR */}
+              {/* BUSCADOR */}
               <View style={[styles.card, {marginTop: 20}]}>
-                <Text style={styles.cardTitle}>Agregar Alimento</Text>
-                <Text style={styles.label}>Destino:</Text>
+                <Text style={styles.cardTitle}>Biblioteca de Alimentos</Text>
                 <View style={styles.row}>
                   {Array.from({ length: numComidas }).map((_, i) => (
                     <Pressable key={i} onPress={() => setComidaSeleccionada(i+1)} style={[styles.miniChip, comidaSeleccionada === (i+1) && {backgroundColor: '#3b82f6'}]}>
-                      <Text style={{fontSize: 11, fontWeight: 'bold', color: comidaSeleccionada === (i+1) ? '#fff' : '#475569'}}>C{i+1}</Text>
+                      <Text style={{fontSize: 10, color: comidaSeleccionada === (i+1) ? '#fff' : '#000'}}>C{i+1}</Text>
                     </Pressable>
                   ))}
                 </View>
-                
-                <TextInput 
-                  placeholder="Buscar en biblioteca..." 
-                  style={styles.searchBar} 
-                  value={busqueda} 
-                  onChangeText={setBusqueda} 
-                />
-                
+                <TextInput placeholder="Buscar..." style={styles.searchBar} value={busqueda} onChangeText={setBusqueda} />
                 {busqueda !== '' && (
                   <View style={styles.dropdown}>
                     {alimentosRepo.filter(a => a.nombre.toLowerCase().includes(busqueda.toLowerCase())).map(al => (
                       <Pressable key={al.id} style={styles.dropItem} onPress={() => agregarAlimento(al)}>
-                        <Text style={{fontSize: 14}}>{al.nombre}</Text>
-                        <Text style={{fontSize: 11, color: '#3b82f6'}}>+ Añadir a Comida {comidaSeleccionada}</Text>
+                        <Text>{al.nombre.toUpperCase()}</Text>
+                        <Text style={{fontSize: 10, color: '#3b82f6'}}>+ C{comidaSeleccionada}</Text>
                       </Pressable>
                     ))}
                   </View>
                 )}
               </View>
 
-              {/* BLOQUES DE COMIDA ORGANIZADOS */}
+              {/* BLOQUES DINÁMICOS */}
               <View style={{marginTop: 20}}>
                 {Array.from({ length: numComidas }).map((_, i) => (
                   <View key={i} style={styles.mealBlock}>
@@ -206,15 +206,15 @@ export default function EditorPlan() {
                     <View style={styles.mealBox}>
                       {planData?.comidasReal?.filter((c: any) => c.numComida === (i + 1)).map((c: any) => (
                         <View key={c.idInstancia} style={styles.comidaRow}>
-                          <Text style={{flex: 1, fontSize: 13, fontWeight: '500'}}>{c.nombre}</Text>
+                          <Pressable style={{flex: 1}} onPress={() => abrirEditorGramos(c)}>
+                             <Text style={{fontWeight: 'bold'}}>{c.nombre.toUpperCase()}</Text>
+                             <Text style={{fontSize: 11, color: '#3b82f6'}}>{c.cantidad} {c.unidadMedida} • {Math.round(c.calorias * c.cantidad)} kcal</Text>
+                          </Pressable>
                           <Pressable onPress={() => quitarAlimento(c)} style={{padding: 5}}>
                             <FontAwesome5 name="trash" size={12} color="#ef4444" />
                           </Pressable>
                         </View>
                       ))}
-                      {(!planData?.comidasReal || planData?.comidasReal?.filter((c: any) => c.numComida === (i + 1)).length === 0) && (
-                        <Text style={styles.mealPlaceholder}>No hay alimentos...</Text>
-                      )}
                     </View>
                   </View>
                 ))}
@@ -222,6 +222,33 @@ export default function EditorPlan() {
             </View>
           )}
         </ScrollView>
+
+        {/* MODAL PARA EDITAR CANTIDAD */}
+        <Modal visible={modalVisible} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Ajustar Cantidad</Text>
+              <Text style={styles.modalSub}>{alimentoEditando?.nombre.toUpperCase()}</Text>
+              <TextInput 
+                style={styles.modalInput} 
+                keyboardType="numeric" 
+                value={cantidadInput} 
+                onChangeText={setCantidadInput}
+                autoFocus
+              />
+              <Text style={{fontSize: 12, color: '#64748b', marginBottom: 20}}>Unidad: {alimentoEditando?.unidadMedida}</Text>
+              <View style={styles.row}>
+                <Pressable style={[styles.btnModal, {backgroundColor: '#e2e8f0'}]} onPress={() => setModalVisible(false)}>
+                  <Text>Cancelar</Text>
+                </Pressable>
+                <Pressable style={[styles.btnModal, {backgroundColor: '#3b82f6'}]} onPress={guardarGramos}>
+                  <Text style={{color: '#fff', fontWeight: 'bold'}}>Guardar</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
       </View>
     </View>
   );
@@ -236,30 +263,42 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: 'bold' },
   headerSub: { fontSize: 12, color: '#3b82f6', fontWeight: 'bold' },
   kcalBadge: { backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
-  kcalBadgeText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
+  kcalBadgeText: { color: '#fff', fontWeight: 'bold', fontSize: 11 },
+  tabs: { flexDirection: 'row', backgroundColor: '#fff', padding: 5 },
+  tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 8 },
+  tabActive: { backgroundColor: '#eff6ff' },
+  tabText: { fontWeight: 'bold', color: '#94a3b8' },
+  tabTextActive: { color: '#3b82f6' },
   scroll: { padding: 20 },
   card: { backgroundColor: '#fff', padding: 20, borderRadius: 20, borderWidth: 1, borderColor: '#e2e8f0' },
   cardTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 15 },
-  label: { fontSize: 12, fontWeight: 'bold', color: '#64748b', marginBottom: 8 },
+  label: { fontSize: 12, fontWeight: 'bold', color: '#64748b', marginBottom: 5 },
   row: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 10 },
-  chip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', minWidth: 50, alignItems: 'center' },
-  miniChip: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: 6, backgroundColor: '#e2e8f0', minWidth: 40, alignItems: 'center' },
+  chip: { padding: 10, borderRadius: 8, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', minWidth: 45, alignItems: 'center' },
+  miniChip: { padding: 5, borderRadius: 5, backgroundColor: '#e2e8f0', minWidth: 35, alignItems: 'center' },
   chipProt: { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
   chipGra: { backgroundColor: '#f59e0b', borderColor: '#f59e0b' },
+  chipCarb: { backgroundColor: '#10b981', borderColor: '#10b981' },
   chipText: { fontSize: 12, fontWeight: 'bold', color: '#64748b' },
   divider: { height: 1, backgroundColor: '#f1f5f9', marginVertical: 15 },
-  macrosDisplay: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 20 },
+  macrosDisplay: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 10 },
   mBox: { alignItems: 'center' },
   mVal: { fontSize: 24, fontWeight: 'bold', color: '#1e293b' },
   mLab: { fontSize: 10, color: '#94a3b8', fontWeight: 'bold' },
-  btnSave: { backgroundColor: '#1e293b', padding: 15, borderRadius: 12, alignItems: 'center' },
+  btnSave: { backgroundColor: '#1e293b', padding: 15, borderRadius: 12, alignItems: 'center', marginTop: 10 },
   btnSaveText: { color: '#fff', fontWeight: 'bold' },
-  searchBar: { backgroundColor: '#f8fafc', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0', marginTop: 10 },
+  searchBar: { backgroundColor: '#f8fafc', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0' },
   dropdown: { backgroundColor: '#fff', borderRadius: 10, marginTop: 5, borderWidth: 1, borderColor: '#e2e8f0', elevation: 3 },
   dropItem: { padding: 15, flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
   mealBlock: { marginBottom: 15 },
   mealTitle: { fontWeight: 'bold', fontSize: 14, color: '#1e293b', marginBottom: 5 },
-  mealBox: { backgroundColor: '#fff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#e2e8f0' },
-  comidaRow: { flexDirection: 'row', backgroundColor: '#f8fafc', padding: 10, borderRadius: 8, marginBottom: 5, alignItems: 'center', borderLeftWidth: 3, borderLeftColor: '#3b82f6' },
-  mealPlaceholder: { fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }
+  mealBox: { backgroundColor: '#fff', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#e2e8f0' },
+  comidaRow: { flexDirection: 'row', backgroundColor: '#f8fafc', padding: 12, borderRadius: 10, marginBottom: 5, alignItems: 'center' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { backgroundColor: '#fff', width: '80%', padding: 25, borderRadius: 20, alignItems: 'center' },
+  modalTitle: { fontSize: 18, fontWeight: 'bold' },
+  modalSub: { fontSize: 12, color: '#3b82f6', marginBottom: 15 },
+  modalInput: { backgroundColor: '#f1f5f9', width: '100%', padding: 15, borderRadius: 10, fontSize: 20, textAlign: 'center', fontWeight: 'bold' },
+  btnModal: { flex: 1, padding: 12, borderRadius: 10, alignItems: 'center' },
+  placeholder: { padding: 50, alignItems: 'center' }
 });
