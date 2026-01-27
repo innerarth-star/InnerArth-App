@@ -25,8 +25,6 @@ export default function EditorPlan() {
   const [cargando, setCargando] = useState(true);
 
   // --- ESTADOS DIETA ---
-  const [gProteina, setGProteina] = useState(2.0);
-  const [gGrasa, setGGrasa] = useState(0.8);
   const [busqueda, setBusqueda] = useState('');
   const [alimentosRepo, setAlimentosRepo] = useState<any[]>([]);
   const [comidaSeleccionada, setComidaSeleccionada] = useState(1);
@@ -70,11 +68,11 @@ export default function EditorPlan() {
     if (!alumno || !planData) return null;
     const peso = parseFloat(alumno.datosFisicos?.peso || 70);
     const kcalMeta = planData.caloriasMeta || 0;
-    const pMeta = Math.round(peso * gProteina);
-    const gMeta = Math.round(peso * gGrasa);
+    const pMeta = Math.round(peso * 2.0); 
+    const gMeta = Math.round(peso * 0.8);
     const cMeta = Math.max(0, Math.round((kcalMeta - (pMeta * 4 + gMeta * 9)) / 4));
     return { pMeta, gMeta, cMeta, kcalMeta };
-  }, [alumno, planData, gProteina, gGrasa]);
+  }, [alumno, planData]);
 
   const consumoActual = useMemo(() => {
     if (!planData?.comidasReal) return { p: 0, g: 0, c: 0, kcal: 0 };
@@ -88,7 +86,7 @@ export default function EditorPlan() {
     }, { p: 0, g: 0, c: 0, kcal: 0 });
   }, [planData?.comidasReal]);
 
-  // --- FUNCIONES DIETA ---
+  // --- FUNCIONES ---
   const agregarAlimento = async (item: any) => {
     const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
     await updateDoc(planRef, {
@@ -97,28 +95,6 @@ export default function EditorPlan() {
     setBusqueda('');
   };
 
-  const quitarAlimento = async (item: any) => {
-    const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
-    await updateDoc(planRef, { comidasReal: arrayRemove(item) });
-  };
-
-  const guardarGramos = async () => {
-    if (!alimentoEditando) return;
-    const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
-    const nuevasComidas = planData.comidasReal.map((c: any) => 
-      c.idInstancia === alimentoEditando.idInstancia ? { ...c, cantidad: parseFloat(cantidadInput || "0") } : c
-    );
-    await updateDoc(planRef, { comidasReal: nuevasComidas });
-    setModalVisible(false);
-  };
-
-  const finalizarDieta = async () => {
-    const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
-    await updateDoc(planRef, { estatusDieta: "Completado", fechaGuardadoDieta: serverTimestamp() });
-    setTab('entreno');
-  };
-
-  // --- FUNCIONES ENTRENO ---
   const agregarEjercicio = async (ej: any) => {
     const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
     await updateDoc(planRef, {
@@ -135,11 +111,6 @@ export default function EditorPlan() {
     await updateDoc(planRef, { rutinaReal: nuevaRutina });
   };
 
-  const eliminarEjercicio = async (ej: any) => {
-    const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
-    await updateDoc(planRef, { rutinaReal: arrayRemove(ej) });
-  };
-
   const numComidas = parseInt(alumno?.nutricion?.comidasDes) || 1;
 
   if (cargando) return <View style={styles.center}><ActivityIndicator color="#3b82f6" size="large" /></View>;
@@ -147,18 +118,17 @@ export default function EditorPlan() {
   return (
     <View style={styles.outerContainer}>
       <View style={styles.mainContainer}>
-        {/* Header */}
+        {/* Header con navegación a alumnos */}
         <View style={styles.header}>
           <Pressable onPress={() => router.push('/(admin)/alumnos' as any)} style={styles.backBtn}>
             <FontAwesome5 name="arrow-left" size={20} color="#1e293b" />
           </Pressable>
           <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>{nombreAlumno}</Text>
-            <Text style={styles.headerSub}>{tab === 'dieta' ? `Plan de Nutrición` : `Rutina: ${diaSeleccionado}`}</Text>
+            <Text style={styles.headerSub}>{tab === 'dieta' ? 'Plan de Nutrición' : `Entrenamiento: ${diaSeleccionado}`}</Text>
           </View>
         </View>
 
-        {/* Tabs Principales */}
         <View style={styles.tabs}>
           <Pressable onPress={() => setTab('dieta')} style={[styles.tab, tab === 'dieta' && styles.tabActive]}>
             <Text style={[styles.tabText, tab === 'dieta' && styles.tabTextActive]}>DIETA</Text>
@@ -205,7 +175,7 @@ export default function EditorPlan() {
                 )}
               </View>
 
-              {/* BLOQUES DE COMIDA */}
+              {/* LISTA DE COMIDAS */}
               {Array.from({ length: numComidas }).map((_, i) => (
                 <View key={i} style={styles.mealBlock}>
                   <Text style={styles.mealTitle}>Comida {i + 1}</Text>
@@ -216,7 +186,10 @@ export default function EditorPlan() {
                            <Text style={{fontWeight: 'bold', fontSize: 13}}>{c.nombre.toUpperCase()}</Text>
                            <Text style={{fontSize: 11, color: '#3b82f6'}}>{c.cantidad} {c.unidadMedida} • {Math.round(c.calorias * c.cantidad)} kcal</Text>
                         </Pressable>
-                        <Pressable onPress={() => quitarAlimento(c)}><FontAwesome5 name="trash" size={14} color="#ef4444" /></Pressable>
+                        <Pressable onPress={async () => {
+                          const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
+                          await updateDoc(planRef, { comidasReal: arrayRemove(c) });
+                        }}><FontAwesome5 name="trash" size={14} color="#ef4444" /></Pressable>
                       </View>
                     ))}
                   </View>
@@ -225,7 +198,7 @@ export default function EditorPlan() {
             </View>
           ) : (
             <View>
-              {/* SELECTOR DE DÍA */}
+              {/* SELECTOR DÍAS */}
               <View style={styles.diasContainer}>
                 {DIAS.map(d => (
                   <Pressable key={d} onPress={() => setDiaSeleccionado(d)} style={[styles.diaBtn, diaSeleccionado === d && styles.diaBtnActive]}>
@@ -234,7 +207,7 @@ export default function EditorPlan() {
                 ))}
               </View>
 
-              {/* BUSCADOR ENTRENO */}
+              {/* BUSCADOR EJERCICIOS */}
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>Añadir Ejercicio al {diaSeleccionado}</Text>
                 <TextInput placeholder="Buscar ejercicio..." style={styles.searchBar} value={busquedaEj} onChangeText={setBusquedaEj} />
@@ -250,13 +223,16 @@ export default function EditorPlan() {
                 )}
               </View>
 
-              {/* LISTA EJERCICIOS */}
+              {/* LISTA RUTINA */}
               <View style={{marginTop: 20}}>
                 {planData?.rutinaReal?.filter((r: any) => r.dia === diaSeleccionado).map((ej: any) => (
                   <View key={ej.idInstancia} style={styles.ejercicioCard}>
                     <View style={styles.ejHeader}>
                       <View style={{flex: 1}}><Text style={styles.ejNombre}>{ej.nombre.toUpperCase()}</Text><Text style={styles.ejGrupo}>{ej.grupo}</Text></View>
-                      <Pressable onPress={() => eliminarEjercicio(ej)}><FontAwesome5 name="times-circle" size={20} color="#ef4444" /></Pressable>
+                      <Pressable onPress={async () => {
+                        const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
+                        await updateDoc(planRef, { rutinaReal: arrayRemove(ej) });
+                      }}><FontAwesome5 name="times-circle" size={20} color="#ef4444" /></Pressable>
                     </View>
                     <View style={styles.ejInputs}>
                        <View style={{flex: 1}}>
@@ -276,15 +252,20 @@ export default function EditorPlan() {
           <View style={{height: 120}} />
         </ScrollView>
 
+        {/* Botón flotante para Dieta */}
         {tab === 'dieta' && (
           <View style={styles.footerSticky}>
-            <TouchableOpacity style={styles.btnFinalizar} onPress={finalizarDieta}>
-              <Text style={styles.btnFinalizarText}>GUARDAR DIETA Y PASAR A ENTRENO</Text>
-              <FontAwesome5 name="chevron-right" size={14} color="#fff" />
+            <TouchableOpacity style={styles.btnFinalizar} onPress={async () => {
+               const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
+               await updateDoc(planRef, { estatusDieta: "Completado" });
+               setTab('entreno');
+            }}>
+              <Text style={{color:'#fff', fontWeight:'bold'}}>GUARDAR DIETA Y PASAR A ENTRENO</Text>
             </TouchableOpacity>
           </View>
         )}
 
+        {/* Modal Gramos */}
         <Modal visible={modalVisible} transparent animationType="slide">
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
@@ -292,7 +273,12 @@ export default function EditorPlan() {
               <TextInput style={styles.modalInput} keyboardType="numeric" value={cantidadInput} onChangeText={setCantidadInput} autoFocus />
               <View style={{flexDirection: 'row', gap: 10, marginTop: 20}}>
                 <Pressable style={[styles.btnModal, {backgroundColor: '#f1f5f9'}]} onPress={() => setModalVisible(false)}><Text>Cerrar</Text></Pressable>
-                <Pressable style={[styles.btnModal, {backgroundColor: '#3b82f6'}]} onPress={guardarGramos}><Text style={{color: '#fff', fontWeight: 'bold'}}>Actualizar</Text></Pressable>
+                <Pressable style={[styles.btnModal, {backgroundColor: '#3b82f6'}]} onPress={async () => {
+                  const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
+                  const nueva = planData.comidasReal.map((c: any) => c.idInstancia === alimentoEditando.idInstancia ? { ...c, cantidad: parseFloat(cantidadInput || "0") } : c);
+                  await updateDoc(planRef, { comidasReal: nueva });
+                  setModalVisible(false);
+                }}><Text style={{color: '#fff', fontWeight: 'bold'}}>Actualizar</Text></Pressable>
               </View>
             </View>
           </View>
@@ -330,7 +316,7 @@ const styles = StyleSheet.create({
   dropItem: { padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
   mealBlock: { marginTop: 15 },
   mealTitle: { fontWeight: 'bold', fontSize: 14, color: '#1e293b', marginBottom: 5 },
-  mealBox: { backgroundColor: '#fff', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#e2e8f0', minHeight: 60 },
+  mealBox: { backgroundColor: '#fff', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#e2e8f0' },
   comidaRow: { flexDirection: 'row', backgroundColor: '#f8fafc', padding: 12, borderRadius: 10, marginBottom: 5, alignItems: 'center' },
   diasContainer: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 15 },
   diaBtn: { padding: 8, borderRadius: 10, backgroundColor: '#fff', width: '13%', alignItems: 'center', borderWidth: 1, borderColor: '#e2e8f0' },
@@ -345,8 +331,7 @@ const styles = StyleSheet.create({
   ejInputLabel: { fontSize: 10, fontWeight: 'bold', color: '#64748b', marginBottom: 4 },
   smallInput: { backgroundColor: '#f8fafc', padding: 8, borderRadius: 8, borderWidth: 1, borderColor: '#cbd5e1', fontSize: 13 },
   footerSticky: { position: 'absolute', bottom: 0, width: '100%', padding: 20, backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#e2e8f0' },
-  btnFinalizar: { backgroundColor: '#22c55e', padding: 16, borderRadius: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
-  btnFinalizarText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+  btnFinalizar: { backgroundColor: '#22c55e', padding: 16, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { backgroundColor: '#fff', width: '80%', padding: 20, borderRadius: 20, alignItems: 'center' },
   modalTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 15 },
