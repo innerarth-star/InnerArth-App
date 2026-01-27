@@ -27,21 +27,23 @@ export default function EditorPlan() {
     if (!planId || !alumnoId) return;
 
     const cargarDatos = async () => {
-      // Cargar Datos del Alumno
+      // 1. Cargar Datos del Alumno (para obtener peso y frecuencia de comidas)
       const aSnap = await getDoc(doc(db, "alumnos_activos", alumnoId as string));
       if (aSnap.exists()) setAlumno(aSnap.data());
 
-      // Cargar Planes y Biblioteca
+      // 2. Escuchar el Plan (para obtener las CALORÍAS que elegiste en el historial)
       const unsubPlan = onSnapshot(doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string), (doc) => {
         if (doc.exists()) {
           const data = doc.data();
           setPlanData(data);
+          // Si ya hay valores guardados de g/kg en el plan, los cargamos
           if (data.gProteina) setGProteina(data.gProteina);
           if (data.gGrasa) setGGrasa(data.gGrasa);
           if (data.gCarbo) setGCarbo(data.gCarbo);
         }
       });
 
+      // 3. Cargar Biblioteca
       const unsubRepo = onSnapshot(collection(db, "biblioteca_alimentos"), (snap) => {
         const items: any[] = [];
         snap.forEach(d => items.push({ id: d.id, ...d.data() }));
@@ -54,21 +56,27 @@ export default function EditorPlan() {
     cargarDatos();
   }, [planId, alumnoId]);
 
+  // Cálculo de gramos totales basado en el peso del alumno
   const resumenMacros = useMemo(() => {
     if (!alumno) return null;
     const peso = parseFloat(alumno.datosFisicos?.peso || 70);
     const pGrams = Math.round(peso * gProteina);
     const gGrams = Math.round(peso * gGrasa);
     const cGrams = Math.round(peso * gCarbo);
-    const totalKcal = (pGrams * 4) + (gGrams * 9) + (cGrams * 4);
-    return { pGrams, gGrams, cGrams, totalKcal };
+    
+    // Las calorías totales se calculan en base a los gramos elegidos
+    const totalKcalCalculadas = (pGrams * 4) + (gGrams * 9) + (cGrams * 4);
+    
+    return { pGrams, gGrams, cGrams, totalKcalCalculadas };
   }, [alumno, gProteina, gGrasa, gCarbo]);
 
   const guardarConfiguracion = async () => {
     try {
       const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
       await updateDoc(planRef, {
-        gProteina, gGrasa, gCarbo,
+        gProteina, 
+        gGrasa, 
+        gCarbo,
         macrosFinales: resumenMacros,
         fechaEdicion: serverTimestamp()
       });
@@ -94,7 +102,7 @@ export default function EditorPlan() {
   return (
     <View style={styles.outerContainer}>
       <View style={styles.mainContainer}>
-        {/* Header */}
+        {/* Header - Aquí jalamos las calorías del plan y la frecuencia del alumno */}
         <View style={styles.header}>
           <Pressable onPress={() => router.replace('/(admin)/alumnos' as any)} style={styles.backBtn}>
             <FontAwesome5 name="arrow-left" size={20} color="#1e293b" />
@@ -104,7 +112,8 @@ export default function EditorPlan() {
             <Text style={styles.headerSub}>Frecuencia pedida: {alumno?.nutricion?.comidas || 'N/A'} comidas</Text>
           </View>
           <View style={styles.kcalBadge}>
-            <Text style={styles.kcalBadgeText}>{resumenMacros?.totalKcal} kcal</Text>
+            {/* Muestra las calorías meta guardadas en el historial */}
+            <Text style={styles.kcalBadgeText}>{planData?.caloriasMeta || 0} kcal Meta</Text>
           </View>
         </View>
 
@@ -122,7 +131,11 @@ export default function EditorPlan() {
             <View>
               {/* SECCIÓN MACROS */}
               <View style={styles.card}>
-                <Text style={styles.cardTitle}>Configuración de Macros (g/kg)</Text>
+                <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+                    <Text style={styles.cardTitle}>Configuración de Macros (g/kg)</Text>
+                    <Text style={{fontSize: 12, color: '#64748b'}}>Total: {resumenMacros?.totalKcalCalculadas} kcal</Text>
+                </View>
+                
                 <Text style={styles.label}>Proteína</Text>
                 <View style={styles.row}>
                   {[1.5, 1.8, 2.0, 2.2, 2.5].map(v => (
@@ -201,7 +214,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: 'bold' },
   headerSub: { fontSize: 13, color: '#3b82f6' },
   kcalBadge: { backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
-  kcalBadgeText: { color: '#fff', fontWeight: 'bold' },
+  kcalBadgeText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
   tabs: { flexDirection: 'row', backgroundColor: '#fff', padding: 5 },
   tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 8 },
   tabActive: { backgroundColor: '#eff6ff' },
