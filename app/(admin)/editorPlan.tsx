@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator, Alert, TextInput, Modal } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator, Alert, TextInput, Modal, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { db } from '../../firebaseConfig';
 import { doc, getDoc, onSnapshot, updateDoc, serverTimestamp, collection, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { FontAwesome5 } from '@expo/vector-icons';
 
-// Componente para los macros del Tracker
+// Componente para los macros del Tracker superior
 const TrackerItem = ({ label, restante, color }: any) => (
   <View style={styles.trackerItem}>
     <Text style={[styles.trackerVal, { color: restante < 0 ? '#ef4444' : color }]}>{restante}</Text>
@@ -22,24 +22,29 @@ export default function EditorPlan() {
   const [planData, setPlanData] = useState<any>(null);
   const [cargando, setCargando] = useState(true);
 
-  // Estados Macros
+  // Estados para Macros (g por kg)
   const [gProteina, setGProteina] = useState(2.0);
   const [gGrasa, setGGrasa] = useState(0.8);
+
+  // Estados para Buscador de Dieta
   const [busqueda, setBusqueda] = useState('');
   const [alimentosRepo, setAlimentosRepo] = useState<any[]>([]);
   const [comidaSeleccionada, setComidaSeleccionada] = useState(1);
 
-  // Modal Gramos
+  // Modal para editar gramos de alimento
   const [modalVisible, setModalVisible] = useState(false);
   const [alimentoEditando, setAlimentoEditando] = useState<any>(null);
   const [cantidadInput, setCantidadInput] = useState('');
 
   useEffect(() => {
     if (!planId || !alumnoId) return;
+
     const cargarDatos = async () => {
+      // 1. Datos del Alumno
       const aSnap = await getDoc(doc(db, "alumnos_activos", alumnoId as string));
       if (aSnap.exists()) setAlumno(aSnap.data());
 
+      // 2. Datos del Plan (en tiempo real)
       const unsubPlan = onSnapshot(doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string), (doc) => {
         if (doc.exists()) {
           const data = doc.data();
@@ -49,17 +54,20 @@ export default function EditorPlan() {
         }
       });
 
+      // 3. Biblioteca de Alimentos (Colección "alimentos")
       const unsubRepo = onSnapshot(collection(db, "alimentos"), (snap) => {
         const items: any[] = [];
         snap.forEach(d => items.push({ id: d.id, ...d.data() }));
         setAlimentosRepo(items);
         setCargando(false);
       });
+
       return () => { unsubPlan(); unsubRepo(); };
     };
     cargarDatos();
   }, [planId, alumnoId]);
 
+  // Lógica de cálculo de macros
   const objetivos = useMemo(() => {
     if (!alumno || !planData) return null;
     const peso = parseFloat(alumno.datosFisicos?.peso || 70);
@@ -83,6 +91,7 @@ export default function EditorPlan() {
     }, { p: 0, g: 0, c: 0, kcal: 0 });
   }, [planData?.comidasReal]);
 
+  // Funciones de Dieta
   const finalizarDieta = async () => {
     try {
       const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
@@ -96,7 +105,7 @@ export default function EditorPlan() {
         },
         fechaGuardadoDieta: serverTimestamp()
       });
-      setTab('entreno'); // Cambiar pestaña automáticamente
+      setTab('entreno');
     } catch (e) {
       Alert.alert("Error", "No se pudo guardar la dieta.");
     }
@@ -110,6 +119,18 @@ export default function EditorPlan() {
     setBusqueda('');
   };
 
+  const guardarGramos = async () => {
+    if (!alimentoEditando) return;
+    try {
+      const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
+      const nuevasComidas = planData.comidasReal.map((c: any) => 
+        c.idInstancia === alimentoEditando.idInstancia ? { ...c, cantidad: parseFloat(cantidadInput || "0") } : c
+      );
+      await updateDoc(planRef, { comidasReal: nuevasComidas });
+      setModalVisible(false);
+    } catch (e) { Alert.alert("Error", "No se pudo actualizar."); }
+  };
+
   const numComidas = parseInt(alumno?.nutricion?.comidasDes) || 1;
 
   if (cargando) return <View style={styles.center}><ActivityIndicator color="#3b82f6" size="large" /></View>;
@@ -118,16 +139,24 @@ export default function EditorPlan() {
     <View style={styles.outerContainer}>
       <View style={styles.mainContainer}>
         
+        {/* Header - Navegación corregida a Alumnos */}
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <Pressable 
+            onPress={() => router.push('/(admin)/alumnos' as any)} 
+            style={styles.backBtn}
+          >
             <FontAwesome5 name="arrow-left" size={20} color="#1e293b" />
           </Pressable>
           <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>{nombreAlumno}</Text>
             <Text style={styles.headerSub}>Frecuencia: {numComidas} comidas</Text>
           </View>
+          <View style={styles.kcalBadge}>
+            <Text style={styles.kcalBadgeText}>{objetivos?.kcalMeta} kcal</Text>
+          </View>
         </View>
 
+        {/* Tabs de navegación interna */}
         <View style={styles.tabs}>
           <Pressable onPress={() => setTab('dieta')} style={[styles.tab, tab === 'dieta' && styles.tabActive]}>
             <Text style={[styles.tabText, tab === 'dieta' && styles.tabTextActive]}>DIETA</Text>
@@ -151,9 +180,9 @@ export default function EditorPlan() {
         <ScrollView contentContainerStyle={styles.scroll}>
           {tab === 'dieta' ? (
             <View>
-              {/* BUSCADOR */}
+              {/* BUSCADOR DE ALIMENTOS */}
               <View style={styles.card}>
-                <Text style={styles.cardTitle}>Agregar a C{comidaSeleccionada}</Text>
+                <Text style={styles.cardTitle}>Agregar a Comida {comidaSeleccionada}</Text>
                 <View style={styles.row}>
                   {Array.from({ length: numComidas }).map((_, i) => (
                     <Pressable key={i} onPress={() => setComidaSeleccionada(i+1)} style={[styles.miniChip, comidaSeleccionada === (i+1) && {backgroundColor: '#3b82f6'}]}>
@@ -161,12 +190,12 @@ export default function EditorPlan() {
                     </Pressable>
                   ))}
                 </View>
-                <TextInput placeholder="Buscar alimento..." style={styles.searchBar} value={busqueda} onChangeText={setBusqueda} />
+                <TextInput placeholder="Buscar en biblioteca..." style={styles.searchBar} value={busqueda} onChangeText={setBusqueda} />
                 {busqueda !== '' && (
                   <View style={styles.dropdown}>
                     {alimentosRepo.filter(a => a.nombre.toLowerCase().includes(busqueda.toLowerCase())).map(al => (
                       <Pressable key={al.id} style={styles.dropItem} onPress={() => agregarAlimento(al)}>
-                        <Text>{al.nombre.toUpperCase()}</Text>
+                        <Text style={{fontSize: 13}}>{al.nombre.toUpperCase()}</Text>
                         <FontAwesome5 name="plus" size={12} color="#3b82f6" />
                       </Pressable>
                     ))}
@@ -174,7 +203,7 @@ export default function EditorPlan() {
                 )}
               </View>
 
-              {/* BLOQUES DE COMIDA */}
+              {/* BLOQUES DE CADA COMIDA */}
               {Array.from({ length: numComidas }).map((_, i) => (
                 <View key={i} style={[styles.mealBlock, {marginTop: 15}]}>
                   <Text style={styles.mealTitle}>Comida {i + 1}</Text>
@@ -188,7 +217,7 @@ export default function EditorPlan() {
                         <Pressable onPress={() => {
                           const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
                           updateDoc(planRef, { comidasReal: arrayRemove(c) });
-                        }} style={{padding: 10}}>
+                        }}>
                           <FontAwesome5 name="trash" size={14} color="#ef4444" />
                         </Pressable>
                       </View>
@@ -200,26 +229,33 @@ export default function EditorPlan() {
             </View>
           ) : (
             <View style={styles.placeholder}>
-              <FontAwesome5 name="dumbbell" size={50} color="#e2e8f0" />
-              <Text style={{marginTop: 20, fontWeight: 'bold', color: '#64748b'}}>ZONA DE ENTRENAMIENTO</Text>
-              <Pressable style={styles.btnAgregar} onPress={() => Alert.alert("Próximamente", "Aquí agregarás los ejercicios")}>
-                <Text style={{color: '#fff', fontWeight: 'bold'}}>Añadir Ejercicio</Text>
-              </Pressable>
+              <FontAwesome5 name="dumbbell" size={50} color="#cbd5e1" />
+              <Text style={{marginTop: 20, fontWeight: 'bold', color: '#1e293b'}}>RUTINA DE ENTRENAMIENTO</Text>
+              <Text style={{color: '#64748b', textAlign: 'center', marginTop: 5}}>Configuremos los ejercicios para este alumno.</Text>
+              
+              <TouchableOpacity style={styles.btnAgregarEjercicios}>
+                  <FontAwesome5 name="plus" size={14} color="#fff" />
+                  <Text style={{color: '#fff', fontWeight: 'bold'}}>Añadir Ejercicio</Text>
+              </TouchableOpacity>
             </View>
           )}
         </ScrollView>
 
-        {/* BOTÓN INFERIOR FIJO */}
+        {/* Botón flotante para guardar dieta (Sticky Footer) */}
         {tab === 'dieta' && (
-          <View style={styles.footer}>
-            <Pressable style={styles.btnFinalizar} onPress={finalizarDieta}>
-              <Text style={styles.btnFinalizarText}>GUARDAR DIETA Y PASAR A ENTRENO</Text>
+          <View style={styles.footerSticky}>
+            <TouchableOpacity 
+              activeOpacity={0.8} 
+              style={styles.btnFinalizar} 
+              onPress={finalizarDieta}
+            >
+              <Text style={styles.btnFinalizarText}>GUARDAR DIETA Y CONTINUAR</Text>
               <FontAwesome5 name="chevron-right" size={14} color="#fff" />
-            </Pressable>
+            </TouchableOpacity>
           </View>
         )}
 
-        {/* MODAL GRAMOS */}
+        {/* Modal de edición de gramos */}
         <Modal visible={modalVisible} transparent animationType="slide">
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
@@ -227,14 +263,7 @@ export default function EditorPlan() {
               <TextInput style={styles.modalInput} keyboardType="numeric" value={cantidadInput} onChangeText={setCantidadInput} autoFocus />
               <View style={{flexDirection: 'row', gap: 10, marginTop: 20}}>
                 <Pressable style={[styles.btnModal, {backgroundColor: '#f1f5f9'}]} onPress={() => setModalVisible(false)}><Text>Cerrar</Text></Pressable>
-                <Pressable style={[styles.btnModal, {backgroundColor: '#3b82f6'}]} onPress={async () => {
-                   const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
-                   const nuevasComidas = planData.comidasReal.map((c: any) => 
-                     c.idInstancia === alimentoEditando.idInstancia ? { ...c, cantidad: parseFloat(cantidadInput || "0") } : c
-                   );
-                   await updateDoc(planRef, { comidasReal: nuevasComidas });
-                   setModalVisible(false);
-                }}><Text style={{color: '#fff', fontWeight: 'bold'}}>Actualizar</Text></Pressable>
+                <Pressable style={[styles.btnModal, {backgroundColor: '#3b82f6'}]} onPress={guardarGramos}><Text style={{color: '#fff', fontWeight: 'bold'}}>Actualizar</Text></Pressable>
               </View>
             </View>
           </View>
@@ -251,7 +280,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 60, backgroundColor: '#fff' },
   backBtn: { padding: 10 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold' },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
   headerSub: { fontSize: 12, color: '#3b82f6', fontWeight: 'bold' },
   kcalBadge: { backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
   kcalBadgeText: { color: '#fff', fontWeight: 'bold', fontSize: 11 },
@@ -267,7 +296,7 @@ const styles = StyleSheet.create({
   trackerLabel: { fontSize: 8, color: '#64748b', fontWeight: 'bold' },
   scroll: { padding: 20 },
   card: { backgroundColor: '#fff', padding: 15, borderRadius: 15, borderWidth: 1, borderColor: '#e2e8f0' },
-  cardTitle: { fontSize: 13, fontWeight: 'bold', marginBottom: 10 },
+  cardTitle: { fontSize: 13, fontWeight: 'bold', marginBottom: 10, color: '#1e293b' },
   label: { fontSize: 10, fontWeight: 'bold', color: '#64748b', marginBottom: 5 },
   row: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 10 },
   chip: { padding: 8, borderRadius: 6, backgroundColor: '#f1f5f9', minWidth: 40, alignItems: 'center' },
@@ -275,14 +304,21 @@ const styles = StyleSheet.create({
   chipProt: { backgroundColor: '#3b82f6' },
   chipGra: { backgroundColor: '#f59e0b' },
   chipText: { fontSize: 11, fontWeight: 'bold', color: '#475569' },
+  divider: { height: 1, backgroundColor: '#f1f5f9', marginVertical: 15 },
+  macrosDisplay: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 10 },
+  mBox: { alignItems: 'center' },
+  mVal: { fontSize: 24, fontWeight: 'bold', color: '#1e293b' },
+  mLab: { fontSize: 10, color: '#94a3b8', fontWeight: 'bold' },
+  btnSave: { backgroundColor: '#1e293b', padding: 15, borderRadius: 12, alignItems: 'center' },
+  btnSaveText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
   searchBar: { backgroundColor: '#f8fafc', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0' },
   dropdown: { backgroundColor: '#fff', borderRadius: 10, marginTop: 5, borderWidth: 1, borderColor: '#e2e8f0', elevation: 5 },
   dropItem: { padding: 15, flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
   mealBlock: { marginBottom: 10 },
   mealTitle: { fontWeight: 'bold', fontSize: 14, color: '#1e293b', marginBottom: 5 },
-  mealBox: { backgroundColor: '#fff', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#e2e8f0' },
-  comidaRow: { flexDirection: 'row', backgroundColor: '#f8fafc', padding: 10, borderRadius: 8, marginBottom: 5, alignItems: 'center' },
-  footer: { position: 'absolute', bottom: 0, width: '100%', padding: 20, backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#e2e8f0' },
+  mealBox: { backgroundColor: '#fff', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#e2e8f0', minHeight: 60 },
+  comidaRow: { flexDirection: 'row', backgroundColor: '#f8fafc', padding: 12, borderRadius: 10, marginBottom: 5, alignItems: 'center' },
+  footerSticky: { position: 'absolute', bottom: 0, width: '100%', padding: 20, backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#e2e8f0' },
   btnFinalizar: { backgroundColor: '#22c55e', padding: 16, borderRadius: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
   btnFinalizarText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
@@ -290,7 +326,6 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 15 },
   modalInput: { backgroundColor: '#f1f5f9', width: '100%', padding: 12, borderRadius: 10, fontSize: 24, textAlign: 'center', fontWeight: 'bold' },
   btnModal: { flex: 1, padding: 12, borderRadius: 10, alignItems: 'center' },
-  mealPlaceholder: { fontSize: 12, color: '#94a3b8', fontStyle: 'italic' },
-  placeholder: { flex: 1, alignItems: 'center', padding: 50 },
-  btnAgregar: { backgroundColor: '#1e293b', padding: 15, borderRadius: 12, marginTop: 20, width: '100%', alignItems: 'center' }
+  placeholder: { flex: 1, alignItems: 'center', marginTop: 50 },
+  btnAgregarEjercicios: { backgroundColor: '#1e293b', padding: 15, borderRadius: 12, marginTop: 20, flexDirection: 'row', gap: 10, alignItems: 'center', paddingHorizontal: 30 }
 });
