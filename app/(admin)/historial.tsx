@@ -53,10 +53,11 @@ export default function HistorialAlumno() {
 
   const metricas = useMemo(() => {
     if (!alumno || !alumno.datosFisicos) return null;
-    let peso = parseFloat(alumno.datosFisicos.peso || 0);
-    let altura = parseFloat(alumno.datosFisicos.altura || 0);
-    let edad = parseInt(alumno.datosFisicos.edad || 0);
-    const genero = (alumno.datosFisicos.genero || 'hombre').toLowerCase();
+    let peso = parseFloat(alumno.datosFisicos.weight || alumno.datosFisicos.peso || 0);
+    let altura = parseFloat(alumno.datosFisicos.height || alumno.datosFisicos.altura || 0);
+    let edad = parseInt(alumno.datosFisicos.age || alumno.datosFisicos.edad || 0);
+    const genero = (alumno.datosFisicos.gender || alumno.datosFisicos.genero || 'hombre').toLowerCase();
+    
     if (altura > 0 && altura < 3) altura = altura * 100;
     if (peso <= 0 || altura <= 0 || edad <= 0) return null;
 
@@ -84,21 +85,31 @@ export default function HistorialAlumno() {
         factorActividad: factorManual,
         caloriasMeta: metricas.final
       });
-      Alert.alert("Éxito", "Plan generado");
+      if (Platform.OS !== 'web') Alert.alert("Éxito", "Plan generado");
     } catch (e) { Alert.alert("Error", "No se guardó el plan"); }
   };
 
-  const eliminarPlan = (planId: string) => {
-    Alert.alert("Eliminar Plan", "¿Estás seguro de que quieres borrar este plan?", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Borrar", style: "destructive", onPress: async () => {
-          try {
-            // RUTA CORREGIDA: Accede a la subcolección para borrar
-            await deleteDoc(doc(db, "alumnos_activos", id as string, "planes", planId));
-          } catch (e) { console.error(e); }
-        }
-      }
-    ]);
+  const eliminarPlan = async (planId: string) => {
+    // Función interna para borrar
+    const procesarBorrado = async () => {
+        try {
+            const planRef = doc(db, "alumnos_activos", id as string, "planes", planId);
+            await deleteDoc(planRef);
+          } catch (e) {
+            console.error("Error al borrar el documento:", e);
+            Alert.alert("Error", "No se pudo borrar el plan.");
+          }
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmar = window.confirm("¿Estás seguro de que quieres borrar este plan?");
+      if (confirmar) await procesarBorrado();
+    } else {
+      Alert.alert("Eliminar Plan", "¿Estás seguro de que quieres borrar este plan?", [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Borrar", style: "destructive", onPress: procesarBorrado }
+      ]);
+    }
   };
 
   if (cargando) return <View style={styles.center}><ActivityIndicator size="large" color="#3b82f6" /></View>;
@@ -182,7 +193,6 @@ export default function HistorialAlumno() {
                 <FontAwesome5 name="chevron-right" size={14} color="#cbd5e1" />
               </Pressable>
               
-              {/* ELIMINAR PLAN - RUTA CORREGIDA */}
               <Pressable style={styles.deleteBtn} onPress={() => eliminarPlan(p.id)}>
                 <FontAwesome5 name="trash-alt" size={16} color="#ef4444" />
               </Pressable>
