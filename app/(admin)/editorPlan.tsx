@@ -259,8 +259,8 @@ const publicarPlanFinal = async () => {
                 style={styles.btnPublicar} 
                 onPress={publicarPlanFinal}
               >
-                <FontAwesome5 name="check-circle" size={18} color="#fff" />
-                <Text style={styles.btnPublicarText}>PUBLICAR PLAN DE ALIMENTACIÓN</Text>
+              <FontAwesome5 name="arrow-right" size={18} color="#fff" />
+              <Text style={styles.btnPublicarText}>GUARDAR Y CONFIGURAR ENTRENO</Text>
               </TouchableOpacity>
               
               <View style={{height: 50}} />
