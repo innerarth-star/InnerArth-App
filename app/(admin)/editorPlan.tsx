@@ -5,7 +5,7 @@ import { db } from '../../firebaseConfig';
 import { doc, getDoc, onSnapshot, updateDoc, serverTimestamp, collection, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { FontAwesome5 } from '@expo/vector-icons';
 
-// Componente Interno para los items del tracker
+// Componente para el Tracker de Macros
 const TrackerItem = ({ label, restante, color }: any) => (
   <View style={styles.trackerItem}>
     <Text style={[styles.trackerVal, { color: restante < 0 ? '#ef4444' : color }]}>{restante}</Text>
@@ -22,16 +22,12 @@ export default function EditorPlan() {
   const [planData, setPlanData] = useState<any>(null);
   const [cargando, setCargando] = useState(true);
 
-  // Macros g/kg
   const [gProteina, setGProteina] = useState(2.0);
   const [gGrasa, setGGrasa] = useState(0.8);
-
-  // Buscador
   const [busqueda, setBusqueda] = useState('');
   const [alimentosRepo, setAlimentosRepo] = useState<any[]>([]);
   const [comidaSeleccionada, setComidaSeleccionada] = useState(1);
 
-  // Modal para editar gramos
   const [modalVisible, setModalVisible] = useState(false);
   const [alimentoEditando, setAlimentoEditando] = useState<any>(null);
   const [cantidadInput, setCantidadInput] = useState('');
@@ -51,7 +47,6 @@ export default function EditorPlan() {
         }
       });
 
-      // Se conecta a "alimentos" (tu colección de AdminAlimentos)
       const unsubRepo = onSnapshot(collection(db, "alimentos"), (snap) => {
         const items: any[] = [];
         snap.forEach(d => items.push({ id: d.id, ...d.data() }));
@@ -69,7 +64,8 @@ export default function EditorPlan() {
     const kcalMeta = planData.caloriasMeta || 0;
     const pMeta = Math.round(peso * gProteina);
     const gMeta = Math.round(peso * gGrasa);
-    const cMeta = Math.max(0, Math.round((kcalMeta - (pMeta * 4 + gMeta * 9)) / 4));
+    const kcalActuales = (pMeta * 4 + gMeta * 9);
+    const cMeta = Math.max(0, Math.round((kcalMeta - kcalActuales) / 4));
     return { pMeta, gMeta, cMeta, kcalMeta };
   }, [alumno, planData, gProteina, gGrasa]);
 
@@ -99,11 +95,13 @@ export default function EditorPlan() {
         fechaGuardadoDieta: serverTimestamp()
       });
 
-      Alert.alert("¡Guardado!", "Dieta lista. Pasando a entrenamiento.", [
-        { text: "Continuar", onPress: () => setTab('entreno') }
+      Alert.alert("¡Dieta Guardada!", "Nutrición enviada. Pulsa continuar para armar la rutina.", [
+        { text: "Continuar", onPress: () => {
+          setTab('entreno'); // Cambia la pestaña
+        }}
       ]);
     } catch (e) {
-      Alert.alert("Error", "No se pudo guardar la dieta.");
+      Alert.alert("Error", "No se pudo guardar en la base de datos.");
     }
   };
 
@@ -114,7 +112,7 @@ export default function EditorPlan() {
   return (
     <View style={styles.outerContainer}>
       <View style={styles.mainContainer}>
-        {/* Header */}
+        {/* Header Fijo */}
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.backBtn}>
             <FontAwesome5 name="arrow-left" size={20} color="#1e293b" />
@@ -128,7 +126,7 @@ export default function EditorPlan() {
           </View>
         </View>
 
-        {/* Pestañas */}
+        {/* Tabs Fijos */}
         <View style={styles.tabs}>
           <Pressable onPress={() => setTab('dieta')} style={[styles.tab, tab === 'dieta' && styles.tabActive]}>
             <Text style={[styles.tabText, tab === 'dieta' && styles.tabTextActive]}>DIETA</Text>
@@ -138,10 +136,11 @@ export default function EditorPlan() {
           </Pressable>
         </View>
 
+        {/* Tracker Fijo (Solo en Dieta) */}
         {tab === 'dieta' && (
           <View style={styles.trackerContainer}>
               <View style={styles.trackerRow}>
-                  <TrackerItem label="CALORÍAS" restante={Math.round((objetivos?.kcalMeta || 0) - consumoActual.kcal)} color="#1e293b" />
+                  <TrackerItem label="KCAL" restante={Math.round((objetivos?.kcalMeta || 0) - consumoActual.kcal)} color="#1e293b" />
                   <TrackerItem label="PROT" restante={Math.round((objetivos?.pMeta || 0) - consumoActual.p)} color="#3b82f6" />
                   <TrackerItem label="GRASA" restante={Math.round((objetivos?.gMeta || 0) - consumoActual.g)} color="#f59e0b" />
                   <TrackerItem label="CARBS" restante={Math.round((objetivos?.cMeta || 0) - consumoActual.c)} color="#10b981" />
@@ -149,6 +148,7 @@ export default function EditorPlan() {
           </View>
         )}
 
+        {/* Contenido con Scroll */}
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scroll}>
           {tab === 'dieta' ? (
             <View>
@@ -213,12 +213,15 @@ export default function EditorPlan() {
             <View style={styles.placeholder}>
               <FontAwesome5 name="dumbbell" size={60} color="#e2e8f0" />
               <Text style={{marginTop: 20, color: '#94a3b8', fontWeight: 'bold'}}>RUTINA DE ENTRENAMIENTO</Text>
-              <Text style={{color: '#cbd5e1'}}>Aquí configurarás los ejercicios</Text>
+              <Text style={{color: '#cbd5e1'}}>Configura ejercicios, series y repeticiones</Text>
+              <TouchableOpacity style={styles.btnAgregarEjercicios}>
+                  <Text style={{color: '#fff', fontWeight: 'bold'}}>Añadir Ejercicio</Text>
+              </TouchableOpacity>
             </View>
           )}
         </ScrollView>
 
-        {/* BOTÓN GUARDAR FIJO ABAJO */}
+        {/* Botón Flotante/Fijo (Solo Dieta) */}
         {tab === 'dieta' && (
           <View style={styles.footerSticky}>
             <TouchableOpacity activeOpacity={0.7} style={styles.btnPublicar} onPress={publicarPlanFinal}>
@@ -228,7 +231,6 @@ export default function EditorPlan() {
           </View>
         )}
 
-        {/* MODAL GRAMOS */}
         <Modal visible={modalVisible} transparent animationType="slide">
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
@@ -275,7 +277,7 @@ const styles = StyleSheet.create({
   tabTextActive: { color: '#3b82f6' },
   scroll: { padding: 20 },
   card: { backgroundColor: '#fff', padding: 15, borderRadius: 15, borderWidth: 1, borderColor: '#e2e8f0' },
-  cardTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 10, color: '#1e293b' },
+  cardTitle: { fontSize: 13, fontWeight: 'bold', marginBottom: 10 },
   label: { fontSize: 10, fontWeight: 'bold', color: '#64748b', marginBottom: 5 },
   row: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   chip: { padding: 8, borderRadius: 6, backgroundColor: '#f1f5f9', minWidth: 40, alignItems: 'center' },
@@ -283,13 +285,6 @@ const styles = StyleSheet.create({
   chipProt: { backgroundColor: '#3b82f6' },
   chipGra: { backgroundColor: '#f59e0b' },
   chipText: { fontSize: 11, fontWeight: 'bold', color: '#475569' },
-  divider: { height: 1, backgroundColor: '#f1f5f9', marginVertical: 15 },
-  macrosDisplay: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 10 },
-  mBox: { alignItems: 'center' },
-  mVal: { fontSize: 24, fontWeight: 'bold', color: '#1e293b' },
-  mLab: { fontSize: 10, color: '#94a3b8', fontWeight: 'bold' },
-  btnSave: { backgroundColor: '#1e293b', padding: 15, borderRadius: 12, alignItems: 'center', marginTop: 10 },
-  btnSaveText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
   searchBar: { backgroundColor: '#f8fafc', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0' },
   dropdown: { backgroundColor: '#fff', borderRadius: 10, marginTop: 5, borderWidth: 1, borderColor: '#e2e8f0', elevation: 5 },
   dropItem: { padding: 15, flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
@@ -305,6 +300,6 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 15 },
   modalInput: { backgroundColor: '#f1f5f9', width: '100%', padding: 12, borderRadius: 10, fontSize: 24, textAlign: 'center', fontWeight: 'bold' },
   btnModal: { flex: 1, padding: 12, borderRadius: 10, alignItems: 'center' },
-  mealPlaceholder: { fontSize: 12, color: '#94a3b8', fontStyle: 'italic' },
-  placeholder: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 100 }
+  placeholder: { flex: 1, justifyContent: 'center', alignItems: 'center', height: 400 },
+  btnAgregarEjercicios: { backgroundColor: '#1e293b', padding: 15, borderRadius: 12, marginTop: 20, width: 200, alignItems: 'center' }
 });
