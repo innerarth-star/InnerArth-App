@@ -5,7 +5,7 @@ import { db } from '../../firebaseConfig';
 import { doc, getDoc, onSnapshot, updateDoc, serverTimestamp, collection, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { FontAwesome5 } from '@expo/vector-icons';
 
-// Componente Interno para los items del tracker (definido fuera para limpieza)
+// Componente Interno para los items del tracker
 const TrackerItem = ({ label, restante, color }: any) => (
   <View style={styles.trackerItem}>
     <Text style={[styles.trackerVal, { color: restante < 0 ? '#ef4444' : color }]}>{restante}</Text>
@@ -51,6 +51,7 @@ export default function EditorPlan() {
         }
       });
 
+      // Se conecta a "alimentos" (tu colección de AdminAlimentos)
       const unsubRepo = onSnapshot(collection(db, "alimentos"), (snap) => {
         const items: any[] = [];
         snap.forEach(d => items.push({ id: d.id, ...d.data() }));
@@ -84,61 +85,7 @@ export default function EditorPlan() {
     }, { p: 0, g: 0, c: 0, kcal: 0 });
   }, [planData?.comidasReal]);
 
-  const guardarConfiguracion = async () => {
-    try {
-      const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
-      await updateDoc(planRef, {
-        gProteina, gGrasa, 
-        macrosObjetivo: objetivos,
-        fechaActualizacion: serverTimestamp()
-      });
-      Alert.alert("Éxito", "Objetivos de macros fijados.");
-    } catch (e) { Alert.alert("Error", "No se pudo guardar."); }
-  };
-
-  const agregarAlimento = async (item: any) => {
-    const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
-    await updateDoc(planRef, {
-      comidasReal: arrayUnion({ 
-        ...item, 
-        idInstancia: Date.now(), 
-        numComida: comidaSeleccionada,
-        cantidad: item.unidadMedida === 'gr' ? 100 : 1 
-      })
-    });
-    setBusqueda('');
-  };
-
-  const abrirEditorGramos = (alimento: any) => {
-    setAlimentoEditando(alimento);
-    setCantidadInput(alimento.cantidad.toString());
-    setModalVisible(true);
-  };
-
-  const guardarGramos = async () => {
-    if (!alimentoEditando) return;
-    try {
-      const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
-      const nuevasComidas = planData.comidasReal.map((c: any) => 
-        c.idInstancia === alimentoEditando.idInstancia 
-        ? { ...c, cantidad: parseFloat(cantidadInput || "0") } 
-        : c
-      );
-      await updateDoc(planRef, { comidasReal: nuevasComidas });
-      setModalVisible(false);
-    } catch (e) { Alert.alert("Error", "No se pudo actualizar."); }
-  };
-
-  const quitarAlimento = async (item: any) => {
-    const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
-    await updateDoc(planRef, { comidasReal: arrayRemove(item) });
-  };
-
   const publicarPlanFinal = async () => {
-    if (!planData?.comidasReal || planData.comidasReal.length === 0) {
-      Alert.alert("Atención", "El plan no tiene alimentos agregados.");
-      return;
-    }
     try {
       const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
       await updateDoc(planRef, {
@@ -151,11 +98,12 @@ export default function EditorPlan() {
         },
         fechaGuardadoDieta: serverTimestamp()
       });
-      Alert.alert("Éxito", "Dieta guardada. Pasando a entrenamiento.", [
-        { text: "Ok", onPress: () => setTab('entreno') }
+
+      Alert.alert("¡Guardado!", "Dieta lista. Pasando a entrenamiento.", [
+        { text: "Continuar", onPress: () => setTab('entreno') }
       ]);
     } catch (e) {
-      Alert.alert("Error", "No se pudo guardar.");
+      Alert.alert("Error", "No se pudo guardar la dieta.");
     }
   };
 
@@ -176,11 +124,11 @@ export default function EditorPlan() {
             <Text style={styles.headerSub}>Frecuencia: {numComidas} comidas</Text>
           </View>
           <View style={styles.kcalBadge}>
-            <Text style={styles.kcalBadgeText}>{objetivos?.kcalMeta} kcal Meta</Text>
+            <Text style={styles.kcalBadgeText}>{objetivos?.kcalMeta} kcal</Text>
           </View>
         </View>
 
-        {/* Pestañas de Navegación */}
+        {/* Pestañas */}
         <View style={styles.tabs}>
           <Pressable onPress={() => setTab('dieta')} style={[styles.tab, tab === 'dieta' && styles.tabActive]}>
             <Text style={[styles.tabText, tab === 'dieta' && styles.tabTextActive]}>DIETA</Text>
@@ -190,44 +138,23 @@ export default function EditorPlan() {
           </Pressable>
         </View>
 
-        <ScrollView contentContainerStyle={styles.scroll}>
+        {tab === 'dieta' && (
+          <View style={styles.trackerContainer}>
+              <View style={styles.trackerRow}>
+                  <TrackerItem label="CALORÍAS" restante={Math.round((objetivos?.kcalMeta || 0) - consumoActual.kcal)} color="#1e293b" />
+                  <TrackerItem label="PROT" restante={Math.round((objetivos?.pMeta || 0) - consumoActual.p)} color="#3b82f6" />
+                  <TrackerItem label="GRASA" restante={Math.round((objetivos?.gMeta || 0) - consumoActual.g)} color="#f59e0b" />
+                  <TrackerItem label="CARBS" restante={Math.round((objetivos?.cMeta || 0) - consumoActual.c)} color="#10b981" />
+              </View>
+          </View>
+        )}
+
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scroll}>
           {tab === 'dieta' ? (
             <View>
-              {/* Tracker de Descuento */}
-              <View style={styles.trackerContainer}>
-                  <View style={styles.trackerRow}>
-                      <TrackerItem label="CALORÍAS" restante={Math.round((objetivos?.kcalMeta || 0) - consumoActual.kcal)} color="#1e293b" />
-                      <TrackerItem label="PROT" restante={Math.round((objetivos?.pMeta || 0) - consumoActual.p)} color="#3b82f6" />
-                      <TrackerItem label="GRASA" restante={Math.round((objetivos?.gMeta || 0) - consumoActual.g)} color="#f59e0b" />
-                      <TrackerItem label="CARBS" restante={Math.round((objetivos?.cMeta || 0) - consumoActual.c)} color="#10b981" />
-                  </View>
-              </View>
-
-              <View style={[styles.card, {marginTop: 20}]}>
-                <Text style={styles.cardTitle}>1. Objetivos Diarios</Text>
-                <Text style={styles.label}>Proteína (g/kg)</Text>
-                <View style={styles.row}>
-                  {[1.5, 1.8, 2.0, 2.2, 2.5].map(v => (
-                    <Pressable key={v} onPress={() => setGProteina(v)} style={[styles.chip, gProteina === v && styles.chipProt]}>
-                      <Text style={[styles.chipText, gProteina === v && {color:'#fff'}]}>{v}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-                <Text style={[styles.label, {marginTop: 10}]}>Grasa (g/kg)</Text>
-                <View style={styles.row}>
-                  {[0.5, 0.6, 0.7, 0.8, 1.0].map(v => (
-                    <Pressable key={v} onPress={() => setGGrasa(v)} style={[styles.chip, gGrasa === v && styles.chipGra]}>
-                      <Text style={[styles.chipText, gGrasa === v && {color:'#fff'}]}>{v}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-                <Pressable style={styles.btnSave} onPress={guardarConfiguracion}>
-                  <Text style={styles.btnSaveText}>FIJAR OBJETIVOS</Text>
-                </Pressable>
-              </View>
-
-              <View style={[styles.card, {marginTop: 20}]}>
-                <Text style={styles.cardTitle}>2. Biblioteca de Alimentos</Text>
+              {/* BUSCADOR */}
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>Agregar Alimento a C{comidaSeleccionada}</Text>
                 <View style={styles.row}>
                   {Array.from({ length: numComidas }).map((_, i) => (
                     <Pressable key={i} onPress={() => setComidaSeleccionada(i+1)} style={[styles.miniChip, comidaSeleccionada === (i+1) && {backgroundColor: '#3b82f6'}]}>
@@ -235,63 +162,88 @@ export default function EditorPlan() {
                     </Pressable>
                   ))}
                 </View>
-                <TextInput placeholder="Buscar..." style={styles.searchBar} value={busqueda} onChangeText={setBusqueda} />
+                <TextInput placeholder="Ej: Pollo..." style={styles.searchBar} value={busqueda} onChangeText={setBusqueda} />
                 {busqueda !== '' && (
                   <View style={styles.dropdown}>
                     {alimentosRepo.filter(a => a.nombre.toLowerCase().includes(busqueda.toLowerCase())).map(al => (
-                      <Pressable key={al.id} style={styles.dropItem} onPress={() => agregarAlimento(al)}>
+                      <Pressable key={al.id} style={styles.dropItem} onPress={() => {
+                        const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
+                        updateDoc(planRef, {
+                          comidasReal: arrayUnion({ ...al, idInstancia: Date.now(), numComida: comidaSeleccionada, cantidad: 1 })
+                        });
+                        setBusqueda('');
+                      }}>
                         <Text>{al.nombre.toUpperCase()}</Text>
-                        <Text style={{fontSize: 10, color: '#3b82f6'}}>+ C{comidaSeleccionada}</Text>
+                        <FontAwesome5 name="plus" size={12} color="#3b82f6" />
                       </Pressable>
                     ))}
                   </View>
                 )}
               </View>
 
-              <View style={{marginTop: 20}}>
-                {Array.from({ length: numComidas }).map((_, i) => (
-                  <View key={i} style={styles.mealBlock}>
-                    <Text style={styles.mealTitle}>Comida {i + 1}</Text>
-                    <View style={styles.mealBox}>
-                      {planData?.comidasReal?.filter((c: any) => c.numComida === (i + 1)).map((c: any) => (
-                        <View key={c.idInstancia} style={styles.comidaRow}>
-                          <Pressable style={{flex: 1}} onPress={() => abrirEditorGramos(c)}>
-                             <Text style={{fontWeight: 'bold', fontSize: 13}}>{c.nombre.toUpperCase()}</Text>
-                             <Text style={{fontSize: 11, color: '#3b82f6'}}>{c.cantidad} {c.unidadMedida} • {Math.round(c.calorias * c.cantidad)} kcal</Text>
-                          </Pressable>
-                          <Pressable onPress={() => quitarAlimento(c)} style={{padding: 10}}>
-                            <FontAwesome5 name="trash" size={14} color="#ef4444" />
-                          </Pressable>
-                        </View>
-                      ))}
-                    </View>
+              {/* BLOQUES DE COMIDA */}
+              {Array.from({ length: numComidas }).map((_, i) => (
+                <View key={i} style={[styles.mealBlock, {marginTop: 15}]}>
+                  <Text style={styles.mealTitle}>Comida {i + 1}</Text>
+                  <View style={styles.mealBox}>
+                    {planData?.comidasReal?.filter((c: any) => c.numComida === (i + 1)).map((c: any) => (
+                      <View key={c.idInstancia} style={styles.comidaRow}>
+                        <Pressable style={{flex: 1}} onPress={() => {
+                          setAlimentoEditando(c);
+                          setCantidadInput(c.cantidad.toString());
+                          setModalVisible(true);
+                        }}>
+                           <Text style={{fontWeight: 'bold', fontSize: 13}}>{c.nombre.toUpperCase()}</Text>
+                           <Text style={{fontSize: 11, color: '#3b82f6'}}>{c.cantidad} {c.unidadMedida} • {Math.round(c.calorias * c.cantidad)} kcal</Text>
+                        </Pressable>
+                        <Pressable onPress={() => {
+                          const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
+                          updateDoc(planRef, { comidasReal: arrayRemove(c) });
+                        }} style={{padding: 10}}>
+                          <FontAwesome5 name="trash" size={14} color="#ef4444" />
+                        </Pressable>
+                      </View>
+                    ))}
                   </View>
-                ))}
-              </View>
-
-              <TouchableOpacity style={styles.btnPublicar} onPress={publicarPlanFinal}>
-                <FontAwesome5 name="arrow-right" size={18} color="#fff" />
-                <Text style={styles.btnPublicarText}>GUARDAR Y CONFIGURAR ENTRENO</Text>
-              </TouchableOpacity>
-              
-              <View style={{height: 50}} />
+                </View>
+              ))}
+              <View style={{ height: 100 }} />
             </View>
           ) : (
             <View style={styles.placeholder}>
-              <FontAwesome5 name="dumbbell" size={50} color="#cbd5e1" />
-              <Text style={{marginTop: 20, color: '#64748b'}}>Sección de Entrenamiento en desarrollo</Text>
+              <FontAwesome5 name="dumbbell" size={60} color="#e2e8f0" />
+              <Text style={{marginTop: 20, color: '#94a3b8', fontWeight: 'bold'}}>RUTINA DE ENTRENAMIENTO</Text>
+              <Text style={{color: '#cbd5e1'}}>Aquí configurarás los ejercicios</Text>
             </View>
           )}
         </ScrollView>
 
+        {/* BOTÓN GUARDAR FIJO ABAJO */}
+        {tab === 'dieta' && (
+          <View style={styles.footerSticky}>
+            <TouchableOpacity activeOpacity={0.7} style={styles.btnPublicar} onPress={publicarPlanFinal}>
+              <Text style={styles.btnPublicarText}>GUARDAR DIETA Y CONTINUAR</Text>
+              <FontAwesome5 name="chevron-right" size={14} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* MODAL GRAMOS */}
         <Modal visible={modalVisible} transparent animationType="slide">
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Ajustar {alimentoEditando?.unidadMedida}</Text>
+              <Text style={styles.modalTitle}>Ajustar Cantidad</Text>
               <TextInput style={styles.modalInput} keyboardType="numeric" value={cantidadInput} onChangeText={setCantidadInput} autoFocus />
               <View style={[styles.row, {marginTop: 20}]}>
-                <Pressable style={[styles.btnModal, {backgroundColor: '#e2e8f0'}]} onPress={() => setModalVisible(false)}><Text>Cerrar</Text></Pressable>
-                <Pressable style={[styles.btnModal, {backgroundColor: '#3b82f6'}]} onPress={guardarGramos}><Text style={{color: '#fff', fontWeight: 'bold'}}>Actualizar</Text></Pressable>
+                <Pressable style={[styles.btnModal, {backgroundColor: '#f1f5f9'}]} onPress={() => setModalVisible(false)}><Text>Cerrar</Text></Pressable>
+                <Pressable style={[styles.btnModal, {backgroundColor: '#3b82f6'}]} onPress={async () => {
+                  const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
+                  const nuevasComidas = planData.comidasReal.map((c: any) => 
+                    c.idInstancia === alimentoEditando.idInstancia ? { ...c, cantidad: parseFloat(cantidadInput || "0") } : c
+                  );
+                  await updateDoc(planRef, { comidasReal: nuevasComidas });
+                  setModalVisible(false);
+                }}><Text style={{color: '#fff', fontWeight: 'bold'}}>Actualizar</Text></Pressable>
               </View>
             </View>
           </View>
@@ -302,16 +254,16 @@ export default function EditorPlan() {
 }
 
 const styles = StyleSheet.create({
-  outerContainer: { flex: 1, backgroundColor: '#f1f5f9', alignItems: 'center' },
-  mainContainer: { flex: 1, width: '100%', maxWidth: 800 },
+  outerContainer: { flex: 1, backgroundColor: '#f1f5f9' },
+  mainContainer: { flex: 1, alignSelf: 'center', width: '100%', maxWidth: 800 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#fff' },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 60, backgroundColor: '#fff' },
   backBtn: { padding: 10 },
   headerTitle: { fontSize: 18, fontWeight: 'bold' },
   headerSub: { fontSize: 12, color: '#3b82f6', fontWeight: 'bold' },
-  kcalBadge: { backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
+  kcalBadge: { backgroundColor: '#1e293b', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
   kcalBadgeText: { color: '#fff', fontWeight: 'bold', fontSize: 11 },
-  trackerContainer: { backgroundColor: '#fff', paddingVertical: 15, borderBottomWidth: 1, borderColor: '#e2e8f0', borderRadius: 20 },
+  trackerContainer: { backgroundColor: '#fff', paddingBottom: 15, borderBottomWidth: 1, borderColor: '#e2e8f0' },
   trackerRow: { flexDirection: 'row', justifyContent: 'space-around' },
   trackerItem: { alignItems: 'center' },
   trackerVal: { fontSize: 18, fontWeight: '900' },
@@ -322,15 +274,15 @@ const styles = StyleSheet.create({
   tabText: { fontWeight: 'bold', color: '#94a3b8' },
   tabTextActive: { color: '#3b82f6' },
   scroll: { padding: 20 },
-  card: { backgroundColor: '#fff', padding: 20, borderRadius: 20, borderWidth: 1, borderColor: '#e2e8f0' },
-  cardTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 15, color: '#1e293b' },
-  label: { fontSize: 11, fontWeight: 'bold', color: '#64748b', marginBottom: 5 },
-  row: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
-  chip: { padding: 10, borderRadius: 8, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', minWidth: 45, alignItems: 'center' },
-  miniChip: { padding: 8, borderRadius: 6, backgroundColor: '#e2e8f0', minWidth: 35, alignItems: 'center' },
-  chipProt: { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
-  chipGra: { backgroundColor: '#f59e0b', borderColor: '#f59e0b' },
-  chipText: { fontSize: 12, fontWeight: 'bold', color: '#475569' },
+  card: { backgroundColor: '#fff', padding: 15, borderRadius: 15, borderWidth: 1, borderColor: '#e2e8f0' },
+  cardTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 10, color: '#1e293b' },
+  label: { fontSize: 10, fontWeight: 'bold', color: '#64748b', marginBottom: 5 },
+  row: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  chip: { padding: 8, borderRadius: 6, backgroundColor: '#f1f5f9', minWidth: 40, alignItems: 'center' },
+  miniChip: { padding: 8, borderRadius: 6, backgroundColor: '#f1f5f9', minWidth: 40, alignItems: 'center' },
+  chipProt: { backgroundColor: '#3b82f6' },
+  chipGra: { backgroundColor: '#f59e0b' },
+  chipText: { fontSize: 11, fontWeight: 'bold', color: '#475569' },
   divider: { height: 1, backgroundColor: '#f1f5f9', marginVertical: 15 },
   macrosDisplay: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 10 },
   mBox: { alignItems: 'center' },
@@ -338,19 +290,21 @@ const styles = StyleSheet.create({
   mLab: { fontSize: 10, color: '#94a3b8', fontWeight: 'bold' },
   btnSave: { backgroundColor: '#1e293b', padding: 15, borderRadius: 12, alignItems: 'center', marginTop: 10 },
   btnSaveText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
-  searchBar: { backgroundColor: '#f8fafc', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0', marginTop: 10 },
-  dropdown: { backgroundColor: '#fff', borderRadius: 10, marginTop: 5, borderWidth: 1, borderColor: '#e2e8f0', elevation: 3 },
+  searchBar: { backgroundColor: '#f8fafc', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0' },
+  dropdown: { backgroundColor: '#fff', borderRadius: 10, marginTop: 5, borderWidth: 1, borderColor: '#e2e8f0', elevation: 5 },
   dropItem: { padding: 15, flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  mealBlock: { marginBottom: 15 },
+  mealBlock: { marginBottom: 10 },
   mealTitle: { fontWeight: 'bold', fontSize: 14, color: '#1e293b', marginBottom: 5 },
-  mealBox: { backgroundColor: '#fff', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#e2e8f0' },
-  comidaRow: { flexDirection: 'row', backgroundColor: '#f8fafc', padding: 12, borderRadius: 10, marginBottom: 5, alignItems: 'center' },
-  btnPublicar: { backgroundColor: '#22c55e', padding: 18, borderRadius: 15, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, marginTop: 30, elevation: 4 },
-  btnPublicarText: { color: '#fff', fontWeight: '900', fontSize: 14 },
+  mealBox: { backgroundColor: '#fff', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#e2e8f0', minHeight: 60 },
+  comidaRow: { flexDirection: 'row', backgroundColor: '#f8fafc', padding: 10, borderRadius: 8, marginBottom: 5, alignItems: 'center' },
+  footerSticky: { position: 'absolute', bottom: 0, width: '100%', backgroundColor: '#fff', padding: 20, borderTopWidth: 1, borderColor: '#e2e8f0' },
+  btnPublicar: { backgroundColor: '#22c55e', padding: 16, borderRadius: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
+  btnPublicarText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: '#fff', width: '80%', padding: 25, borderRadius: 20, alignItems: 'center' },
-  modalTitle: { fontSize: 18, fontWeight: 'bold' },
-  modalInput: { backgroundColor: '#f1f5f9', width: '100%', padding: 15, borderRadius: 10, fontSize: 24, textAlign: 'center', fontWeight: 'bold', marginTop: 15 },
+  modalContent: { backgroundColor: '#fff', width: '80%', padding: 20, borderRadius: 20, alignItems: 'center' },
+  modalTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 15 },
+  modalInput: { backgroundColor: '#f1f5f9', width: '100%', padding: 12, borderRadius: 10, fontSize: 24, textAlign: 'center', fontWeight: 'bold' },
   btnModal: { flex: 1, padding: 12, borderRadius: 10, alignItems: 'center' },
-  placeholder: { padding: 100, alignItems: 'center' }
+  mealPlaceholder: { fontSize: 12, color: '#94a3b8', fontStyle: 'italic' },
+  placeholder: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 100 }
 });
