@@ -93,6 +93,7 @@ export default function HistorialAlumno() {
       { text: "Cancelar", style: "cancel" },
       { text: "Borrar", style: "destructive", onPress: async () => {
           try {
+            // RUTA CORREGIDA: Accede a la subcolección para borrar
             await deleteDoc(doc(db, "alumnos_activos", id as string, "planes", planId));
           } catch (e) { console.error(e); }
         }
@@ -178,8 +179,10 @@ export default function HistorialAlumno() {
                    <Text style={styles.folderTitle}>{p.titulo}</Text>
                    <Text style={styles.folderSub}>{p.modo?.toUpperCase()} | {p.caloriasMeta} kcal</Text>
                 </View>
+                <FontAwesome5 name="chevron-right" size={14} color="#cbd5e1" />
               </Pressable>
-              {/* BOTON ELIMINAR */}
+              
+              {/* ELIMINAR PLAN - RUTA CORREGIDA */}
               <Pressable style={styles.deleteBtn} onPress={() => eliminarPlan(p.id)}>
                 <FontAwesome5 name="trash-alt" size={16} color="#ef4444" />
               </Pressable>
