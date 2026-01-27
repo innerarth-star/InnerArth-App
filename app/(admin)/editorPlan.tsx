@@ -1,9 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator, Alert, TextInput, Modal } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator, Alert, TextInput, Modal, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { db } from '../../firebaseConfig';
 import { doc, getDoc, onSnapshot, updateDoc, serverTimestamp, collection, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { FontAwesome5 } from '@expo/vector-icons';
+
+// Componente Interno para los items del tracker (definido fuera para limpieza)
+const TrackerItem = ({ label, restante, color }: any) => (
+  <View style={styles.trackerItem}>
+    <Text style={[styles.trackerVal, { color: restante < 0 ? '#ef4444' : color }]}>{restante}</Text>
+    <Text style={styles.trackerLabel}>{label}</Text>
+  </View>
+);
 
 export default function EditorPlan() {
   const { planId, alumnoId, nombreAlumno } = useLocalSearchParams();
@@ -126,32 +134,30 @@ export default function EditorPlan() {
     await updateDoc(planRef, { comidasReal: arrayRemove(item) });
   };
 
-  // FUNCIÓN PRINCIPAL DE GUARDADO FINAL
-const publicarPlanFinal = async () => {
-  if (!planData?.comidasReal || planData.comidasReal.length === 0) {
-    Alert.alert("Atención", "El plan no tiene alimentos agregados.");
-    return;
-  }
-  try {
-    const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
-    await updateDoc(planRef, {
-      estatusDieta: "Completado", // Marcamos solo la dieta
-      totalesFinalesDieta: {
-          proteina: Math.round(consumoActual.p),
-          grasa: Math.round(consumoActual.g),
-          carbohidratos: Math.round(consumoActual.c),
-          calorias: Math.round(consumoActual.kcal)
-      },
-      fechaGuardadoDieta: serverTimestamp()
-    });
-
-    Alert.alert("Dieta Guardada", "Nutrición lista. Ahora vamos a configurar el entrenamiento.", [
-      { text: "Continuar", onPress: () => setTab('entreno') } // <--- AQUÍ PASA A ENTRENO
-    ]);
-  } catch (e) {
-    Alert.alert("Error", "No se pudo guardar la dieta.");
-  }
-};
+  const publicarPlanFinal = async () => {
+    if (!planData?.comidasReal || planData.comidasReal.length === 0) {
+      Alert.alert("Atención", "El plan no tiene alimentos agregados.");
+      return;
+    }
+    try {
+      const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
+      await updateDoc(planRef, {
+        estatusDieta: "Completado",
+        totalesFinalesDieta: {
+            proteina: Math.round(consumoActual.p),
+            grasa: Math.round(consumoActual.g),
+            carbohidratos: Math.round(consumoActual.c),
+            calorias: Math.round(consumoActual.kcal)
+        },
+        fechaGuardadoDieta: serverTimestamp()
+      });
+      Alert.alert("Éxito", "Dieta guardada. Pasando a entrenamiento.", [
+        { text: "Ok", onPress: () => setTab('entreno') }
+      ]);
+    } catch (e) {
+      Alert.alert("Error", "No se pudo guardar.");
+    }
+  };
 
   const numComidas = parseInt(alumno?.nutricion?.comidasDes) || 1;
 
@@ -174,20 +180,30 @@ const publicarPlanFinal = async () => {
           </View>
         </View>
 
-        {/* Tracker de Descuento */}
-        <View style={styles.trackerContainer}>
-            <View style={styles.trackerRow}>
-                <TrackerItem label="CALORÍAS" restante={Math.round((objetivos?.kcalMeta || 0) - consumoActual.kcal)} color="#1e293b" />
-                <TrackerItem label="PROT" restante={Math.round((objetivos?.pMeta || 0) - consumoActual.p)} color="#3b82f6" />
-                <TrackerItem label="GRASA" restante={Math.round((objetivos?.gMeta || 0) - consumoActual.g)} color="#f59e0b" />
-                <TrackerItem label="CARBS" restante={Math.round((objetivos?.cMeta || 0) - consumoActual.c)} color="#10b981" />
-            </View>
+        {/* Pestañas de Navegación */}
+        <View style={styles.tabs}>
+          <Pressable onPress={() => setTab('dieta')} style={[styles.tab, tab === 'dieta' && styles.tabActive]}>
+            <Text style={[styles.tabText, tab === 'dieta' && styles.tabTextActive]}>DIETA</Text>
+          </Pressable>
+          <Pressable onPress={() => setTab('entreno')} style={[styles.tab, tab === 'entreno' && styles.tabActive]}>
+            <Text style={[styles.tabText, tab === 'entreno' && styles.tabTextActive]}>ENTRENO</Text>
+          </Pressable>
         </View>
 
         <ScrollView contentContainerStyle={styles.scroll}>
-          {tab === 'dieta' && (
+          {tab === 'dieta' ? (
             <View>
-              <View style={styles.card}>
+              {/* Tracker de Descuento */}
+              <View style={styles.trackerContainer}>
+                  <View style={styles.trackerRow}>
+                      <TrackerItem label="CALORÍAS" restante={Math.round((objetivos?.kcalMeta || 0) - consumoActual.kcal)} color="#1e293b" />
+                      <TrackerItem label="PROT" restante={Math.round((objetivos?.pMeta || 0) - consumoActual.p)} color="#3b82f6" />
+                      <TrackerItem label="GRASA" restante={Math.round((objetivos?.gMeta || 0) - consumoActual.g)} color="#f59e0b" />
+                      <TrackerItem label="CARBS" restante={Math.round((objetivos?.cMeta || 0) - consumoActual.c)} color="#10b981" />
+                  </View>
+              </View>
+
+              <View style={[styles.card, {marginTop: 20}]}>
                 <Text style={styles.cardTitle}>1. Objetivos Diarios</Text>
                 <Text style={styles.label}>Proteína (g/kg)</Text>
                 <View style={styles.row}>
@@ -253,17 +269,17 @@ const publicarPlanFinal = async () => {
                 ))}
               </View>
 
-              {/* BOTÓN FINAL DE GUARDADO */}
-              <TouchableOpacity 
-                activeOpacity={0.8}
-                style={styles.btnPublicar} 
-                onPress={publicarPlanFinal}
-              >
-              <FontAwesome5 name="arrow-right" size={18} color="#fff" />
-              <Text style={styles.btnPublicarText}>GUARDAR Y CONFIGURAR ENTRENO</Text>
+              <TouchableOpacity style={styles.btnPublicar} onPress={publicarPlanFinal}>
+                <FontAwesome5 name="arrow-right" size={18} color="#fff" />
+                <Text style={styles.btnPublicarText}>GUARDAR Y CONFIGURAR ENTRENO</Text>
               </TouchableOpacity>
               
               <View style={{height: 50}} />
+            </View>
+          ) : (
+            <View style={styles.placeholder}>
+              <FontAwesome5 name="dumbbell" size={50} color="#cbd5e1" />
+              <Text style={{marginTop: 20, color: '#64748b'}}>Sección de Entrenamiento en desarrollo</Text>
             </View>
           )}
         </ScrollView>
@@ -272,20 +288,10 @@ const publicarPlanFinal = async () => {
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Ajustar {alimentoEditando?.unidadMedida}</Text>
-              <TextInput 
-                style={styles.modalInput} 
-                keyboardType="numeric" 
-                value={cantidadInput} 
-                onChangeText={setCantidadInput}
-                autoFocus
-              />
+              <TextInput style={styles.modalInput} keyboardType="numeric" value={cantidadInput} onChangeText={setCantidadInput} autoFocus />
               <View style={[styles.row, {marginTop: 20}]}>
-                <Pressable style={[styles.btnModal, {backgroundColor: '#e2e8f0'}]} onPress={() => setModalVisible(false)}>
-                  <Text>Cerrar</Text>
-                </Pressable>
-                <Pressable style={[styles.btnModal, {backgroundColor: '#3b82f6'}]} onPress={guardarGramos}>
-                  <Text style={{color: '#fff', fontWeight: 'bold'}}>Actualizar</Text>
-                </Pressable>
+                <Pressable style={[styles.btnModal, {backgroundColor: '#e2e8f0'}]} onPress={() => setModalVisible(false)}><Text>Cerrar</Text></Pressable>
+                <Pressable style={[styles.btnModal, {backgroundColor: '#3b82f6'}]} onPress={guardarGramos}><Text style={{color: '#fff', fontWeight: 'bold'}}>Actualizar</Text></Pressable>
               </View>
             </View>
           </View>
@@ -294,16 +300,6 @@ const publicarPlanFinal = async () => {
     </View>
   );
 }
-
-const TrackerItem = ({ label, restante, color }: any) => (
-    <View style={styles.trackerItem}>
-        <Text style={[styles.trackerVal, { color: restante < 0 ? '#ef4444' : color }]}>{restante}</Text>
-        <Text style={styles.trackerLabel}>{label}</Text>
-    </View>
-);
-
-// Agregado TouchableOpacity para el botón final
-import { TouchableOpacity } from 'react-native';
 
 const styles = StyleSheet.create({
   outerContainer: { flex: 1, backgroundColor: '#f1f5f9', alignItems: 'center' },
@@ -315,11 +311,16 @@ const styles = StyleSheet.create({
   headerSub: { fontSize: 12, color: '#3b82f6', fontWeight: 'bold' },
   kcalBadge: { backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
   kcalBadgeText: { color: '#fff', fontWeight: 'bold', fontSize: 11 },
-  trackerContainer: { backgroundColor: '#fff', paddingVertical: 15, borderBottomWidth: 1, borderColor: '#e2e8f0' },
+  trackerContainer: { backgroundColor: '#fff', paddingVertical: 15, borderBottomWidth: 1, borderColor: '#e2e8f0', borderRadius: 20 },
   trackerRow: { flexDirection: 'row', justifyContent: 'space-around' },
   trackerItem: { alignItems: 'center' },
   trackerVal: { fontSize: 18, fontWeight: '900' },
   trackerLabel: { fontSize: 9, color: '#64748b', fontWeight: 'bold' },
+  tabs: { flexDirection: 'row', backgroundColor: '#fff', padding: 5, borderBottomWidth: 1, borderColor: '#e2e8f0' },
+  tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 8 },
+  tabActive: { backgroundColor: '#eff6ff' },
+  tabText: { fontWeight: 'bold', color: '#94a3b8' },
+  tabTextActive: { color: '#3b82f6' },
   scroll: { padding: 20 },
   card: { backgroundColor: '#fff', padding: 20, borderRadius: 20, borderWidth: 1, borderColor: '#e2e8f0' },
   cardTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 15, color: '#1e293b' },
@@ -351,5 +352,5 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 18, fontWeight: 'bold' },
   modalInput: { backgroundColor: '#f1f5f9', width: '100%', padding: 15, borderRadius: 10, fontSize: 24, textAlign: 'center', fontWeight: 'bold', marginTop: 15 },
   btnModal: { flex: 1, padding: 12, borderRadius: 10, alignItems: 'center' },
-  mealPlaceholder: { fontSize: 12, color: '#94a3b8', fontStyle: 'italic', padding: 10, textAlign: 'center' }
+  placeholder: { padding: 100, alignItems: 'center' }
 });
