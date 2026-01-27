@@ -17,7 +17,6 @@ export default function EditorPlan() {
   // Estados para Macros (g por kg)
   const [gProteina, setGProteina] = useState(2.0);
   const [gGrasa, setGGrasa] = useState(0.8);
-  const [gCarbo, setGCarbo] = useState(0); // Se calculará automáticamente
 
   // Estados para Buscador
   const [busqueda, setBusqueda] = useState('');
@@ -28,7 +27,7 @@ export default function EditorPlan() {
     if (!planId || !alumnoId) return;
 
     const cargarDatos = async () => {
-      // 1. Obtener datos del alumno
+      // 1. Obtener datos del alumno (Usando comidasDes como indicaste)
       const aSnap = await getDoc(doc(db, "alumnos_activos", alumnoId as string));
       if (aSnap.exists()) {
         setAlumno(aSnap.data());
@@ -84,7 +83,6 @@ export default function EditorPlan() {
       });
       Alert.alert("Éxito", "Macros fijados correctamente.");
     } catch (e) { 
-        console.error(e);
         Alert.alert("Error", "No se pudo guardar."); 
     }
   };
@@ -110,8 +108,8 @@ export default function EditorPlan() {
     await updateDoc(planRef, { comidasReal: arrayRemove(item) });
   };
 
-  // Determinar cuántos bloques de comida mostrar
-  const numComidas = parseInt(alumno?.nutricion?.comidas) || 1;
+  // AQUÍ ESTÁ LA CORRECCIÓN: Leemos 'comidasDes'
+  const numComidas = parseInt(alumno?.nutricion?.comidasDes) || 1;
 
   if (cargando) return <View style={styles.center}><ActivityIndicator color="#3b82f6" size="large" /></View>;
 
@@ -170,9 +168,9 @@ export default function EditorPlan() {
               </View>
 
               {/* SECCIÓN BUSCADOR */}
-              <View style={[styles.card, {marginTop: 20, zIndex: 10}]}>
+              <View style={[styles.card, {marginTop: 20}]}>
                 <Text style={styles.cardTitle}>Agregar Alimento</Text>
-                <Text style={styles.label}>1. Elige el tiempo de comida:</Text>
+                <Text style={styles.label}>Destino:</Text>
                 <View style={styles.row}>
                   {Array.from({ length: numComidas }).map((_, i) => (
                     <Pressable key={i} onPress={() => setComidaSeleccionada(i+1)} style={[styles.miniChip, comidaSeleccionada === (i+1) && {backgroundColor: '#3b82f6'}]}>
@@ -200,25 +198,22 @@ export default function EditorPlan() {
                 )}
               </View>
 
-              {/* BLOQUES DE COMIDA */}
+              {/* BLOQUES DE COMIDA ORGANIZADOS */}
               <View style={{marginTop: 20}}>
                 {Array.from({ length: numComidas }).map((_, i) => (
                   <View key={i} style={styles.mealBlock}>
                     <Text style={styles.mealTitle}>Comida {i + 1}</Text>
                     <View style={styles.mealBox}>
-                      {planData?.comidasReal?.filter((c: any) => c.numComida === (i + 1)).length > 0 ? (
-                        planData.comidasReal
-                          .filter((c: any) => c.numComida === (i + 1))
-                          .map((c: any) => (
-                            <View key={c.idInstancia} style={styles.comidaRow}>
-                              <Text style={{flex: 1, fontSize: 13, fontWeight: '500'}}>{c.nombre}</Text>
-                              <Pressable onPress={() => quitarAlimento(c)} style={{padding: 5}}>
-                                <FontAwesome5 name="trash" size={12} color="#ef4444" />
-                              </Pressable>
-                            </View>
-                          ))
-                      ) : (
-                        <Text style={styles.mealPlaceholder}>No hay alimentos agregados...</Text>
+                      {planData?.comidasReal?.filter((c: any) => c.numComida === (i + 1)).map((c: any) => (
+                        <View key={c.idInstancia} style={styles.comidaRow}>
+                          <Text style={{flex: 1, fontSize: 13, fontWeight: '500'}}>{c.nombre}</Text>
+                          <Pressable onPress={() => quitarAlimento(c)} style={{padding: 5}}>
+                            <FontAwesome5 name="trash" size={12} color="#ef4444" />
+                          </Pressable>
+                        </View>
+                      ))}
+                      {(!planData?.comidasReal || planData?.comidasReal?.filter((c: any) => c.numComida === (i + 1)).length === 0) && (
+                        <Text style={styles.mealPlaceholder}>No hay alimentos...</Text>
                       )}
                     </View>
                   </View>
