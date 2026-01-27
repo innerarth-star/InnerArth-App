@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator, Alert, TextInput, Modal, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator, Alert, TextInput, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { db } from '../../firebaseConfig';
 import { doc, getDoc, onSnapshot, updateDoc, serverTimestamp, collection, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { FontAwesome5 } from '@expo/vector-icons';
 
-// Componente para el Tracker de Macros
+// Componente para los macros del Tracker
 const TrackerItem = ({ label, restante, color }: any) => (
   <View style={styles.trackerItem}>
     <Text style={[styles.trackerVal, { color: restante < 0 ? '#ef4444' : color }]}>{restante}</Text>
@@ -22,12 +22,14 @@ export default function EditorPlan() {
   const [planData, setPlanData] = useState<any>(null);
   const [cargando, setCargando] = useState(true);
 
+  // Estados Macros
   const [gProteina, setGProteina] = useState(2.0);
   const [gGrasa, setGGrasa] = useState(0.8);
   const [busqueda, setBusqueda] = useState('');
   const [alimentosRepo, setAlimentosRepo] = useState<any[]>([]);
   const [comidaSeleccionada, setComidaSeleccionada] = useState(1);
 
+  // Modal Gramos
   const [modalVisible, setModalVisible] = useState(false);
   const [alimentoEditando, setAlimentoEditando] = useState<any>(null);
   const [cantidadInput, setCantidadInput] = useState('');
@@ -81,7 +83,7 @@ export default function EditorPlan() {
     }, { p: 0, g: 0, c: 0, kcal: 0 });
   }, [planData?.comidasReal]);
 
-  const publicarPlanFinal = async () => {
+  const finalizarDieta = async () => {
     try {
       const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
       await updateDoc(planRef, {
@@ -94,15 +96,18 @@ export default function EditorPlan() {
         },
         fechaGuardadoDieta: serverTimestamp()
       });
-
-      Alert.alert("¡Dieta Guardada!", "Nutrición enviada. Pulsa continuar para armar la rutina.", [
-        { text: "Continuar", onPress: () => {
-          setTab('entreno'); // Cambia la pestaña
-        }}
-      ]);
+      setTab('entreno'); // Cambiar pestaña automáticamente
     } catch (e) {
-      Alert.alert("Error", "No se pudo guardar en la base de datos.");
+      Alert.alert("Error", "No se pudo guardar la dieta.");
     }
+  };
+
+  const agregarAlimento = async (item: any) => {
+    const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
+    await updateDoc(planRef, {
+      comidasReal: arrayUnion({ ...item, idInstancia: Date.now(), numComida: comidaSeleccionada, cantidad: 1 })
+    });
+    setBusqueda('');
   };
 
   const numComidas = parseInt(alumno?.nutricion?.comidasDes) || 1;
@@ -112,7 +117,7 @@ export default function EditorPlan() {
   return (
     <View style={styles.outerContainer}>
       <View style={styles.mainContainer}>
-        {/* Header Fijo */}
+        
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.backBtn}>
             <FontAwesome5 name="arrow-left" size={20} color="#1e293b" />
@@ -121,12 +126,8 @@ export default function EditorPlan() {
             <Text style={styles.headerTitle}>{nombreAlumno}</Text>
             <Text style={styles.headerSub}>Frecuencia: {numComidas} comidas</Text>
           </View>
-          <View style={styles.kcalBadge}>
-            <Text style={styles.kcalBadgeText}>{objetivos?.kcalMeta} kcal</Text>
-          </View>
         </View>
 
-        {/* Tabs Fijos */}
         <View style={styles.tabs}>
           <Pressable onPress={() => setTab('dieta')} style={[styles.tab, tab === 'dieta' && styles.tabActive]}>
             <Text style={[styles.tabText, tab === 'dieta' && styles.tabTextActive]}>DIETA</Text>
@@ -136,25 +137,23 @@ export default function EditorPlan() {
           </Pressable>
         </View>
 
-        {/* Tracker Fijo (Solo en Dieta) */}
         {tab === 'dieta' && (
           <View style={styles.trackerContainer}>
-              <View style={styles.trackerRow}>
-                  <TrackerItem label="KCAL" restante={Math.round((objetivos?.kcalMeta || 0) - consumoActual.kcal)} color="#1e293b" />
-                  <TrackerItem label="PROT" restante={Math.round((objetivos?.pMeta || 0) - consumoActual.p)} color="#3b82f6" />
-                  <TrackerItem label="GRASA" restante={Math.round((objetivos?.gMeta || 0) - consumoActual.g)} color="#f59e0b" />
-                  <TrackerItem label="CARBS" restante={Math.round((objetivos?.cMeta || 0) - consumoActual.c)} color="#10b981" />
-              </View>
+            <View style={styles.trackerRow}>
+              <TrackerItem label="REST. KCAL" restante={Math.round((objetivos?.kcalMeta || 0) - consumoActual.kcal)} color="#1e293b" />
+              <TrackerItem label="REST. PROT" restante={Math.round((objetivos?.pMeta || 0) - consumoActual.p)} color="#3b82f6" />
+              <TrackerItem label="REST. GRASA" restante={Math.round((objetivos?.gMeta || 0) - consumoActual.g)} color="#f59e0b" />
+              <TrackerItem label="REST. CARBS" restante={Math.round((objetivos?.cMeta || 0) - consumoActual.c)} color="#10b981" />
+            </View>
           </View>
         )}
 
-        {/* Contenido con Scroll */}
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scroll}>
+        <ScrollView contentContainerStyle={styles.scroll}>
           {tab === 'dieta' ? (
             <View>
               {/* BUSCADOR */}
               <View style={styles.card}>
-                <Text style={styles.cardTitle}>Agregar Alimento a C{comidaSeleccionada}</Text>
+                <Text style={styles.cardTitle}>Agregar a C{comidaSeleccionada}</Text>
                 <View style={styles.row}>
                   {Array.from({ length: numComidas }).map((_, i) => (
                     <Pressable key={i} onPress={() => setComidaSeleccionada(i+1)} style={[styles.miniChip, comidaSeleccionada === (i+1) && {backgroundColor: '#3b82f6'}]}>
@@ -162,17 +161,11 @@ export default function EditorPlan() {
                     </Pressable>
                   ))}
                 </View>
-                <TextInput placeholder="Ej: Pollo..." style={styles.searchBar} value={busqueda} onChangeText={setBusqueda} />
+                <TextInput placeholder="Buscar alimento..." style={styles.searchBar} value={busqueda} onChangeText={setBusqueda} />
                 {busqueda !== '' && (
                   <View style={styles.dropdown}>
                     {alimentosRepo.filter(a => a.nombre.toLowerCase().includes(busqueda.toLowerCase())).map(al => (
-                      <Pressable key={al.id} style={styles.dropItem} onPress={() => {
-                        const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
-                        updateDoc(planRef, {
-                          comidasReal: arrayUnion({ ...al, idInstancia: Date.now(), numComida: comidaSeleccionada, cantidad: 1 })
-                        });
-                        setBusqueda('');
-                      }}>
+                      <Pressable key={al.id} style={styles.dropItem} onPress={() => agregarAlimento(al)}>
                         <Text>{al.nombre.toUpperCase()}</Text>
                         <FontAwesome5 name="plus" size={12} color="#3b82f6" />
                       </Pressable>
@@ -188,11 +181,7 @@ export default function EditorPlan() {
                   <View style={styles.mealBox}>
                     {planData?.comidasReal?.filter((c: any) => c.numComida === (i + 1)).map((c: any) => (
                       <View key={c.idInstancia} style={styles.comidaRow}>
-                        <Pressable style={{flex: 1}} onPress={() => {
-                          setAlimentoEditando(c);
-                          setCantidadInput(c.cantidad.toString());
-                          setModalVisible(true);
-                        }}>
+                        <Pressable style={{flex: 1}} onPress={() => { setAlimentoEditando(c); setCantidadInput(c.cantidad.toString()); setModalVisible(true); }}>
                            <Text style={{fontWeight: 'bold', fontSize: 13}}>{c.nombre.toUpperCase()}</Text>
                            <Text style={{fontSize: 11, color: '#3b82f6'}}>{c.cantidad} {c.unidadMedida} • {Math.round(c.calorias * c.cantidad)} kcal</Text>
                         </Pressable>
@@ -207,49 +196,50 @@ export default function EditorPlan() {
                   </View>
                 </View>
               ))}
-              <View style={{ height: 100 }} />
+              <View style={{height: 100}} />
             </View>
           ) : (
             <View style={styles.placeholder}>
-              <FontAwesome5 name="dumbbell" size={60} color="#e2e8f0" />
-              <Text style={{marginTop: 20, color: '#94a3b8', fontWeight: 'bold'}}>RUTINA DE ENTRENAMIENTO</Text>
-              <Text style={{color: '#cbd5e1'}}>Configura ejercicios, series y repeticiones</Text>
-              <TouchableOpacity style={styles.btnAgregarEjercicios}>
-                  <Text style={{color: '#fff', fontWeight: 'bold'}}>Añadir Ejercicio</Text>
-              </TouchableOpacity>
+              <FontAwesome5 name="dumbbell" size={50} color="#e2e8f0" />
+              <Text style={{marginTop: 20, fontWeight: 'bold', color: '#64748b'}}>ZONA DE ENTRENAMIENTO</Text>
+              <Pressable style={styles.btnAgregar} onPress={() => Alert.alert("Próximamente", "Aquí agregarás los ejercicios")}>
+                <Text style={{color: '#fff', fontWeight: 'bold'}}>Añadir Ejercicio</Text>
+              </Pressable>
             </View>
           )}
         </ScrollView>
 
-        {/* Botón Flotante/Fijo (Solo Dieta) */}
+        {/* BOTÓN INFERIOR FIJO */}
         {tab === 'dieta' && (
-          <View style={styles.footerSticky}>
-            <TouchableOpacity activeOpacity={0.7} style={styles.btnPublicar} onPress={publicarPlanFinal}>
-              <Text style={styles.btnPublicarText}>GUARDAR DIETA Y CONTINUAR</Text>
+          <View style={styles.footer}>
+            <Pressable style={styles.btnFinalizar} onPress={finalizarDieta}>
+              <Text style={styles.btnFinalizarText}>GUARDAR DIETA Y PASAR A ENTRENO</Text>
               <FontAwesome5 name="chevron-right" size={14} color="#fff" />
-            </TouchableOpacity>
+            </Pressable>
           </View>
         )}
 
+        {/* MODAL GRAMOS */}
         <Modal visible={modalVisible} transparent animationType="slide">
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Ajustar Cantidad</Text>
               <TextInput style={styles.modalInput} keyboardType="numeric" value={cantidadInput} onChangeText={setCantidadInput} autoFocus />
-              <View style={[styles.row, {marginTop: 20}]}>
+              <View style={{flexDirection: 'row', gap: 10, marginTop: 20}}>
                 <Pressable style={[styles.btnModal, {backgroundColor: '#f1f5f9'}]} onPress={() => setModalVisible(false)}><Text>Cerrar</Text></Pressable>
                 <Pressable style={[styles.btnModal, {backgroundColor: '#3b82f6'}]} onPress={async () => {
-                  const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
-                  const nuevasComidas = planData.comidasReal.map((c: any) => 
-                    c.idInstancia === alimentoEditando.idInstancia ? { ...c, cantidad: parseFloat(cantidadInput || "0") } : c
-                  );
-                  await updateDoc(planRef, { comidasReal: nuevasComidas });
-                  setModalVisible(false);
+                   const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
+                   const nuevasComidas = planData.comidasReal.map((c: any) => 
+                     c.idInstancia === alimentoEditando.idInstancia ? { ...c, cantidad: parseFloat(cantidadInput || "0") } : c
+                   );
+                   await updateDoc(planRef, { comidasReal: nuevasComidas });
+                   setModalVisible(false);
                 }}><Text style={{color: '#fff', fontWeight: 'bold'}}>Actualizar</Text></Pressable>
               </View>
             </View>
           </View>
         </Modal>
+
       </View>
     </View>
   );
@@ -263,23 +253,23 @@ const styles = StyleSheet.create({
   backBtn: { padding: 10 },
   headerTitle: { fontSize: 18, fontWeight: 'bold' },
   headerSub: { fontSize: 12, color: '#3b82f6', fontWeight: 'bold' },
-  kcalBadge: { backgroundColor: '#1e293b', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
+  kcalBadge: { backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
   kcalBadgeText: { color: '#fff', fontWeight: 'bold', fontSize: 11 },
-  trackerContainer: { backgroundColor: '#fff', paddingBottom: 15, borderBottomWidth: 1, borderColor: '#e2e8f0' },
-  trackerRow: { flexDirection: 'row', justifyContent: 'space-around' },
-  trackerItem: { alignItems: 'center' },
-  trackerVal: { fontSize: 18, fontWeight: '900' },
-  trackerLabel: { fontSize: 9, color: '#64748b', fontWeight: 'bold' },
   tabs: { flexDirection: 'row', backgroundColor: '#fff', padding: 5, borderBottomWidth: 1, borderColor: '#e2e8f0' },
   tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 8 },
   tabActive: { backgroundColor: '#eff6ff' },
   tabText: { fontWeight: 'bold', color: '#94a3b8' },
   tabTextActive: { color: '#3b82f6' },
+  trackerContainer: { backgroundColor: '#fff', paddingVertical: 15, borderBottomWidth: 1, borderColor: '#e2e8f0' },
+  trackerRow: { flexDirection: 'row', justifyContent: 'space-around' },
+  trackerItem: { alignItems: 'center' },
+  trackerVal: { fontSize: 18, fontWeight: '900' },
+  trackerLabel: { fontSize: 8, color: '#64748b', fontWeight: 'bold' },
   scroll: { padding: 20 },
   card: { backgroundColor: '#fff', padding: 15, borderRadius: 15, borderWidth: 1, borderColor: '#e2e8f0' },
   cardTitle: { fontSize: 13, fontWeight: 'bold', marginBottom: 10 },
   label: { fontSize: 10, fontWeight: 'bold', color: '#64748b', marginBottom: 5 },
-  row: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  row: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 10 },
   chip: { padding: 8, borderRadius: 6, backgroundColor: '#f1f5f9', minWidth: 40, alignItems: 'center' },
   miniChip: { padding: 8, borderRadius: 6, backgroundColor: '#f1f5f9', minWidth: 40, alignItems: 'center' },
   chipProt: { backgroundColor: '#3b82f6' },
@@ -290,16 +280,17 @@ const styles = StyleSheet.create({
   dropItem: { padding: 15, flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
   mealBlock: { marginBottom: 10 },
   mealTitle: { fontWeight: 'bold', fontSize: 14, color: '#1e293b', marginBottom: 5 },
-  mealBox: { backgroundColor: '#fff', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#e2e8f0', minHeight: 60 },
+  mealBox: { backgroundColor: '#fff', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#e2e8f0' },
   comidaRow: { flexDirection: 'row', backgroundColor: '#f8fafc', padding: 10, borderRadius: 8, marginBottom: 5, alignItems: 'center' },
-  footerSticky: { position: 'absolute', bottom: 0, width: '100%', backgroundColor: '#fff', padding: 20, borderTopWidth: 1, borderColor: '#e2e8f0' },
-  btnPublicar: { backgroundColor: '#22c55e', padding: 16, borderRadius: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
-  btnPublicarText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
+  footer: { position: 'absolute', bottom: 0, width: '100%', padding: 20, backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#e2e8f0' },
+  btnFinalizar: { backgroundColor: '#22c55e', padding: 16, borderRadius: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
+  btnFinalizarText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { backgroundColor: '#fff', width: '80%', padding: 20, borderRadius: 20, alignItems: 'center' },
   modalTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 15 },
   modalInput: { backgroundColor: '#f1f5f9', width: '100%', padding: 12, borderRadius: 10, fontSize: 24, textAlign: 'center', fontWeight: 'bold' },
   btnModal: { flex: 1, padding: 12, borderRadius: 10, alignItems: 'center' },
-  placeholder: { flex: 1, justifyContent: 'center', alignItems: 'center', height: 400 },
-  btnAgregarEjercicios: { backgroundColor: '#1e293b', padding: 15, borderRadius: 12, marginTop: 20, width: 200, alignItems: 'center' }
+  mealPlaceholder: { fontSize: 12, color: '#94a3b8', fontStyle: 'italic' },
+  placeholder: { flex: 1, alignItems: 'center', padding: 50 },
+  btnAgregar: { backgroundColor: '#1e293b', padding: 15, borderRadius: 12, marginTop: 20, width: '100%', alignItems: 'center' }
 });
