@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { db } from '../../firebaseConfig';
-import { doc, getDoc, onSnapshot, updateDoc, serverTimestamp, collection, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, updateDoc, serverTimestamp, collection, query, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { FontAwesome5 } from '@expo/vector-icons';
 
 export default function EditorPlan() {
@@ -14,10 +14,12 @@ export default function EditorPlan() {
   const [planData, setPlanData] = useState<any>(null);
   const [cargando, setCargando] = useState(true);
 
-  // Solo elegimos Proteína y Grasa. Carbohidratos será el resto.
+  // Estados para Macros (g por kg)
   const [gProteina, setGProteina] = useState(2.0);
   const [gGrasa, setGGrasa] = useState(0.8);
+  const [gCarbo, setGCarbo] = useState(3.0);
 
+  // Estados para Buscador
   const [busqueda, setBusqueda] = useState('');
   const [alimentosRepo, setAlimentosRepo] = useState<any[]>([]);
 
@@ -27,7 +29,9 @@ export default function EditorPlan() {
     const cargarDatos = async () => {
       // 1. Cargar Datos del Alumno (Peso y Frecuencia)
       const aSnap = await getDoc(doc(db, "alumnos_activos", alumnoId as string));
-      if (aSnap.exists()) setAlumno(aSnap.data());
+      if (aSnap.exists()) {
+        setAlumno(aSnap.data());
+      }
 
       // 2. Escuchar el Plan (Calorías Meta)
       const unsubPlan = onSnapshot(doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string), (doc) => {
@@ -36,6 +40,7 @@ export default function EditorPlan() {
           setPlanData(data);
           if (data.gProteina) setGProteina(data.gProteina);
           if (data.gGrasa) setGGrasa(data.gGrasa);
+          if (data.gCarbo) setGCarbo(data.gCarbo);
         }
       });
 
@@ -66,7 +71,7 @@ export default function EditorPlan() {
     // Lo que sobra se va a Carbohidratos (4 kcal por gramo)
     const cGrams = Math.max(0, Math.round((kcalMeta - kcalActuales) / 4));
     
-    return { pGrams, gGrams, cGrams, kcalMeta };
+    return { pGrams, gGrams, cGrams, totalKcalCalculadas: (pGrams * 4) + (gGrams * 9) + (cGrams * 4) };
   }, [alumno, planData, gProteina, gGrasa]);
 
   const guardarConfiguracion = async () => {
@@ -75,6 +80,7 @@ export default function EditorPlan() {
       await updateDoc(planRef, {
         gProteina, 
         gGrasa, 
+        gCarbo: resumenMacros?.cGrams || 0,
         macrosFinales: resumenMacros,
         fechaEdicion: serverTimestamp()
       });
@@ -175,6 +181,16 @@ export default function EditorPlan() {
                 )}
 
                 <View style={styles.listComidas}>
+                  {/* GENERACIÓN DINÁMICA DE BLOQUES DE COMIDA */}
+                  {Array.from({ length: parseInt(alumno?.nutricion?.comidas || "0") }).map((_, i) => (
+                    <View key={i} style={styles.mealBlock}>
+                      <Text style={styles.mealTitle}>Comida {i + 1}</Text>
+                      <View style={styles.mealBox}>
+                        <Text style={styles.mealPlaceholder}>Arrastra o agrega alimentos aquí...</Text>
+                      </View>
+                    </View>
+                  ))}
+
                    <Text style={[styles.label, {marginBottom: 10, marginTop: 15}]}>Alimentos en el plan:</Text>
                   {planData?.comidasReal?.map((c: any) => (
                     <View key={c.idInstancia} style={styles.comidaRow}>
@@ -228,5 +244,9 @@ const styles = StyleSheet.create({
   mBox: { alignItems: 'center' },
   mVal: { fontSize: 24, fontWeight: 'bold', color: '#1e293b' },
   mLab: { fontSize: 10, color: '#94a3b8', fontWeight: 'bold' },
+  mealBlock: { marginBottom: 15, borderLeftWidth: 4, borderLeftColor: '#3b82f6', paddingLeft: 10 },
+  mealTitle: { fontWeight: 'bold', fontSize: 14, color: '#1e293b', marginBottom: 5 },
+  mealBox: { backgroundColor: '#f8fafc', borderRadius: 10, padding: 15, borderStyle: 'dashed', borderWidth: 1, borderColor: '#cbd5e1' },
+  mealPlaceholder: { fontSize: 12, color: '#94a3b8', fontStyle: 'italic' },
   placeholder: { padding: 50, alignItems: 'center' }
 });
