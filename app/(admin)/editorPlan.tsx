@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { db } from '../../firebaseConfig';
-import { doc, getDoc, onSnapshot, updateDoc, serverTimestamp, collection, query, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, updateDoc, serverTimestamp, collection, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { FontAwesome5 } from '@expo/vector-icons';
 
 export default function EditorPlan() {
@@ -22,18 +22,15 @@ export default function EditorPlan() {
   // Estados para Buscador
   const [busqueda, setBusqueda] = useState('');
   const [alimentosRepo, setAlimentosRepo] = useState<any[]>([]);
+  const [comidaSeleccionada, setComidaSeleccionada] = useState(1);
 
   useEffect(() => {
     if (!planId || !alumnoId) return;
 
     const cargarDatos = async () => {
-      // 1. Cargar Datos del Alumno (Peso y Frecuencia)
       const aSnap = await getDoc(doc(db, "alumnos_activos", alumnoId as string));
-      if (aSnap.exists()) {
-        setAlumno(aSnap.data());
-      }
+      if (aSnap.exists()) setAlumno(aSnap.data());
 
-      // 2. Escuchar el Plan (Calorías Meta)
       const unsubPlan = onSnapshot(doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string), (doc) => {
         if (doc.exists()) {
           const data = doc.data();
@@ -44,7 +41,6 @@ export default function EditorPlan() {
         }
       });
 
-      // 3. Cargar Biblioteca
       const unsubRepo = onSnapshot(collection(db, "biblioteca_alimentos"), (snap) => {
         const items: any[] = [];
         snap.forEach(d => items.push({ id: d.id, ...d.data() }));
@@ -57,18 +53,13 @@ export default function EditorPlan() {
     cargarDatos();
   }, [planId, alumnoId]);
 
-  // CÁLCULO AUTOMÁTICO BASADO EN CALORÍAS DEL HISTORIAL
   const resumenMacros = useMemo(() => {
     if (!alumno || !planData) return null;
     const peso = parseFloat(alumno.datosFisicos?.peso || 70);
     const kcalMeta = planData.caloriasMeta || 0;
-
     const pGrams = Math.round(peso * gProteina);
     const gGrams = Math.round(peso * gGrasa);
-    
-    // Calorías de lo elegido (P=4, G=9)
     const kcalActuales = (pGrams * 4) + (gGrams * 9);
-    // Lo que sobra se va a Carbohidratos (4 kcal por gramo)
     const cGrams = Math.max(0, Math.round((kcalMeta - kcalActuales) / 4));
     
     return { pGrams, gGrams, cGrams, totalKcalCalculadas: (pGrams * 4) + (gGrams * 9) + (cGrams * 4) };
@@ -78,9 +69,7 @@ export default function EditorPlan() {
     try {
       const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
       await updateDoc(planRef, {
-        gProteina, 
-        gGrasa, 
-        gCarbo: resumenMacros?.cGrams || 0,
+        gProteina, gGrasa, gCarbo: resumenMacros?.cGrams || 0,
         macrosFinales: resumenMacros,
         fechaEdicion: serverTimestamp()
       });
@@ -91,7 +80,11 @@ export default function EditorPlan() {
   const agregarAlimento = async (item: any) => {
     const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
     await updateDoc(planRef, {
-      comidasReal: arrayUnion({ ...item, idInstancia: Date.now() })
+      comidasReal: arrayUnion({ 
+        ...item, 
+        idInstancia: Date.now(), 
+        numComida: comidaSeleccionada 
+      })
     });
     setBusqueda('');
   };
@@ -106,14 +99,13 @@ export default function EditorPlan() {
   return (
     <View style={styles.outerContainer}>
       <View style={styles.mainContainer}>
-        {/* Header */}
         <View style={styles.header}>
           <Pressable onPress={() => router.replace('/(admin)/alumnos' as any)} style={styles.backBtn}>
             <FontAwesome5 name="arrow-left" size={20} color="#1e293b" />
           </Pressable>
           <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>{nombreAlumno}</Text>
-            <Text style={styles.headerSub}>Frecuencia elegida: {alumno?.nutricion?.comidas || 'N/A'} comidas</Text>
+            <Text style={styles.headerSub}>Frecuencia: {alumno?.nutricion?.comidas || 'N/A'} comidas</Text>
           </View>
           <View style={styles.kcalBadge}>
             <Text style={styles.kcalBadgeText}>{planData?.caloriasMeta || 0} kcal Meta</Text>
@@ -123,10 +115,8 @@ export default function EditorPlan() {
         <ScrollView contentContainerStyle={styles.scroll}>
           {tab === 'dieta' && (
             <View>
-              {/* SECCIÓN MACROS */}
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>Fijar Macros (g/kg)</Text>
-                
                 <Text style={styles.label}>Proteína</Text>
                 <View style={styles.row}>
                   {[1.5, 1.8, 2.0, 2.2, 2.5].map(v => (
@@ -146,59 +136,59 @@ export default function EditorPlan() {
                 </View>
 
                 <View style={styles.divider} />
-
                 <View style={styles.macrosDisplay}>
                   <View style={styles.mBox}><Text style={styles.mVal}>{resumenMacros?.pGrams}g</Text><Text style={styles.mLab}>PROT</Text></View>
                   <View style={styles.mBox}><Text style={styles.mVal}>{resumenMacros?.gGrams}g</Text><Text style={styles.mLab}>GRASA</Text></View>
                   <View style={styles.mBox}><Text style={[styles.mVal, {color: '#10b981'}]}>{resumenMacros?.cGrams}g</Text><Text style={styles.mLab}>CARBS*</Text></View>
                 </View>
-                <Text style={{fontSize: 10, color: '#94a3b8', textAlign: 'center', marginBottom: 10}}>*Calculados automáticamente para llegar a la meta</Text>
 
                 <Pressable style={styles.btnSave} onPress={guardarConfiguracion}>
-                  <Text style={styles.btnSaveText}>FIJAR MACROS Y CALORÍAS</Text>
+                  <Text style={styles.btnSaveText}>FIJAR MACROS</Text>
                 </Pressable>
               </View>
 
-              {/* SECCIÓN ALIMENTOS */}
               <View style={[styles.card, {marginTop: 20}]}>
-                <Text style={styles.cardTitle}>Biblioteca de Alimentos</Text>
+                <Text style={styles.cardTitle}>Agregar Alimento</Text>
+                <View style={styles.row}>
+                  <Text style={styles.label}>Destino:</Text>
+                  {Array.from({ length: parseInt(alumno?.nutricion?.comidas || "0") }).map((_, i) => (
+                    <Pressable key={i} onPress={() => setComidaSeleccionada(i+1)} style={[styles.miniChip, comidaSeleccionada === (i+1) && {backgroundColor: '#3b82f6'}]}>
+                      <Text style={{fontSize: 10, color: comidaSeleccionada === (i+1) ? '#fff' : '#000'}}>C{i+1}</Text>
+                    </Pressable>
+                  ))}
+                </View>
                 <TextInput 
-                  placeholder="Buscar..." 
+                  placeholder="Buscar en biblioteca..." 
                   style={styles.searchBar} 
                   value={busqueda} 
                   onChangeText={setBusqueda} 
                 />
-                
                 {busqueda !== '' && (
                   <View style={styles.dropdown}>
                     {alimentosRepo.filter(a => a.nombre.toLowerCase().includes(busqueda.toLowerCase())).map(al => (
                       <Pressable key={al.id} style={styles.dropItem} onPress={() => agregarAlimento(al)}>
                         <Text>{al.nombre}</Text>
-                        <FontAwesome5 name="plus" size={12} color="#3b82f6" />
+                        <Text style={{fontSize: 10, color: '#3b82f6'}}>+ Añadir a C{comidaSeleccionada}</Text>
                       </Pressable>
                     ))}
                   </View>
                 )}
+              </View>
 
-                <View style={styles.listComidas}>
-                  {/* GENERACIÓN DINÁMICA DE BLOQUES DE COMIDA */}
-                  {Array.from({ length: parseInt(alumno?.nutricion?.comidas || "0") }).map((_, i) => (
-                    <View key={i} style={styles.mealBlock}>
-                      <Text style={styles.mealTitle}>Comida {i + 1}</Text>
-                      <View style={styles.mealBox}>
-                        <Text style={styles.mealPlaceholder}>Arrastra o agrega alimentos aquí...</Text>
-                      </View>
+              <View style={{marginTop: 20}}>
+                {Array.from({ length: parseInt(alumno?.nutricion?.comidas || "0") }).map((_, i) => (
+                  <View key={i} style={styles.mealBlock}>
+                    <Text style={styles.mealTitle}>Comida {i + 1}</Text>
+                    <View style={styles.mealBox}>
+                      {planData?.comidasReal?.filter((c: any) => c.numComida === (i + 1)).map((c: any) => (
+                        <View key={c.idInstancia} style={styles.comidaRow}>
+                          <Text style={{flex: 1, fontSize: 13}}>{c.nombre}</Text>
+                          <Pressable onPress={() => quitarAlimento(c)}><FontAwesome5 name="trash" size={12} color="#ef4444" /></Pressable>
+                        </View>
+                      )) || <Text style={styles.mealPlaceholder}>Sin alimentos...</Text>}
                     </View>
-                  ))}
-
-                   <Text style={[styles.label, {marginBottom: 10, marginTop: 15}]}>Alimentos en el plan:</Text>
-                  {planData?.comidasReal?.map((c: any) => (
-                    <View key={c.idInstancia} style={styles.comidaRow}>
-                      <Text style={{flex: 1, fontWeight: '500'}}>{c.nombre}</Text>
-                      <Pressable onPress={() => quitarAlimento(c)}><FontAwesome5 name="trash" size={12} color="#ef4444" /></Pressable>
-                    </View>
-                  ))}
-                </View>
+                  </View>
+                ))}
               </View>
             </View>
           )}
@@ -213,9 +203,9 @@ const styles = StyleSheet.create({
   mainContainer: { flex: 1, width: '100%', maxWidth: 800 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#e2e8f0' },
-  backBtn: { padding: 10, marginRight: 5 },
+  backBtn: { padding: 10 },
   headerTitle: { fontSize: 18, fontWeight: 'bold' },
-  headerSub: { fontSize: 13, color: '#3b82f6', fontWeight: 'bold' },
+  headerSub: { fontSize: 12, color: '#3b82f6', fontWeight: 'bold' },
   kcalBadge: { backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
   kcalBadgeText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
   tabs: { flexDirection: 'row', backgroundColor: '#fff', padding: 5 },
@@ -227,26 +217,26 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#fff', padding: 20, borderRadius: 20, borderWidth: 1, borderColor: '#e2e8f0' },
   cardTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 15 },
   label: { fontSize: 12, fontWeight: 'bold', color: '#64748b', marginBottom: 5 },
-  row: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+  row: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 10 },
   chip: { padding: 10, borderRadius: 8, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', minWidth: 50, alignItems: 'center' },
-  chipProt: { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
-  chipGra: { backgroundColor: '#f59e0b', borderColor: '#f59e0b' },
+  miniChip: { padding: 5, borderRadius: 5, backgroundColor: '#e2e8f0', minWidth: 30, alignItems: 'center' },
+  chipProt: { backgroundColor: '#3b82f6' },
+  chipGra: { backgroundColor: '#f59e0b' },
+  chipCarb: { backgroundColor: '#10b981' }, // Agregado para evitar errores
   chipText: { fontSize: 12, fontWeight: 'bold', color: '#64748b' },
-  btnSave: { backgroundColor: '#1e293b', padding: 15, borderRadius: 12, alignItems: 'center', marginTop: 20 },
+  divider: { height: 1, backgroundColor: '#f1f5f9', marginVertical: 15 },
+  macrosDisplay: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 20 },
+  mBox: { alignItems: 'center' },
+  mVal: { fontSize: 24, fontWeight: 'bold', color: '#1e293b' },
+  mLab: { fontSize: 10, color: '#94a3b8', fontWeight: 'bold' },
+  btnSave: { backgroundColor: '#1e293b', padding: 15, borderRadius: 12, alignItems: 'center' },
   btnSaveText: { color: '#fff', fontWeight: 'bold' },
   searchBar: { backgroundColor: '#f8fafc', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0' },
   dropdown: { backgroundColor: '#fff', borderRadius: 10, marginTop: 5, borderWidth: 1, borderColor: '#e2e8f0' },
   dropItem: { padding: 15, flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  listComidas: { marginTop: 5 },
-  comidaRow: { flexDirection: 'row', backgroundColor: '#f8fafc', padding: 12, borderRadius: 8, marginBottom: 5, alignItems: 'center' },
-  divider: { height: 1, backgroundColor: '#f1f5f9', marginVertical: 15 },
-  macrosDisplay: { flexDirection: 'row', justifyContent: 'space-around' },
-  mBox: { alignItems: 'center' },
-  mVal: { fontSize: 24, fontWeight: 'bold', color: '#1e293b' },
-  mLab: { fontSize: 10, color: '#94a3b8', fontWeight: 'bold' },
-  mealBlock: { marginBottom: 15, borderLeftWidth: 4, borderLeftColor: '#3b82f6', paddingLeft: 10 },
+  mealBlock: { marginBottom: 15 },
   mealTitle: { fontWeight: 'bold', fontSize: 14, color: '#1e293b', marginBottom: 5 },
-  mealBox: { backgroundColor: '#f8fafc', borderRadius: 10, padding: 15, borderStyle: 'dashed', borderWidth: 1, borderColor: '#cbd5e1' },
-  mealPlaceholder: { fontSize: 12, color: '#94a3b8', fontStyle: 'italic' },
-  placeholder: { padding: 50, alignItems: 'center' }
+  mealBox: { backgroundColor: '#fff', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#e2e8f0' },
+  comidaRow: { flexDirection: 'row', backgroundColor: '#f8fafc', padding: 10, borderRadius: 8, marginBottom: 5, alignItems: 'center' },
+  mealPlaceholder: { fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }
 });
