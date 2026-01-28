@@ -1,6 +1,5 @@
 import { Tabs } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { View, ActivityIndicator } from 'react-native';
 
 export default function AdminLayout() {
   return (
@@ -18,7 +17,7 @@ export default function AdminLayout() {
         },
       }}
     >
-      {/* 1. PENDIENTES - PRIMERA PESTAÑA */}
+      {/* 1. PENDIENTES */}
       <Tabs.Screen
         name="pendientes"
         options={{
@@ -54,21 +53,14 @@ export default function AdminLayout() {
         }}
       />
 
-      {/* RUTAS QUE NO TIENEN BOTÓN ABAJO */}
+      {/* PESTAÑAS OCULTAS - SIEMPRE AL FINAL */}
       <Tabs.Screen
         name="editorPlan"
-        options={{
-          href: null,
-          tabBarButton: () => null,
-        }}
+        options={{ href: null }}
       />
-
       <Tabs.Screen
         name="historial"
-        options={{
-          href: null,
-          tabBarButton: () => null,
-        }}
+        options={{ href: null }}
       />
     </Tabs>
   );
