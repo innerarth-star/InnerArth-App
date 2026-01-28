@@ -115,20 +115,34 @@ const [nombre, setNombre] = useState('');
 
 useEffect(() => {
     if (!user) return;
-    const qPlan = query(collection(db, "alumnos_activos", user.uid, "planes_publicados"), orderBy("fechaPublicacion", "desc"), limit(1));
+
+    // Buscamos en la subcolección donde el Coach guarda el plan finalizado
+    const qPlan = query(
+      collection(db, "alumnos_activos", user.uid, "planes_publicados"), 
+      orderBy("timestamp", "desc"), 
+      limit(1)
+    );
+
     const unsub = onSnapshot(qPlan, (snap) => {
       if (!snap.empty) {
+        // SI HAY PLAN: Guardamos datos y saltamos el formulario
         setPlanActivo({ id: snap.docs[0].id, ...snap.docs[0].data() });
         setPaso('dashboard');
         setCargandoStatus(false);
       } else {
+        // SI NO HAY PLAN: Verificamos si hay un registro pendiente de revisión
         const qRev = query(collection(db, "revisiones_pendientes"), where("uid", "==", user.uid));
         onSnapshot(qRev, (snapRev) => {
-          setPaso(!snapRev.empty ? 'espera' : 'formulario');
+          if (!snapRev.empty) {
+            setPaso('espera'); // Mostrar mensaje de "En revisión"
+          } else {
+            setPaso('formulario'); // Mostrar cuestionario
+          }
           setCargandoStatus(false);
         });
       }
     });
+
     return () => unsub();
   }, [user]);
 
@@ -166,27 +180,26 @@ useEffect(() => {
     );
   }
 
-  if (paso === 'dashboard' && planActivo) {
+if (paso === 'dashboard' && planActivo) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.headerBar}>
           <View style={styles.headerInner}>
-            <Text style={styles.headerTitle}>Mis <Text style={{color:'#3b82f6'}}>Planes</Text></Text>
+            <Text style={styles.headerTitle}>Inner<Text style={{color:'#3b82f6'}}>Arth</Text></Text>
             <TouchableOpacity onPress={() => signOut(auth)}><FontAwesome5 name="power-off" size={18} color="#ef4444" /></TouchableOpacity>
           </View>
         </View>
         <ScrollView contentContainerStyle={styles.scroll}>
           <View style={styles.webWrapper}>
-            <TouchableOpacity 
-              style={styles.planCard} 
-              onPress={() => router.push({ pathname: '/(client)/detallePlan' as any, params: { planId: planActivo.id } })}
-            >
+            <View style={styles.planCard}>
               <View style={styles.planCardInfo}>
-                <View style={styles.planIconBox}><FontAwesome5 name="clipboard-check" size={20} color="#3b82f6" /></View>
-                <View style={{flex:1}}><Text style={styles.planTitle}>PLAN ACTUAL</Text><Text style={styles.planDate}>Toca para ver dieta y rutina</Text></View>
-                <FontAwesome5 name="chevron-right" size={14} color="#cbd5e1" />
+                <View style={styles.planIconBox}><FontAwesome5 name="check-circle" size={20} color="#10b981" /></View>
+                <View style={{flex:1}}>
+                  <Text style={styles.planTitle}>¡TU PLAN ESTÁ LISTO!</Text>
+                  <Text style={styles.planDate}>Revisa la pestaña "Mi Plan" en el menú inferior</Text>
+                </View>
               </View>
-            </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
