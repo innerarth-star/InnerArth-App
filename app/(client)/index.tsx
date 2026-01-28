@@ -124,12 +124,12 @@ useEffect(() => {
     );
 
     const unsub = onSnapshot(qPlan, (snap) => {
+      console.log("¿Hay planes encontrados?:", snap.empty ? "NO" : "SÍ");
       if (!snap.empty) {
-        // SI HAY PLAN: Guardamos datos y saltamos el formulario
         setPlanActivo({ id: snap.docs[0].id, ...snap.docs[0].data() });
         setPaso('dashboard');
-        setCargandoStatus(false);
       } else {
+        // ... resto del código
         // SI NO HAY PLAN: Verificamos si hay un registro pendiente de revisión
         const qRev = query(collection(db, "revisiones_pendientes"), where("uid", "==", user.uid));
         onSnapshot(qRev, (snapRev) => {
