@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
+import { View, ActivityIndicator } from 'react-native';
 
 export default function AdminLayout() {
   return (
@@ -11,25 +12,27 @@ export default function AdminLayout() {
         tabBarStyle: { 
           height: 70, 
           paddingBottom: 10,
-          backgroundColor: '#ffffff' 
+          backgroundColor: '#ffffff',
+          borderTopWidth: 1,
+          borderTopColor: '#e2e8f0'
         },
       }}
     >
-      {/* 1. PENDIENTES - DEBE SER LA PRIMERA */}
+      {/* 1. PENDIENTES - PRIMERA PESTAÑA */}
       <Tabs.Screen
         name="pendientes"
         options={{
           title: 'Pendientes',
-          tabBarIcon: ({ color }) => <FontAwesome5 name="clock" size={18} color={color} />,
+          tabBarIcon: ({ color }) => <FontAwesome5 name="clock" size={20} color={color} />,
         }}
       />
 
-      {/* 2. ALUMNOS */}
+      {/* 2. MIS ALUMNOS */}
       <Tabs.Screen
         name="alumnos"
         options={{
-          title: 'Mis Alumnos',
-          tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={18} color={color} />,
+          title: 'Alumnos',
+          tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={20} color={color} />,
         }}
       />
 
@@ -38,7 +41,7 @@ export default function AdminLayout() {
         name="AdminAlimentos"
         options={{
           title: 'Alimentos',
-          tabBarIcon: ({ color }) => <FontAwesome5 name="apple-alt" size={18} color={color} />,
+          tabBarIcon: ({ color }) => <FontAwesome5 name="apple-alt" size={20} color={color} />,
         }}
       />
 
@@ -47,30 +50,25 @@ export default function AdminLayout() {
         name="AdminEjercicios"
         options={{
           title: 'Ejercicios',
-          tabBarIcon: ({ color }) => <FontAwesome5 name="dumbbell" size={18} color={color} />,
+          tabBarIcon: ({ color }) => <FontAwesome5 name="dumbbell" size={20} color={color} />,
         }}
       />
 
-      {/* --- ESTAS RUTAS EXISTEN PERO NO TENDRÁN BOTÓN ABAJO --- */}
-
+      {/* RUTAS QUE NO TIENEN BOTÓN ABAJO */}
       <Tabs.Screen
         name="editorPlan"
-        options={{ href: null, tabBarButton: () => null }}
+        options={{
+          href: null,
+          tabBarButton: () => null,
+        }}
       />
 
       <Tabs.Screen
         name="historial"
-        options={{ href: null, tabBarButton: () => null }}
-      />
-
-      <Tabs.Screen
-        name="coach"
-        options={{ href: null, tabBarButton: () => null }}
-      />
-
-      <Tabs.Screen
-        name="expedienteDetalle"
-        options={{ href: null, tabBarButton: () => null }}
+        options={{
+          href: null,
+          tabBarButton: () => null,
+        }}
       />
     </Tabs>
   );
