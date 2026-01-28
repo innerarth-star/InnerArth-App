@@ -116,31 +116,40 @@ const [nombre, setNombre] = useState('');
 useEffect(() => {
     if (!user) return;
 
-    // Buscamos en la subcolección donde el Coach guarda el plan finalizado
+    // 1. Buscamos en la ruta correcta: historial_planes
+    // Quitamos el orderBy por ahora para evitar errores de índice
     const qPlan = query(
-      collection(db, "alumnos_activos", user.uid, "planes_publicados"), 
-      orderBy("timestamp", "desc"), 
-      limit(1)
+      collection(db, "alumnos_activos", user.uid, "historial_planes"), 
+      limit(1) 
     );
 
     const unsub = onSnapshot(qPlan, (snap) => {
-      console.log("¿Hay planes encontrados?:", snap.empty ? "NO" : "SÍ");
       if (!snap.empty) {
+        console.log("¡Plan detectado en historial_planes!");
         setPlanActivo({ id: snap.docs[0].id, ...snap.docs[0].data() });
         setPaso('dashboard');
+        setCargandoStatus(false);
       } else {
-        // ... resto del código
-        // SI NO HAY PLAN: Verificamos si hay un registro pendiente de revisión
-        const qRev = query(collection(db, "revisiones_pendientes"), where("uid", "==", user.uid));
+        // 2. Si no hay plan, verificamos si hay cuestionario pendiente
+        const qRev = query(
+          collection(db, "revisiones_pendientes"), 
+          where("uid", "==", user.uid)
+        );
+        
         onSnapshot(qRev, (snapRev) => {
           if (!snapRev.empty) {
-            setPaso('espera'); // Mostrar mensaje de "En revisión"
+            setPaso('espera'); // Muestra "En revisión"
           } else {
-            setPaso('formulario'); // Mostrar cuestionario
+            setPaso('formulario'); // Muestra cuestionario
           }
           setCargandoStatus(false);
         });
       }
+    }, (error) => {
+      console.error("Error en el semáforo:", error);
+      // Si hay error en la ruta, por seguridad mostramos formulario
+      setPaso('formulario');
+      setCargandoStatus(false);
     });
 
     return () => unsub();
