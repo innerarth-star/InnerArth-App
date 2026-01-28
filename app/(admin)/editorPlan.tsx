@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator, Alert, TextInput, Modal, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator, Alert, TextInput, Modal, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { db } from '../../firebaseConfig';
-import { doc, getDoc, onSnapshot, updateDoc, setDoc, serverTimestamp, collection, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { FontAwesome5 } from '@expo/vector-icons';
+import { doc, getDoc, onSnapshot, updateDoc, setDoc, serverTimestamp, collection, arrayUnion, arrayRemove, addDoc } from 'firebase/firestore';
+import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 
 const DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
@@ -86,7 +86,7 @@ export default function EditorPlan() {
     }, { p: 0, g: 0, c: 0, kcal: 0 });
   }, [planData?.comidasReal]);
 
-  // --- ACCIONES GENERALES ---
+  // --- FUNCIÓN CORREGIDA PARA PUBLICAR ---
   const publicarYArchivar = async () => {
     if (!planData?.comidasReal?.length && !planData?.rutinaReal?.length) {
       Alert.alert("Atención", "No puedes enviar un plan sin contenido.");
@@ -95,31 +95,32 @@ export default function EditorPlan() {
 
     Alert.alert(
       "Publicar Plan Completo",
-      "Esto enviará la dieta y rutina al alumno y cerrará la edición.",
+      "Esto enviará la dieta y rutina al alumno.",
       [
         { text: "Cancelar", style: "cancel" },
         { text: "Enviar", onPress: async () => {
           try {
-            const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
             const metaData = {
               estatus: "Publicado",
               fechaPublicacion: serverTimestamp(),
-              totalesFinales: consumoActual
+              totalesFinales: consumoActual,
+              dieta: planData.comidasReal,
+              rutina: planData.rutinaReal,
+              nombreAlumno,
+              alumnoId
             };
 
-            await updateDoc(planRef, metaData);
+            // 1. Guardar en la subcolección del alumno para que lo vea en "Plan 1, 2, etc"
+            await addDoc(collection(db, "alumnos_activos", alumnoId as string, "planes_publicados"), metaData);
 
-            // Guardar en Historial (Registro no editable)
-            const historialRef = doc(collection(db, "historial_planes"));
-            await setDoc(historialRef, {
-              ...planData,
-              ...metaData,
-              alumnoId,
-              nombreAlumno,
-              planIdOriginal: planId
-            });
+            // 2. Guardar en Historial General
+            await addDoc(collection(db, "historial_planes"), metaData);
 
-            Alert.alert("Éxito", "Plan publicado y guardado en el historial.");
+            // 3. Actualizar el estado del plan actual como cerrado
+            const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
+            await updateDoc(planRef, { estatus: "Archivado" });
+
+            Alert.alert("Éxito", "Plan publicado correctamente.");
             router.push('/(admin)/alumnos' as any);
           } catch (e) {
             Alert.alert("Error", "No se pudo publicar.");
@@ -129,12 +130,10 @@ export default function EditorPlan() {
     );
   };
 
-  // --- FUNCIONES DIETA ---
+  // --- ACCIONES DIETA & ENTRENO ---
   const agregarAlimento = async (item: any) => {
     const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
-    await updateDoc(planRef, {
-      comidasReal: arrayUnion({ ...item, idInstancia: Date.now(), numComida: comidaSeleccionada, cantidad: 1 })
-    });
+    await updateDoc(planRef, { comidasReal: arrayUnion({ ...item, idInstancia: Date.now(), numComida: comidaSeleccionada, cantidad: 1 }) });
     setBusqueda('');
   };
 
@@ -145,12 +144,9 @@ export default function EditorPlan() {
     setModalVisible(false);
   };
 
-  // --- FUNCIONES ENTRENO ---
   const agregarEjercicio = async (ej: any) => {
     const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
-    await updateDoc(planRef, {
-      rutinaReal: arrayUnion({ ...ej, idInstancia: Date.now(), dia: diaSeleccionado, seriesReps: "", notas: "" })
-    });
+    await updateDoc(planRef, { rutinaReal: arrayUnion({ ...ej, idInstancia: Date.now(), dia: diaSeleccionado, seriesReps: "", notas: "" }) });
     setBusquedaEj('');
   };
 
@@ -165,12 +161,12 @@ export default function EditorPlan() {
   if (cargando) return <View style={styles.center}><ActivityIndicator color="#3b82f6" size="large" /></View>;
 
   return (
-    <View style={styles.outerContainer}>
+    <SafeAreaView style={styles.outerContainer}>
       <View style={styles.mainContainer}>
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={() => router.push('/(admin)/alumnos' as any)} style={styles.backBtn}>
-            <FontAwesome5 name="arrow-left" size={20} color="#1e293b" />
+          <Pressable onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={24} color="#1e293b" />
           </Pressable>
           <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>{nombreAlumno}</Text>
@@ -202,7 +198,6 @@ export default function EditorPlan() {
         <ScrollView contentContainerStyle={styles.scroll}>
           {tab === 'dieta' ? (
             <View>
-              {/* BUSCADOR DIETA */}
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>Comida {comidaSeleccionada}</Text>
                 <View style={styles.row}>
@@ -244,7 +239,6 @@ export default function EditorPlan() {
             </View>
           ) : (
             <View>
-              {/* SELECTOR DÍAS */}
               <View style={styles.diasContainer}>
                 {DIAS.map(d => (
                   <Pressable key={d} onPress={() => setDiaSeleccionado(d)} style={[styles.diaBtn, diaSeleccionado === d && styles.diaBtnActive]}>
@@ -253,7 +247,6 @@ export default function EditorPlan() {
                 ))}
               </View>
 
-              {/* BUSCADOR ENTRENO */}
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>Añadir Ejercicio</Text>
                 <TextInput placeholder="Ej: Press banca..." style={styles.searchBar} value={busquedaEj} onChangeText={setBusquedaEj} />
@@ -269,7 +262,6 @@ export default function EditorPlan() {
                 )}
               </View>
 
-              {/* LISTA RUTINA */}
               <View style={{marginTop: 20}}>
                 {planData?.rutinaReal?.filter((r: any) => r.dia === diaSeleccionado).map((ej: any) => (
                   <View key={ej.idInstancia} style={styles.ejercicioCard}>
@@ -295,10 +287,9 @@ export default function EditorPlan() {
           <View style={{height: 120}} />
         </ScrollView>
 
-        {/* Footer Stickies */}
         <View style={styles.footerSticky}>
           {tab === 'dieta' ? (
-            <TouchableOpacity style={[styles.btnAction, {backgroundColor: '#22c55e'}]} onPress={() => { updateDoc(doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string), { estatusDieta: "Completado" }); setTab('entreno'); }}>
+            <TouchableOpacity style={[styles.btnAction, {backgroundColor: '#22c55e'}]} onPress={() => setTab('entreno')}>
               <Text style={styles.btnActionText}>SIGUIENTE: CONFIGURAR ENTRENO</Text>
               <FontAwesome5 name="arrow-right" size={14} color="#fff" />
             </TouchableOpacity>
@@ -310,8 +301,7 @@ export default function EditorPlan() {
           )}
         </View>
 
-        {/* Modal Dieta */}
-        <Modal visible={modalVisible} transparent animationType="slide">
+        <Modal visible={modalVisible} transparent animationType="fade">
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Ajustar Cantidad</Text>
@@ -324,16 +314,16 @@ export default function EditorPlan() {
           </View>
         </Modal>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   outerContainer: { flex: 1, backgroundColor: '#f1f5f9' },
-  mainContainer: { flex: 1, alignSelf: 'center', width: '100%', maxWidth: 800 },
+  mainContainer: { flex: 1, alignSelf: 'center', width: '100%', maxWidth: 600, backgroundColor: '#f8fafc', shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 60, backgroundColor: '#fff' },
-  backBtn: { padding: 10 },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 20, backgroundColor: '#fff' },
+  backBtn: { padding: 10, marginRight: 10 },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
   headerSub: { fontSize: 12, color: '#3b82f6', fontWeight: 'bold' },
   tabs: { flexDirection: 'row', backgroundColor: '#fff', padding: 5, borderBottomWidth: 1, borderColor: '#e2e8f0' },
@@ -367,12 +357,12 @@ const styles = StyleSheet.create({
   ejGrupo: { fontSize: 11, color: '#3b82f6', fontWeight: 'bold' },
   ejInputs: { flexDirection: 'row', gap: 15 },
   ejInputLabel: { fontSize: 10, fontWeight: 'bold', color: '#64748b', marginBottom: 4 },
-  smallInput: { backgroundColor: '#f8fafc', padding: 8, borderRadius: 8, borderWidth: 1, borderColor: '#cbd5e1', fontSize: 13 },
+  smallInput: { backgroundColor: '#f8fafc', padding: 8, borderRadius: 8, borderWidth: 1, borderColor: '#cbd5e1', fontSize: 13, flex: 1 },
   footerSticky: { position: 'absolute', bottom: 0, width: '100%', padding: 20, backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#e2e8f0' },
   btnAction: { padding: 16, borderRadius: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
   btnActionText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: '#fff', width: '80%', padding: 20, borderRadius: 20, alignItems: 'center' },
+  modalContent: { backgroundColor: '#fff', width: '85%', maxWidth: 400, padding: 20, borderRadius: 20, alignItems: 'center' },
   modalTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 15 },
   modalInput: { backgroundColor: '#f1f5f9', width: '100%', padding: 12, borderRadius: 10, fontSize: 24, textAlign: 'center', fontWeight: 'bold' },
   btnModal: { flex: 1, padding: 12, borderRadius: 10, alignItems: 'center' },
