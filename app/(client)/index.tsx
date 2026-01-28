@@ -116,30 +116,27 @@ const [nombre, setNombre] = useState('');
 useEffect(() => {
     if (!user) return;
 
-    // 1. PRIMERO BUSCAMOS PLANES (Para el alumno que ya es antiguo)
+    // Buscamos en la subcolección donde el Coach guarda el plan finalizado
     const qPlan = query(
-      collection(db, "alumnos_activos", user.uid, "historial_planes"), orderBy("timestamp", "desc"), 
+      collection(db, "alumnos_activos", user.uid, "planes_publicados"), 
+      orderBy("timestamp", "desc"), 
       limit(1)
     );
 
     const unsub = onSnapshot(qPlan, (snap) => {
+      console.log("¿Hay planes encontrados?:", snap.empty ? "NO" : "SÍ");
       if (!snap.empty) {
-        console.log("Estado: Alumno con Plan");
         setPlanActivo({ id: snap.docs[0].id, ...snap.docs[0].data() });
         setPaso('dashboard');
-        setCargandoStatus(false);
       } else {
-        // 2. SI NO HAY PLAN: BUSCAMOS SI YA ENVIÓ EL CUESTIONARIO
-        // ESTA ES LA PARTE QUE ESTÁ FALLANDO EN TU APP
+        // ... resto del código
+        // SI NO HAY PLAN: Verificamos si hay un registro pendiente de revisión
         const qRev = query(collection(db, "revisiones_pendientes"), where("uid", "==", user.uid));
-        
         onSnapshot(qRev, (snapRev) => {
           if (!snapRev.empty) {
-            console.log("Estado: Esperando revisión (Ocultando cuestionario)");
-            setPaso('espera'); // <--- Esto es lo que quita el cuestionario de la pantalla
+            setPaso('espera'); // Mostrar mensaje de "En revisión"
           } else {
-            console.log("Estado: Alumno Nuevo (Mostrando cuestionario)");
-            setPaso('formulario');
+            setPaso('formulario'); // Mostrar cuestionario
           }
           setCargandoStatus(false);
         });

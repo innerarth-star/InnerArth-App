@@ -13,7 +13,8 @@ export default function MiPlanScreen() {
 
     // Buscamos el último plan publicado para este alumno
     const q = query(
-      collection(db, "alumnos_activos", auth.currentUser.uid, "historial_planes"), orderBy("timestamp", "desc"),
+      collection(db, "alumnos_activos", auth.currentUser.uid, "planes_publicados"),
+      orderBy("timestamp", "desc"),
       limit(1)
     );
 
