@@ -9,6 +9,7 @@ import CoachPanel from '../(admin)/coach';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
+
 // --- CONSTANTES ---
 const ENFERMEDADES_BASE = ["Diabetes", "Hipertensión", "Obesidad", "Hipotiroidismo", "Cáncer", "Cardiopatías", "Asma", "Ninguna", "Otra"];
 const ANTICONCEPTIVOS = ["Pastillas", "Inyección", "DIU", "Implante", "Parche", "Ninguno"];
@@ -58,7 +59,7 @@ export default function MainApp() {
 }
 
 function ClienteScreen({ user }: { user: any }) {
-  const [paso, setPaso] = useState<'formulario' | 'espera' | 'dashboard'>('formulario');
+  const [paso, setPaso] = useState<'formulario' | 'espera' | 'dashboard' | 'cargando'>('cargando');
   const [planActivo, setPlanActivo] = useState<any>(null);
   const [cargandoStatus, setCargandoStatus] = useState(true);
   const [seccionActiva, setSeccionActiva] = useState<number | null>(null);
@@ -112,11 +113,11 @@ function ClienteScreen({ user }: { user: any }) {
   const [objetivo, setObjetivo] = useState('');
   const [frecuenciaAlimentos, setFrecuenciaAlimentos] = useState<any>({});
 
-  useEffect(() => {
+useEffect(() => {
     const qPlan = query(collection(db, "alumnos_activos", user.uid, "planes_publicados"), orderBy("fechaPublicacion", "desc"), limit(1));
     const unsub = onSnapshot(qPlan, (snap) => {
       if (!snap.empty) {
-        setPlanActivo(snap.docs[0].data());
+        setPlanActivo({ id: snap.docs[0].id, ...snap.docs[0].data() });
         setPaso('dashboard');
         setCargandoStatus(false);
       } else {
@@ -130,7 +131,7 @@ function ClienteScreen({ user }: { user: any }) {
     return () => unsub();
   }, [user]);
 
-  const enviarAlCoach = async () => {
+const enviarAlCoach = async () => {
     if (!nombre || !firma || !aceptarTerminos || !aceptarPrivacidad || !edad) {
       alert("Completa todos los campos obligatorios y firma.");
       return;
@@ -151,16 +152,43 @@ function ClienteScreen({ user }: { user: any }) {
 
   if (cargandoStatus) return <View style={styles.esperaContainer}><ActivityIndicator size="large" color="#3b82f6" /></View>;
 
-  if (paso === 'espera' || (paso === 'dashboard' && planActivo)) {
+  if (paso === 'espera') {
     return (
       <View style={styles.esperaContainer}>
         <View style={styles.esperaCard}>
-          <Text style={{fontSize: 50, textAlign:'center'}}>{paso==='dashboard'?'✅':'⏳'}</Text>
-          <Text style={styles.esperaTitle}>{paso==='dashboard'?'¡Plan Activo!':'En Revisión'}</Text>
-          <Text style={styles.esperaSub}>{paso==='dashboard'?'Tu plan ya está disponible en la pestaña Mi Plan.':'Tu Coach está analizando tu check-in.'}</Text>
+          <Text style={{fontSize: 50, textAlign:'center'}}>⏳</Text>
+          <Text style={styles.esperaTitle}>En Revisión</Text>
+          <Text style={styles.esperaSub}>Tu Coach está analizando tu check-in. Te avisaremos pronto.</Text>
           <TouchableOpacity onPress={() => signOut(auth)} style={styles.logoutBtnLarge}><Text style={styles.txtW}>Cerrar Sesión</Text></TouchableOpacity>
         </View>
       </View>
+    );
+  }
+
+  if (paso === 'dashboard' && planActivo) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.headerBar}>
+          <View style={styles.headerInner}>
+            <Text style={styles.headerTitle}>Mis <Text style={{color:'#3b82f6'}}>Planes</Text></Text>
+            <TouchableOpacity onPress={() => signOut(auth)}><FontAwesome5 name="power-off" size={18} color="#ef4444" /></TouchableOpacity>
+          </View>
+        </View>
+        <ScrollView contentContainerStyle={styles.scroll}>
+          <View style={styles.webWrapper}>
+            <TouchableOpacity 
+              style={styles.planCard} 
+              onPress={() => router.push({ pathname: '/(client)/detallePlan' as any, params: { planId: planActivo.id } })}
+            >
+              <View style={styles.planCardInfo}>
+                <View style={styles.planIconBox}><FontAwesome5 name="clipboard-check" size={20} color="#3b82f6" /></View>
+                <View style={{flex:1}}><Text style={styles.planTitle}>PLAN ACTUAL</Text><Text style={styles.planDate}>Toca para ver dieta y rutina</Text></View>
+                <FontAwesome5 name="chevron-right" size={14} color="#cbd5e1" />
+              </View>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     );
   }
 
@@ -216,7 +244,7 @@ function ClienteScreen({ user }: { user: any }) {
             </Section>
           )}
 
-{/* SECCION 4: SALUD */}
+          {/* SECCION 4: SALUD */}
           <Section num={4} title="Salud" color="#ef4444" icon="heartbeat" activa={seccionActiva} setActiva={setSeccionActiva}>
             <Text style={styles.labelSub}>Enfermedades Familiares:</Text>
             <View style={styles.rowWrap}>{ENFERMEDADES_BASE.map(e => <TouchableOpacity key={e} style={[styles.chip, enfFam.includes(e) && styles.chipActive]} onPress={()=>{let n=enfFam.includes(e)?enfFam.filter(i=>i!==e):[...enfFam,e]; setEnfFam(n)}}><Text style={enfFam.includes(e)?styles.txtW:styles.txtB}>{e}</Text></TouchableOpacity>)}</View>
@@ -337,7 +365,7 @@ function ClienteScreen({ user }: { user: any }) {
             <TouchableOpacity style={styles.btnNext} onPress={()=>setSeccionActiva(9)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
           </Section>
 
-{/* SECCION 9: FIRMA / CONSENTIMIENTO */}
+          {/* SECCION 9: FIRMA / CONSENTIMIENTO */}
           <Section num={9} title="Consentimiento" color="#1e293b" icon="file-signature" activa={seccionActiva} setActiva={setSeccionActiva}>
             <View style={styles.consentBox}>
               <ScrollView style={{height: 150}} showsVerticalScrollIndicator={true}>
@@ -409,7 +437,13 @@ function ClienteScreen({ user }: { user: any }) {
 const Section = ({ num, title, color, icon, activa, setActiva, children }: any) => (
   <View style={styles.card}>
     <TouchableOpacity style={styles.headerToggle} onPress={() => setActiva(activa === num ? null : num)}>
-      <View style={styles.titleRow}><View style={[styles.numCircle, {backgroundColor: color}]}><Text style={styles.numText}>{num}</Text></View><FontAwesome5 name={icon} size={14} color={color} /><Text style={styles.sectionTitle}>{title}</Text></View>
+      <View style={styles.titleRow}>
+        <View style={[styles.numCircle, {backgroundColor: color}]}>
+          <Text style={styles.numText}>{num}</Text>
+        </View>
+        <FontAwesome5 name={icon} size={14} color={color} />
+        <Text style={styles.sectionTitle}>{title}</Text>
+      </View>
       <FontAwesome name={activa === num ? "chevron-up" : "chevron-down"} size={14} color="#64748b" />
     </TouchableOpacity>
     {activa === num && <View style={styles.content}>{children}</View>}
@@ -451,7 +485,7 @@ const styles = StyleSheet.create({
   btnEnviar: { backgroundColor: '#10b981', padding: 15, borderRadius: 10, alignItems: 'center', marginTop: 20 },
   btnNext: { padding: 12, backgroundColor: '#3b82f6', borderRadius: 8, alignItems: 'center', marginTop: 10 },
   esperaContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#f8fafc' },
-  esperaCard: { backgroundColor:'#fff', padding: 30, borderRadius: 20, width: '100%', maxWidth: 450, elevation: 4 },
+  esperaCard: { backgroundColor:'#fff', padding: 40, borderRadius: 20, width: '100%', maxWidth: 450, elevation: 4 },
   esperaTitle: { fontSize: 24, fontWeight: 'bold', textAlign: 'center' },
   esperaSub: { fontSize: 14, color: '#64748b', textAlign: 'center', marginTop: 10 },
   logoutBtnLarge: { marginTop: 25, backgroundColor: '#ef4444', padding: 12, borderRadius: 10, width: '100%', alignItems: 'center' },
@@ -466,5 +500,10 @@ const styles = StyleSheet.create({
   consentBox: { backgroundColor: '#f1f5f9', padding: 10, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' },
   consentItem: { fontSize: 11, color: '#475569', marginBottom: 10, textAlign: 'justify' },
   bold: { fontWeight: 'bold', color: '#1e293b' },
-  consentTxt: { fontSize: 10, color: '#64748b' }
+  consentTxt: { fontSize: 10, color: '#64748b' },
+  planCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginTop: 10, borderWidth: 1, borderColor: '#e2e8f0', elevation: 3 },
+  planCardInfo: { flexDirection: 'row', alignItems: 'center' },
+  planIconBox: { width: 45, height: 45, backgroundColor: '#eff6ff', borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  planTitle: { fontSize: 15, fontWeight: 'bold', color: '#1e293b' },
+  planDate: { fontSize: 11, color: '#3b82f6', marginTop: 2 }
 });
