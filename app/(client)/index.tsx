@@ -337,23 +337,60 @@ function ClienteScreen({ user }: { user: any }) {
             <TouchableOpacity style={styles.btnNext} onPress={()=>setSeccionActiva(9)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
           </Section>
 
-          {/* SECCION 9: FIRMA */}
+{/* SECCION 9: FIRMA / CONSENTIMIENTO */}
           <Section num={9} title="Consentimiento" color="#1e293b" icon="file-signature" activa={seccionActiva} setActiva={setSeccionActiva}>
             <View style={styles.consentBox}>
-              <ScrollView style={{height: 120}}><Text style={styles.consentTxt}>
-                1. Propósito: Por medio del presente, declaro que participo de manera voluntaria en un programa de entrenamiento personal orientado al acondicionamiento físico. Entiendo que el servicio consiste en la planificación, instrucción y supervisión de actividad física y hábitos relacionados con el ejercicio. Reconozco que el entrenamiento personal NO constituye un servicio médico, de diagnóstico, rehabilitación, tratamiento de enfermedades o prescripción clínica. Si presento síntomas, lesiones, embarazo, padecimientos crónicos o dudas sobre mi aptitud para ejercitarme, me comprometo a consultar previamente a un profesional de la salud y a informar al Entrenador.
-                2. Evaluacion: Para diseñar y ajustar el programa, el Entrenador podrá realizar una valoración física NO diagnóstica, que puede incluir: cuestionario de salud y actividad física, historial de lesiones, mediciones antropométricas peso, estatura, perímetros, pruebas de condición física por ejemplo, fuerza, movilidad, resistencia y monitoreo durante la sesión por ejemplo, frecuencia cardiaca y presión arterial si aplica. Puedo negarme a cualquier medición o prueba específica. Si mi negativa impide la prestación segura del servicio, el Entrenador podrá recomendar posponer o ajustar el programa.
-                3. Contacto Fisico: Entiendo que, para demostrar ejercicios o corregir técnica y postura, puede ser necesario el contacto físico breve y profesional. El Entrenador solicitará mi autorización previa para dicho contacto y podré negarme o pedir alternativas sin represalias.
-                4. Riesgos, molestias potenciales y medidas de seguridad: Se me ha informado que la actividad física puede implicar riesgos, incluyendo, entre otros: fatiga, dolor muscular tardío, mareos, deshidratación, lesiones musculares, de tendones, ligamentos o articulaciones, caídas, y en casos excepcionales, eventos cardiovasculares graves por ejemplo, arritmias, infarto e incluso muerte. Para reducir riesgos, el Entrenador ajustará cargas y ejercicios conforme a mi condición, explicará técnica y calentamiento, y me indicará pausas, hidratación y señales de alarma. Me comprometo a informar de inmediato cualquier síntoma inusual, como dolor torácico, falta de aire desproporcionada, mareo intenso, palpitaciones, desmayo, dolor agudo o cualquier malestar relevante. Entiendo que puedo detener el ejercicio en cualquier momento. Si ocurre una urgencia, autorizo a que se solicite asistencia médica y se llame al 911, y a que se comparta con personal de emergencia la información estrictamente necesaria para proteger mi vida e integridad.
-                5. Beneficios esperados y alternativas: Comprendo que los resultados varían entre personas y dependen de múltiples factores constancia, descanso, alimentación, salud previa. El Entrenador no garantiza resultados específicos pérdida de peso, ganancia muscular, mejora estética o rendimiento. Alternativas al entrenamiento personal incluyen: actividad física por cuenta propia, clases grupales, programas en línea, o la asesoría de profesionales de la salud cuando exista una condición médica que así lo requiera.
-                6. Declaraciones del Cliente / Titular: He proporcionado información completa y veraz sobre mi estado de salud, lesiones, medicamentos y antecedentes relevantes. Entiendo las indicaciones del Entrenador y preguntaré cualquier duda antes de ejecutar ejercicios. Notificaré cambios relevantes en mi salud síntomas, lesiones, embarazo, tratamiento médico. Actuaré con prudencia y atenderé las recomendaciones de seguridad calentamiento, técnica, hidratación y descanso.
-                7. Proteccion de datos personales: He recibido y leído el Aviso de Privacidad Integral Anexo A. Se me explicó que para la prestación del servicio pueden recabarse y tratarse datos personales de identificación y contacto, así como datos personales sensibles relacionados con mi salud por ejemplo, antecedentes, síntomas, lesiones, medicación y mediciones físicas.
-                8. Consentimineto Expreso: Otorgo mi consentimiento EXPRESO y por escrito para el tratamiento de mis datos personales sensibles conforme al Anexo.
-              </Text></ScrollView>
+              <ScrollView style={{height: 150}} showsVerticalScrollIndicator={true}>
+                <View style={{paddingRight: 5}}>
+                  <Text style={styles.consentItem}>
+                    <Text style={styles.bold}>1. Propósito:</Text> Declaro que participo de manera voluntaria en un programa de entrenamiento personal. Entiendo que NO constituye un servicio médico o de diagnóstico.
+                  </Text>
+                  
+                  <Text style={styles.consentItem}>
+                    <Text style={styles.bold}>2. Evaluación:</Text> El Entrenador podrá realizar valoraciones físicas (medidas, peso, fuerza). Puedo negarme a cualquier prueba específica.
+                  </Text>
+                  
+                  <Text style={styles.consentItem}>
+                    <Text style={styles.bold}>3. Contacto Físico:</Text> Entiendo que puede ser necesario contacto físico breve para corrección de técnica, siempre con autorización previa.
+                  </Text>
+                  
+                  <Text style={styles.consentItem}>
+                    <Text style={styles.bold}>4. Riesgos y Seguridad:</Text> Reconozco riesgos como fatiga, mareos o lesiones. Me comprometo a informar cualquier síntoma inusual de inmediato.
+                  </Text>
+                  
+                  <Text style={styles.consentItem}>
+                    <Text style={styles.bold}>5. Beneficios y Alternativas:</Text> Los resultados dependen de mi constancia y descanso. No se garantizan resultados estéticos específicos.
+                  </Text>
+                  
+                  <Text style={styles.consentItem}>
+                    <Text style={styles.bold}>6. Declaraciones:</Text> He proporcionado información veraz sobre mi salud y notificaré cambios (embarazo, lesiones, etc.).
+                  </Text>
+                  
+                  <Text style={styles.consentItem}>
+                    <Text style={styles.bold}>7. Protección de Datos:</Text> Autorizo el tratamiento de mis datos de identificación y salud según el Aviso de Privacidad.
+                  </Text>
+                  
+                  <Text style={styles.consentItem}>
+                    <Text style={styles.bold}>8. Consentimiento Expreso:</Text> Otorgo mi consentimiento por escrito para el tratamiento de mis datos personales sensibles.
+                  </Text>
+                </View>
+              </ScrollView>
             </View>
-            <TouchableOpacity style={styles.rowCheck} onPress={()=>setAceptarTerminos(!aceptarTerminos)}><MaterialCommunityIcons name={aceptarTerminos?"checkbox-marked":"checkbox-blank-outline"} size={22} color="#10b981"/><Text style={{fontSize:11}}>Acepto términos y condiciones</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.btnFirma} onPress={()=>setModalFirma(true)}><Text style={firma?{color:'#10b981', fontWeight:'bold'}:{color:'#3b82f6'}}>{firma?"✓ Firmado":"Hacer firma digital"}</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.btnNext} onPress={()=>setSeccionActiva(10)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
+
+            <TouchableOpacity style={styles.rowCheck} onPress={()=>setAceptarTerminos(!aceptarTerminos)}>
+              <MaterialCommunityIcons name={aceptarTerminos?"checkbox-marked":"checkbox-blank-outline"} size={22} color="#10b981"/>
+              <Text style={{fontSize: 11, flex: 1, marginLeft: 8}}>Acepto los términos del consentimiento informado</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.btnFirma} onPress={()=>setModalFirma(true)}>
+              <Text style={firma ? {color:'#10b981', fontWeight:'bold'} : {color:'#3b82f6'}}>
+                {firma ? "✓ Firma Registrada" : "Hacer firma digital"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.btnNext} onPress={()=>setSeccionActiva(10)}>
+              <Text style={styles.txtW}>Siguiente</Text>
+            </TouchableOpacity>
           </Section>
 
           {/* SECCION 10: ENVIAR */}
@@ -420,12 +457,14 @@ const styles = StyleSheet.create({
   logoutBtnLarge: { marginTop: 25, backgroundColor: '#ef4444', padding: 12, borderRadius: 10, width: '100%', alignItems: 'center' },
   webModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   webModalCard: { backgroundColor: '#fff', width: '90%', maxWidth: 400, padding: 20, borderRadius: 15 },
-  consentBox: { backgroundColor: '#f1f5f9', padding: 10, borderRadius: 10 },
-  consentTxt: { fontSize: 10, color: '#64748b' },
   progressContainer: { marginBottom: 20 },
   progressText: { fontSize: 12, fontWeight: 'bold', color: '#64748b' },
   progressBarBg: { height: 6, backgroundColor: '#e2e8f0', borderRadius: 3, overflow: 'hidden' },
   progressBarFill: { height: '100%', backgroundColor: '#3b82f6' },
-  helperBox: { backgroundColor: '#eff6ff', padding: 12, borderRadius: 10, marginBottom: 10, borderWidth: 1, borderColor: '#bfdbfe', },
-  helperTxt: { fontSize: 11, color: '#1e40af', lineHeight: 16, },
+  helperBox: { backgroundColor: '#eff6ff', padding: 12, borderRadius: 10, marginBottom: 10, borderWidth: 1, borderColor: '#bfdbfe' },
+  helperTxt: { fontSize: 11, color: '#1e40af', lineHeight: 16 },
+  consentBox: { backgroundColor: '#f1f5f9', padding: 10, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' },
+  consentItem: { fontSize: 11, color: '#475569', marginBottom: 10, textAlign: 'justify' },
+  bold: { fontWeight: 'bold', color: '#1e293b' },
+  consentTxt: { fontSize: 10, color: '#64748b' }
 });
