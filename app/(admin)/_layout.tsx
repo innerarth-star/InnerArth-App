@@ -1,29 +1,20 @@
 import { Tabs } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { View, Platform } from 'react-native';
 
 export default function AdminLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#3b82f6', // Azul para la pestaña activa
-        tabBarInactiveTintColor: '#94a3b8', // Gris para las inactivas
+        tabBarActiveTintColor: '#3b82f6',
+        tabBarInactiveTintColor: '#94a3b8',
         tabBarStyle: {
-          height: Platform.OS === 'ios' ? 90 : 70,
-          paddingBottom: Platform.OS === 'ios' ? 30 : 12,
-          paddingTop: 10,
+          height: 70,
+          paddingBottom: 10,
           backgroundColor: '#ffffff',
-          borderTopWidth: 1,
-          borderTopColor: '#e2e8f0',
-        },
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: 'bold',
         },
       }}
     >
-      {/* 1. PENDIENTES */}
       <Tabs.Screen
         name="pendientes"
         options={{
@@ -32,7 +23,6 @@ export default function AdminLayout() {
         }}
       />
 
-      {/* 2. MIS ALUMNOS */}
       <Tabs.Screen
         name="alumnos"
         options={{
@@ -41,35 +31,31 @@ export default function AdminLayout() {
         }}
       />
 
-      {/* 3. EDITOR PLAN (Ruta oculta del menú pero accesible) */}
+      {/* Editor Plan: Ponemos href: undefined para asegurar que cargue */}
       <Tabs.Screen
         name="editorPlan"
         options={{
           title: 'Editor',
-          href: null, // Esto oculta el botón de la barra de abajo
-          tabBarButton: () => null, 
+          tabBarButton: () => null, // Esto lo oculta visualmente pero deja la ruta activa
         }}
       />
 
-      {/* 4. ADMIN ALIMENTOS */}
       <Tabs.Screen
         name="AdminAlimentos"
         options={{
-          title: 'Biblioteca Alim.',
+          title: 'Alimentos',
           tabBarIcon: ({ color }) => <FontAwesome5 name="apple-alt" size={18} color={color} />,
         }}
       />
 
-      {/* 5. ADMIN EJERCICIOS */}
       <Tabs.Screen
         name="AdminEjercicios"
         options={{
-          title: 'Biblioteca Ejerc.',
+          title: 'Ejercicios',
           tabBarIcon: ({ color }) => <FontAwesome5 name="dumbbell" size={18} color={color} />,
         }}
       />
 
-      {/* 6. HISTORIAL */}
       <Tabs.Screen
         name="historial"
         options={{
