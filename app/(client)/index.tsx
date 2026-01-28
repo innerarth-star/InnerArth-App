@@ -216,20 +216,49 @@ function ClienteScreen({ user }: { user: any }) {
             </Section>
           )}
 
-          {/* SECCION 4: SALUD */}
+{/* SECCION 4: SALUD */}
           <Section num={4} title="Salud" color="#ef4444" icon="heartbeat" activa={seccionActiva} setActiva={setSeccionActiva}>
             <Text style={styles.labelSub}>Enfermedades Familiares:</Text>
             <View style={styles.rowWrap}>{ENFERMEDADES_BASE.map(e => <TouchableOpacity key={e} style={[styles.chip, enfFam.includes(e) && styles.chipActive]} onPress={()=>{let n=enfFam.includes(e)?enfFam.filter(i=>i!==e):[...enfFam,e]; setEnfFam(n)}}><Text style={enfFam.includes(e)?styles.txtW:styles.txtB}>{e}</Text></TouchableOpacity>)}</View>
+            
             <Text style={styles.labelSub}>Enfermedades Propias:</Text>
             <View style={styles.rowWrap}>{ENFERMEDADES_BASE.map(e => <TouchableOpacity key={e} style={[styles.chip, enfPers.includes(e) && styles.chipActive]} onPress={()=>{let n=enfPers.includes(e)?enfPers.filter(i=>i!==e):[...enfPers,e]; setEnfPers(n)}}><Text style={enfPers.includes(e)?styles.txtW:styles.txtB}>{e}</Text></TouchableOpacity>)}</View>
+            
             <Text style={styles.labelSub}>¿Lesión?</Text>
-            <View style={styles.row}><TouchableOpacity style={[styles.btnG, lesion==='si'&&styles.btnActive]} onPress={()=>setLesion('si')}><Text style={lesion==='si'?styles.txtW:styles.txtB}>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, lesion==='no'&&styles.btnActive]} onPress={()=>setLesion('no')}><Text style={lesion==='no'?styles.txtW:styles.txtB}>NO</Text></TouchableOpacity></View>
+            <View style={styles.row}>
+              <TouchableOpacity style={[styles.btnG, lesion==='si'&&styles.btnActive]} onPress={()=>setLesion('si')}><Text style={lesion==='si'?styles.txtW:styles.txtB}>SÍ</Text></TouchableOpacity>
+              <TouchableOpacity style={[styles.btnG, lesion==='no'&&styles.btnActive]} onPress={()=>setLesion('no')}><Text style={lesion==='no'?styles.txtW:styles.txtB}>NO</Text></TouchableOpacity>
+            </View>
             {lesion==='si'&&<TextInput style={styles.input} placeholder="Describe lesión" value={detalleLesion} onChangeText={setDetalleLesion}/>}
+            
             <Text style={styles.labelSub}>¿Operación?</Text>
-            <View style={styles.row}><TouchableOpacity style={[styles.btnG, operacion==='si'&&styles.btnActive]} onPress={()=>setOperacion('si')}><Text style={operacion==='si'?styles.txtW:styles.txtB}>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, operacion==='no'&&styles.btnActive]} onPress={()=>setOperacion('no')}><Text style={operacion==='no'?styles.txtW:styles.txtB}>NO</Text></TouchableOpacity></View>
+            <View style={styles.row}>
+              <TouchableOpacity style={[styles.btnG, operacion==='si'&&styles.btnActive]} onPress={()=>setOperacion('si')}><Text style={operacion==='si'?styles.txtW:styles.txtB}>SÍ</Text></TouchableOpacity>
+              <TouchableOpacity style={[styles.btnG, operacion==='no'&&styles.btnActive]} onPress={()=>setOperacion('no')}><Text style={operacion==='no'?styles.txtW:styles.txtB}>NO</Text></TouchableOpacity>
+            </View>
             {operacion==='si'&&<TextInput style={styles.input} placeholder="Describe operación" value={detalleOperacion} onChangeText={setDetalleOperacion}/>}
-            <TextInput style={[styles.input, {marginTop:10}]} placeholder="coloca los dedos índice y medio en la parte interna de la muñeca o a un lado del cuello. Presiona ligeramente hasta sentir el pulso y cuenta los latidos durante 15 seg, multiplica el resultado por 4" value={frecuenciaCardiaca} keyboardType="numeric" onChangeText={setFrecuenciaCardiaca} />
-            <TouchableOpacity style={styles.btnNext} onPress={()=>setSeccionActiva(5)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
+            
+            <Text style={styles.labelSub}>Frecuencia Cardíaca Reposo (FCR):</Text>
+            
+            {/* CUADRO DE AYUDA (Helper Box) */}
+            <View style={styles.helperBox}>
+              <Text style={styles.helperTxt}>
+                <Text style={{fontWeight: 'bold'}}>💡 Instrucciones: </Text>
+                Presiona ligeramente con tus dedos índice y medio la muñeca o cuello. Cuenta los latidos por 15 segundos y multiplica el resultado por 4.
+              </Text>
+            </View>
+
+            <TextInput 
+              style={styles.input} 
+              placeholder="Ej: 70" 
+              value={frecuenciaCardiaca} 
+              keyboardType="numeric" 
+              onChangeText={setFrecuenciaCardiaca} 
+            />
+            
+            <TouchableOpacity style={styles.btnNext} onPress={()=>setSeccionActiva(5)}>
+              <Text style={styles.txtW}>Siguiente</Text>
+            </TouchableOpacity>
           </Section>
 
           {/* SECCION 5: IPAQ */}
@@ -397,4 +426,6 @@ const styles = StyleSheet.create({
   progressText: { fontSize: 12, fontWeight: 'bold', color: '#64748b' },
   progressBarBg: { height: 6, backgroundColor: '#e2e8f0', borderRadius: 3, overflow: 'hidden' },
   progressBarFill: { height: '100%', backgroundColor: '#3b82f6' },
+  helperBox: { backgroundColor: '#eff6ff', padding: 12, borderRadius: 10, marginBottom: 10, borderWidth: 1, borderColor: '#bfdbfe', },
+  helperTxt: { fontSize: 11, color: '#1e40af', lineHeight: 16, },
 });
