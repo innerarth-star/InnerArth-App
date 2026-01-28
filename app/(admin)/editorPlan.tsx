@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator, Alert, TextInput, Modal, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { db } from '../../firebaseConfig';
-import { doc, getDoc, onSnapshot, updateDoc, setDoc, serverTimestamp, collection, arrayUnion, arrayRemove, addDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, updateDoc, setDoc, serverTimestamp, collection, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 
 const DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -24,7 +24,7 @@ export default function EditorPlan() {
   const [planData, setPlanData] = useState<any>(null);
   const [cargando, setCargando] = useState(true);
 
-  // --- ESTADOS DIETA ---
+  // Estados Dieta
   const [busqueda, setBusqueda] = useState('');
   const [alimentosRepo, setAlimentosRepo] = useState<any[]>([]);
   const [comidaSeleccionada, setComidaSeleccionada] = useState(1);
@@ -32,7 +32,7 @@ export default function EditorPlan() {
   const [alimentoEditando, setAlimentoEditando] = useState<any>(null);
   const [cantidadInput, setCantidadInput] = useState('');
 
-  // --- ESTADOS ENTRENO ---
+  // Estados Entreno
   const [busquedaEj, setBusquedaEj] = useState('');
   const [ejerciciosRepo, setEjerciciosRepo] = useState<any[]>([]);
 
@@ -61,23 +61,10 @@ export default function EditorPlan() {
         });
 
         return () => { unsubPlan(); unsubAlimentos(); unsubEjercicios(); };
-      } catch (err) {
-        console.error("Error al cargar:", err);
-        setCargando(false);
-      }
+      } catch (err) { setCargando(false); }
     };
     cargarDatos();
   }, [planId, alumnoId]);
-
-  const objetivos = useMemo(() => {
-    if (!alumno || !planData) return null;
-    const peso = parseFloat(alumno.datosFisicos?.peso || 70);
-    const kcalMeta = planData.caloriasMeta || 0;
-    const pMeta = Math.round(peso * 2.0); 
-    const gMeta = Math.round(peso * 0.8);
-    const cMeta = Math.max(0, Math.round((kcalMeta - (pMeta * 4 + gMeta * 9)) / 4));
-    return { pMeta, gMeta, cMeta, kcalMeta };
-  }, [alumno, planData]);
 
   const consumoActual = useMemo(() => {
     if (!planData?.comidasReal) return { p: 0, g: 0, c: 0, kcal: 0 };
@@ -91,48 +78,61 @@ export default function EditorPlan() {
     }, { p: 0, g: 0, c: 0, kcal: 0 });
   }, [planData?.comidasReal]);
 
-  // --- FUNCIÓN DE PUBLICACIÓN BLINDADA ---
+  const objetivos = useMemo(() => {
+    if (!alumno || !planData) return null;
+    const peso = parseFloat(alumno.datosFisicos?.peso || 70);
+    const kcalMeta = planData.caloriasMeta || 0;
+    const pMeta = Math.round(peso * 2.0); 
+    const gMeta = Math.round(peso * 0.8);
+    const cMeta = Math.max(0, Math.round((kcalMeta - (pMeta * 4 + gMeta * 9)) / 4));
+    return { pMeta, gMeta, cMeta, kcalMeta };
+  }, [alumno, planData]);
+
+  // --- FUNCIÓN DE PUBLICACIÓN REFORZADA ---
   const publicarYArchivar = async () => {
     if (!planData?.comidasReal?.length && !planData?.rutinaReal?.length) {
-      Alert.alert("Atención", "El plan está vacío.");
+      Alert.alert("Error", "Agrega contenido antes de publicar.");
       return;
     }
 
     const cAlumnoId = String(alumnoId).trim();
     const cPlanId = String(planId).trim();
 
-    Alert.alert(
-      "Publicar Plan",
-      "¿Enviar dieta y rutina al alumno?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Enviar", onPress: async () => {
-          try {
-            const planSellado = {
-              estatus: "Publicado",
-              fechaPublicacion: serverTimestamp(),
-              totalesFinales: consumoActual,
-              dieta: planData.comidasReal || [],
-              rutina: planData.rutinaReal || [],
-              nombreAlumno: nombreAlumno || "Sin Nombre",
-              alumnoId: cAlumnoId
-            };
+    // Usamos confirm de navegador si es Web para asegurar respuesta
+    const confirmar = Platform.OS === 'web' 
+        ? window.confirm("¿Publicar plan ahora?") 
+        : true;
 
-            await addDoc(collection(db, "historial_planes"), planSellado);
-            await addDoc(collection(db, "alumnos_activos", cAlumnoId, "planes_publicados"), planSellado);
-            await updateDoc(doc(db, "alumnos_activos", cAlumnoId, "planes", cPlanId), { 
-              estatus: "Archivado",
-              ultimaActualizacion: serverTimestamp() 
-            });
+    if (!confirmar) return;
 
-            Alert.alert("¡Éxito!", "Plan publicado correctamente.");
-            router.replace('/(admin)/alumnos' as any);
-          } catch (e: any) {
-            Alert.alert("Error de Firebase", e.message);
-          }
-        }}
-      ]
-    );
+    try {
+      const timestamp = Date.now().toString();
+      const planSellado = {
+        estatus: "Publicado",
+        fechaPublicacion: new Date(),
+        totalesFinales: consumoActual,
+        dieta: planData.comidasReal || [],
+        rutina: planData.rutinaReal || [],
+        nombreAlumno: String(nombreAlumno),
+        alumnoId: cAlumnoId
+      };
+
+      // USAMOS SETDOC PARA FORZAR LA CREACIÓN
+      // 1. Historial
+      await setDoc(doc(db, "historial_planes", `hist_${timestamp}`), planSellado);
+      // 2. Expediente alumno
+      await setDoc(doc(db, "alumnos_activos", cAlumnoId, "planes_publicados", `plan_${timestamp}`), planSellado);
+      // 3. Cerrar edición
+      await updateDoc(doc(db, "alumnos_activos", cAlumnoId, "planes", cPlanId), { estatus: "Archivado" });
+
+      if (Platform.OS === 'web') alert("¡Plan Publicado!");
+      else Alert.alert("Éxito", "Plan publicado correctamente.");
+
+      router.replace('/(admin)/alumnos' as any);
+    } catch (e: any) {
+      console.error(e);
+      alert("Error al guardar: " + e.message);
+    }
   };
 
   const agregarAlimento = async (item: any) => {
@@ -242,7 +242,9 @@ export default function EditorPlan() {
           <View style={{height: 120}} />
         </ScrollView>
         <View style={styles.footerSticky}>
-          {tab==='dieta'?(<TouchableOpacity style={[styles.btnAction,{backgroundColor:'#22c55e'}]} onPress={()=>setTab('entreno')}><Text style={styles.txtW}>CONFIGURAR ENTRENO</Text></TouchableOpacity>):(<TouchableOpacity style={[styles.btnAction,{backgroundColor:'#1e293b'}]} onPress={publicarYArchivar}><Text style={styles.txtW}>PUBLICAR PLAN COMPLETO</Text></TouchableOpacity>)}
+          <TouchableOpacity style={[styles.btnAction,{backgroundColor: tab==='dieta'?'#22c55e':'#1e293b'}]} onPress={tab==='dieta' ? ()=>setTab('entreno') : publicarYArchivar}>
+            <Text style={styles.txtW}>{tab==='dieta' ? 'SIGUIENTE: CONFIGURAR ENTRENO' : 'PUBLICAR PLAN COMPLETO'}</Text>
+          </TouchableOpacity>
         </View>
         <Modal visible={modalVisible} transparent><View style={styles.modalOverlay}><View style={styles.modalContent}><Text>Cantidad</Text><TextInput style={styles.modalInput} keyboardType="numeric" value={cantidadInput} onChangeText={setCantidadInput} /><View style={{flexDirection:'row',gap:10,marginTop:20}}><Pressable onPress={()=>setModalVisible(false)}><Text>Cerrar</Text></Pressable><Pressable onPress={guardarGramos}><Text style={styles.txtB}>Actualizar</Text></Pressable></View></View></View></Modal>
       </View>
