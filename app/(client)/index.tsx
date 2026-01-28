@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Alert, Modal, ActivityIndicator, StatusBar, Platform } from 'react-native';
 import { db, auth } from '../../firebaseConfig'; 
-import { collection, addDoc, serverTimestamp, query, where, getDocs, onSnapshot, limit, orderBy } from 'firebase/firestore'; 
+import { collection, addDoc, serverTimestamp, query, where, onSnapshot, limit, orderBy } from 'firebase/firestore'; 
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { FontAwesome5, MaterialCommunityIcons, FontAwesome, Ionicons } from '@expo/vector-icons';
-import SignatureScreen from 'react-native-signature-canvas';
 import AuthScreen from '../AuthScreen'; 
 import CoachPanel from '../(admin)/coach';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
-// CONSTANTES RESTAURADAS
+// --- CONSTANTES ---
 const ENFERMEDADES_BASE = ["Diabetes", "Hipertensión", "Obesidad", "Hipotiroidismo", "Cáncer", "Cardiopatías", "Asma", "Ninguna", "Otra"];
 const ANTICONCEPTIVOS = ["Pastillas", "Inyección", "DIU", "Implante", "Parche", "Ninguno"];
 const TIPOS_CICLO = ["Regular", "Irregular", "Menopausia"];
@@ -37,13 +36,10 @@ export default function MainApp() {
     const unsub = onAuthStateChanged(auth, async (usuario) => {
       if (usuario) {
         await usuario.reload(); 
-        const userActualizado = auth.currentUser;
-        if (userActualizado) {
-          setUser(userActualizado);
-          setRole(userActualizado.email?.toLowerCase().trim() === CORREO_COACH ? 'coach' : 'alumno');
-        } else {
-          setUser(null);
-          setRole(null);
+        const userAct = auth.currentUser;
+        if (userAct) {
+          setUser(userAct);
+          setRole(userAct.email?.toLowerCase().trim() === CORREO_COACH ? 'coach' : 'alumno');
         }
       } else {
         setUser(null);
@@ -71,7 +67,7 @@ function ClienteScreen({ user }: { user: any }) {
   const [aceptarPrivacidad, setAceptarPrivacidad] = useState(false);
   const router = useRouter();
 
-  // TODOS LOS ESTADOS RESTAURADOS
+  // --- ESTADOS RESTAURADOS ---
   const [nombre, setNombre] = useState('');
   const [telefono, setTelefono] = useState('');
   const [peso, setPeso] = useState('');
@@ -118,7 +114,6 @@ function ClienteScreen({ user }: { user: any }) {
   const [frecuenciaAlimentos, setFrecuenciaAlimentos] = useState<any>({});
 
   useEffect(() => {
-    // Escucha en tiempo real para saltar el formulario si ya hay plan o revision
     const qPlan = query(collection(db, "alumnos_activos", user.uid, "planes_publicados"), orderBy("fechaPublicacion", "desc"), limit(1));
     const unsub = onSnapshot(qPlan, (snap) => {
       if (!snap.empty) {
@@ -128,8 +123,7 @@ function ClienteScreen({ user }: { user: any }) {
       } else {
         const qRev = query(collection(db, "revisiones_pendientes"), where("uid", "==", user.uid));
         onSnapshot(qRev, (snapRev) => {
-          if (!snapRev.empty) setPaso('espera');
-          else setPaso('formulario');
+          setPaso(!snapRev.empty ? 'espera' : 'formulario');
           setCargandoStatus(false);
         });
       }
@@ -139,7 +133,7 @@ function ClienteScreen({ user }: { user: any }) {
 
   const enviarAlCoach = async () => {
     if (!nombre || !firma || !aceptarTerminos || !aceptarPrivacidad || !edad) {
-      alert("Completa Nombre, Edad, Firma y Avisos Legales.");
+      alert("Faltan datos obligatorios o firma.");
       return;
     }
     try {
@@ -153,52 +147,21 @@ function ClienteScreen({ user }: { user: any }) {
         nutricion: { comidasAct, descAct, alcohol, alcoholFreq, sust, sustFreq, comidasDes, entrenos, objetivo },
         frecuenciaAlimentos, firma, timestamp: serverTimestamp()
       });
-    } catch (e) { Alert.alert("Error", "No se pudo enviar."); }
+    } catch (e) { alert("Error al enviar."); }
   };
 
   if (cargandoStatus) return <View style={styles.esperaContainer}><ActivityIndicator size="large" color="#3b82f6" /></View>;
 
-  if (paso === 'espera') {
+  if (paso === 'espera' || (paso === 'dashboard' && planActivo)) {
     return (
       <View style={styles.esperaContainer}>
         <View style={styles.esperaCard}>
-          <Text style={{fontSize: 50, textAlign:'center'}}>⏳</Text>
-          <Text style={styles.esperaTitle}>¡En Revisión!</Text>
-          <Text style={styles.esperaSub}>Ya recibimos tu check-in. Tu Coach está preparando tu plan personalizado.</Text>
+          <Text style={{fontSize: 50, textAlign:'center'}}>{paso==='dashboard'?'✅':'⏳'}</Text>
+          <Text style={styles.esperaTitle}>{paso==='dashboard'?'¡Plan Activo!':'En Revisión'}</Text>
+          <Text style={styles.esperaSub}>{paso==='dashboard'?'Tu plan ya está disponible en la pestaña Mi Plan.':'Tu Coach está analizando tu check-in.'}</Text>
           <TouchableOpacity onPress={() => signOut(auth)} style={styles.logoutBtnLarge}><Text style={styles.txtW}>Cerrar Sesión</Text></TouchableOpacity>
         </View>
       </View>
-    );
-  }
-
-  if (paso === 'dashboard' && planActivo) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.webWrapper}>
-          <View style={styles.headerDashboard}>
-            <View><Text style={styles.welcomeText}>¡Hola! 👋</Text><Text style={styles.dateText}>Plan Activo</Text></View>
-            <TouchableOpacity onPress={() => signOut(auth)}><FontAwesome5 name="power-off" size={20} color="#ef4444" /></TouchableOpacity>
-          </View>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <View style={styles.macroGrid}>
-              <View style={[styles.macroCard, {backgroundColor: '#eff6ff'}]}><Text style={styles.macroVal}>{Math.round(planActivo.totalesFinales?.kcal || 0)}</Text><Text style={styles.macroLabel}>KCAL</Text></View>
-              <View style={[styles.macroCard, {backgroundColor: '#f0fdf4'}]}><Text style={styles.macroVal}>{Math.round(planActivo.totalesFinales?.p || 0)}g</Text><Text style={styles.macroLabel}>PROT</Text></View>
-              <View style={[styles.macroCard, {backgroundColor: '#fffbeb'}]}><Text style={styles.macroVal}>{Math.round(planActivo.totalesFinales?.g || 0)}g</Text><Text style={styles.macroLabel}>GRASA</Text></View>
-              <View style={[styles.macroCard, {backgroundColor: '#fef2f2'}]}><Text style={styles.macroVal}>{Math.round(planActivo.totalesFinales?.c || 0)}g</Text><Text style={styles.macroLabel}>CARBS</Text></View>
-            </View>
-            <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/(client)/dieta' as any)}>
-              <View style={[styles.iconBox, {backgroundColor:'#3b82f6'}]}><FontAwesome5 name="utensils" size={16} color="#fff"/></View>
-              <Text style={styles.actionTitle}>Ver Dieta</Text>
-              <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/(client)/rutina' as any)}>
-              <View style={[styles.iconBox, {backgroundColor:'#10b981'}]}><FontAwesome5 name="dumbbell" size={16} color="#fff"/></View>
-              <Text style={styles.actionTitle}>Ir a Entrenar</Text>
-              <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-      </SafeAreaView>
     );
   }
 
@@ -212,131 +175,124 @@ function ClienteScreen({ user }: { user: any }) {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.webWrapper}>
           <View style={styles.progressContainer}>
-            <Text style={styles.progressText}>Progreso: {seccionActiva || 0} de 10</Text>
-            <View style={styles.progressBarBg}><View style={[styles.progressBarFill, { width: `${(Number(seccionActiva || 0) / 10) * 100}%` }]} /></View>
+            <Text style={styles.progressText}>Progreso: {seccionActiva || 0}/10</Text>
+            <View style={styles.progressBarBg}><View style={[styles.progressBarFill, { width: `${(Number(seccionActiva || 0)/10)*100}%` }]} /></View>
           </View>
 
-          {/* SECCIÓN 1: DATOS PERSONALES */}
           <Section num={1} title="Datos Personales" color="#3b82f6" icon="user" activa={seccionActiva} setActiva={setSeccionActiva}>
             <TextInput style={styles.input} placeholder="Nombre Completo" value={nombre} onChangeText={setNombre} />
-            <TextInput style={styles.input} placeholder="Teléfono" value={telefono} onChangeText={(v) => setTelefono(v.replace(/[^0-9]/g, ''))} keyboardType="numeric" maxLength={10} />
-            <View style={styles.row}>
-              <TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Peso (kg)" value={peso} keyboardType="numeric" onChangeText={setPeso} />
-              <TextInput style={[styles.input, {flex:1, marginLeft:5}]} placeholder="Altura (cm)" value={altura} keyboardType="numeric" onChangeText={setAltura} />
-            </View>
-            <TextInput style={styles.input} placeholder="Edad" value={edad} keyboardType="numeric" onChangeText={setEdad} />
-            <View style={styles.row}>
-              <TouchableOpacity style={[styles.btnG, genero === 'hombre' && styles.btnActive]} onPress={() => setGenero('hombre')}><Text style={genero === 'hombre' ? styles.txtW : styles.txtB}>HOMBRE</Text></TouchableOpacity>
-              <TouchableOpacity style={[styles.btnG, genero === 'mujer' && styles.btnActive]} onPress={() => setGenero('mujer')}><Text style={genero === 'mujer' ? styles.txtW : styles.txtB}>MUJER</Text></TouchableOpacity>
-            </View>
-            <TouchableOpacity style={styles.btnNext} onPress={() => setSeccionActiva(2)}><Text style={styles.txtW}>Siguiente Paso</Text></TouchableOpacity>
+            <TextInput style={styles.input} placeholder="Teléfono" value={telefono} keyboardType="numeric" onChangeText={setTelefono} />
+            <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Peso (kg)" value={peso} keyboardType="numeric" onChangeText={setPeso}/><TextInput style={[styles.input, {flex:1}]} placeholder="Altura (cm)" value={altura} keyboardType="numeric" onChangeText={setAltura}/></View>
+            <TextInput style={styles.input} placeholder="Edad" value={edad} keyboardType="numeric" onChangeText={setEdad}/>
+            <View style={styles.row}><TouchableOpacity style={[styles.btnG, genero==='hombre'&&styles.btnActive]} onPress={()=>setGenero('hombre')}><Text style={genero==='hombre'?styles.txtW:styles.txtB}>HOMBRE</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, genero==='mujer'&&styles.btnActive]} onPress={()=>setGenero('mujer')}><Text style={genero==='mujer'?styles.txtW:styles.txtB}>MUJER</Text></TouchableOpacity></View>
+            <TouchableOpacity style={styles.btnNext} onPress={()=>setSeccionActiva(2)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
           </Section>
 
-          {/* SECCIÓN 2: MEDIDAS */}
-          <Section num={2} title="Medidas Corporales (CM)" color="#10b981" icon="ruler-horizontal" activa={seccionActiva} setActiva={setSeccionActiva}>
-            <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Cuello" value={cuello} onChangeText={setCuello}/><TextInput style={[styles.input, {flex:1, marginLeft:5}]} placeholder="Pecho" value={pecho} onChangeText={setPecho}/></View>
-            <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Brazo Rel" value={brazoR} onChangeText={setBrazoR}/><TextInput style={[styles.input, {flex:1, marginLeft:5}]} placeholder="Brazo Flex" value={brazoF} onChangeText={setBrazoF}/></View>
-            <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Cintura" value={cintura} onChangeText={setCintura}/><TextInput style={[styles.input, {flex:1, marginLeft:5}]} placeholder="Cadera" value={cadera} onChangeText={setCadera}/></View>
-            <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Muslo" value={muslo} onChangeText={setMuslo}/><TextInput style={[styles.input, {flex:1, marginLeft:5}]} placeholder="Pierna" value={pierna} onChangeText={setPierna}/></View>
-            <TouchableOpacity style={styles.btnNext} onPress={() => setSeccionActiva(genero === 'mujer' ? 3 : 4)}><Text style={styles.txtW}>Siguiente Paso</Text></TouchableOpacity>
+          <Section num={2} title="Medidas (CM)" color="#10b981" icon="ruler-horizontal" activa={seccionActiva} setActiva={setSeccionActiva}>
+            <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Cuello" value={cuello} onChangeText={setCuello}/><TextInput style={[styles.input, {flex:1}]} placeholder="Pecho" value={pecho} onChangeText={setPecho}/></View>
+            <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Brazo R" value={brazoR} onChangeText={setBrazoR}/><TextInput style={[styles.input, {flex:1}]} placeholder="Brazo F" value={brazoF} onChangeText={setBrazoF}/></View>
+            <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Cintura" value={cintura} onChangeText={setCintura}/><TextInput style={[styles.input, {flex:1}]} placeholder="Cadera" value={cadera} onChangeText={setCadera}/></View>
+            <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Muslo" value={muslo} onChangeText={setMuslo}/><TextInput style={[styles.input, {flex:1}]} placeholder="Pierna" value={pierna} onChangeText={setPierna}/></View>
+            <TouchableOpacity style={styles.btnNext} onPress={()=>setSeccionActiva(genero==='mujer'?3:4)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
           </Section>
 
-          {/* SECCIÓN 3: CICLO (SOLO MUJER) */}
           {genero === 'mujer' && (
             <Section num={3} title="Ciclo Menstrual" color="#ec4899" icon="venus" activa={seccionActiva} setActiva={setSeccionActiva}>
-              <View style={styles.rowWrap}>{TIPOS_CICLO.map(t => <TouchableOpacity key={t} style={[styles.chip, tipoCiclo === t && styles.chipActive]} onPress={()=>setTipoCiclo(t)}><Text style={tipoCiclo === t ? styles.txtW : styles.txtB}>{t}</Text></TouchableOpacity>)}</View>
+              <View style={styles.rowWrap}>{TIPOS_CICLO.map(t => <TouchableOpacity key={t} style={[styles.chip, tipoCiclo === t && styles.chipActive]} onPress={()=>setTipoCiclo(t)}><Text>{t}</Text></TouchableOpacity>)}</View>
               <Text style={styles.labelSub}>Anticonceptivo:</Text>
-              <View style={styles.rowWrap}>{ANTICONCEPTIVOS.map(a => <TouchableOpacity key={a} style={[styles.chip, anticonceptivo === a && styles.chipActive]} onPress={()=>setAnticonceptivo(a)}><Text style={anticonceptivo === a ? styles.txtW : styles.txtB}>{a}</Text></TouchableOpacity>)}</View>
-              <TouchableOpacity style={styles.btnNext} onPress={() => setSeccionActiva(4)}><Text style={styles.txtW}>Siguiente Paso</Text></TouchableOpacity>
+              <View style={styles.rowWrap}>{ANTICONCEPTIVOS.map(a => <TouchableOpacity key={a} style={[styles.chip, anticonceptivo === a && styles.chipActive]} onPress={()=>setAnticonceptivo(a)}><Text>{a}</Text></TouchableOpacity>)}</View>
+              <TouchableOpacity style={styles.btnNext} onPress={()=>setSeccionActiva(4)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
             </Section>
           )}
 
-          {/* SECCIÓN 4: SALUD */}
-          <Section num={4} title="Historial Salud" color="#ef4444" icon="heartbeat" activa={seccionActiva} setActiva={setSeccionActiva}>
+          <Section num={4} title="Salud" color="#ef4444" icon="heartbeat" activa={seccionActiva} setActiva={setSeccionActiva}>
+            <Text style={styles.labelSub}>Enfermedades Familiares:</Text>
+            <View style={styles.rowWrap}>{ENFERMEDADES_BASE.map(e => <TouchableOpacity key={e} style={[styles.chip, enfFam.includes(e) && styles.chipActive]} onPress={()=>{let n=enfFam.includes(e)?enfFam.filter(i=>i!==e):[...enfFam,e]; setEnfFam(n)}}><Text>{e}</Text></TouchableOpacity>)}</View>
             <Text style={styles.labelSub}>Enfermedades Propias:</Text>
-            <View style={styles.rowWrap}>{ENFERMEDADES_BASE.map(e => <TouchableOpacity key={e} style={[styles.chip, enfPers.includes(e) && styles.chipActive]} onPress={()=>{let n = enfPers.includes(e)?enfPers.filter(i=>i!==e):[...enfPers,e]; setEnfPers(n)}}><Text style={enfPers.includes(e)?styles.txtW:styles.txtB}>{e}</Text></TouchableOpacity>)}</View>
-            <Text style={styles.labelSub}>¿Lesión/Operación?</Text>
-            <TextInput style={styles.input} placeholder="Detalles..." value={detalleLesion} onChangeText={setDetalleLesion} />
-            <TextInput style={styles.input} placeholder="FCR (Latidos por minuto)" value={frecuenciaCardiaca} keyboardType="numeric" onChangeText={setFrecuenciaCardiaca} />
-            <TouchableOpacity style={styles.btnNext} onPress={() => setSeccionActiva(5)}><Text style={styles.txtW}>Siguiente Paso</Text></TouchableOpacity>
+            <View style={styles.rowWrap}>{ENFERMEDADES_BASE.map(e => <TouchableOpacity key={e} style={[styles.chip, enfPers.includes(e) && styles.chipActive]} onPress={()=>{let n=enfPers.includes(e)?enfPers.filter(i=>i!==e):[...enfPers,e]; setEnfPers(n)}}><Text>{e}</Text></TouchableOpacity>)}</View>
+            <Text style={styles.labelSub}>¿Lesión?</Text>
+            <View style={styles.row}><TouchableOpacity style={[styles.btnG, lesion==='si'&&styles.btnActive]} onPress={()=>setLesion('si')}><Text>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, lesion==='no'&&styles.btnActive]} onPress={()=>setLesion('no')}><Text>NO</Text></TouchableOpacity></View>
+            {lesion==='si'&&<TextInput style={styles.input} placeholder="Detalle lesión" value={detalleLesion} onChangeText={setDetalleLesion}/>}
+            <Text style={styles.labelSub}>¿Operación?</Text>
+            <View style={styles.row}><TouchableOpacity style={[styles.btnG, operacion==='si'&&styles.btnActive]} onPress={()=>setOperacion('si')}><Text>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, operacion==='no'&&styles.btnActive]} onPress={()=>setOperacion('no')}><Text>NO</Text></TouchableOpacity></View>
+            {operacion==='si'&&<TextInput style={styles.input} placeholder="Detalle operación" value={detalleOperacion} onChangeText={setDetalleOperacion}/>}
+            <TextInput style={[styles.input, {marginTop:10}]} placeholder="FCR (Latidos/min)" value={frecuenciaCardiaca} keyboardType="numeric" onChangeText={setFrecuenciaCardiaca} />
+            <TouchableOpacity style={styles.btnNext} onPress={()=>setSeccionActiva(5)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
           </Section>
 
-          {/* SECCIÓN 5: ESTILO VIDA (IPAQ) */}
-          <Section num={5} title="Estilo Vida" color="#f59e0b" icon="walking" activa={seccionActiva} setActiva={setSeccionActiva}>
-            <Text style={styles.labelIpaq}>Actividad Vigorosa (Días/Minutos):</Text>
-            <View style={styles.row}><TextInput style={[styles.input, {flex:1, marginRight:5}]} placeholder="Días" value={vDias} keyboardType="numeric" onChangeText={setVDias}/><TextInput style={[styles.input, {flex:1}]} placeholder="Min" value={vMin} keyboardType="numeric" onChangeText={setVMin}/></View>
+          <Section num={5} title="Estilo Vida (IPAQ)" color="#f59e0b" icon="walking" activa={seccionActiva} setActiva={setSeccionActiva}>
+            <Text style={styles.labelIpaq}>Actividad Vigorosa (Días/Min):</Text>
+            <View style={styles.row}><TextInput style={[styles.input,{flex:1,marginRight:5}]} placeholder="Días" value={vDias} onChangeText={setVDias}/><TextInput style={[styles.input,{flex:1}]} placeholder="Min" value={vMin} onChangeText={setVMin}/></View>
+            <Text style={styles.labelIpaq}>Actividad Moderada (Días/Min):</Text>
+            <View style={styles.row}><TextInput style={[styles.input,{flex:1,marginRight:5}]} placeholder="Días" value={mDias} onChangeText={setMDias}/><TextInput style={[styles.input,{flex:1}]} placeholder="Min" value={mMin} onChangeText={setMMin}/></View>
+            <Text style={styles.labelIpaq}>Caminata (Días/Min):</Text>
+            <View style={styles.row}><TextInput style={[styles.input,{flex:1,marginRight:5}]} placeholder="Días" value={cDias} onChangeText={setCDias}/><TextInput style={[styles.input,{flex:1}]} placeholder="Min" value={cMin} onChangeText={setCMin}/></View>
             <TextInput style={styles.input} placeholder="Horas sentado al día" value={sentado} keyboardType="numeric" onChangeText={setSentado} />
             <TextInput style={styles.input} placeholder="Horas de sueño" value={horasSueno} keyboardType="numeric" onChangeText={setHorasSueno} />
-            <TouchableOpacity style={styles.btnNext} onPress={() => setSeccionActiva(6)}><Text style={styles.txtW}>Siguiente Paso</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btnNext} onPress={()=>setSeccionActiva(6)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
           </Section>
 
-          {/* SECCIÓN 6: PAR-Q */}
           <Section num={6} title="PAR-Q" color="#0ea5e9" icon="notes-medical" activa={seccionActiva} setActiva={setSeccionActiva}>
             {PREGUNTAS_PARQ.map((p, idx) => (
-              <View key={p.id} style={{marginBottom: 15}}>
-                <Text style={{fontSize: 13, color: '#334155'}}>{idx+1}. {p.texto}</Text>
+              <View key={p.id} style={{marginBottom: 10}}>
+                <Text style={{fontSize: 12}}>{idx+1}. {p.texto}</Text>
                 <View style={styles.row}>
-                  <TouchableOpacity style={[styles.btnG, respuestasParq[p.id]==='si' && styles.btnActive]} onPress={()=>setRespuestasParq({...respuestasParq, [p.id]: 'si'})}><Text style={respuestasParq[p.id]==='si' ? styles.txtW : styles.txtB}>SÍ</Text></TouchableOpacity>
-                  <TouchableOpacity style={[styles.btnG, respuestasParq[p.id]==='no' && styles.btnActive]} onPress={()=>setRespuestasParq({...respuestasParq, [p.id]: 'no'})}><Text style={respuestasParq[p.id]==='no' ? styles.txtW : styles.txtB}>NO</Text></TouchableOpacity>
+                  <TouchableOpacity style={[styles.btnG, respuestasParq[p.id]==='si' && {backgroundColor:'#ef4444'}]} onPress={()=>setRespuestasParq({...respuestasParq, [p.id]:'si'})}><Text style={styles.txtW}>SÍ</Text></TouchableOpacity>
+                  <TouchableOpacity style={[styles.btnG, respuestasParq[p.id]==='no' && {backgroundColor:'#10b981'}]} onPress={()=>setRespuestasParq({...respuestasParq, [p.id]:'no'})}><Text style={styles.txtW}>NO</Text></TouchableOpacity>
                 </View>
               </View>
             ))}
-            <TouchableOpacity style={styles.btnNext} onPress={() => setSeccionActiva(7)}><Text style={styles.txtW}>Siguiente Paso</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btnNext} onPress={()=>setSeccionActiva(7)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
           </Section>
 
-          {/* SECCIÓN 7: NUTRICIÓN */}
           <Section num={7} title="Nutrición" color="#8b5cf6" icon="utensils" activa={seccionActiva} setActiva={setSeccionActiva}>
-            <TextInput style={[styles.input, {height: 80}]} multiline placeholder="¿Qué comes en un día normal?" value={descAct} onChangeText={setDescAct} />
-            <Text style={styles.labelSub}>¿Consumes alcohol?</Text>
-            <View style={styles.row}><TouchableOpacity style={[styles.btnG, alcohol==='si' && styles.btnActive]} onPress={()=>setAlcohol('si')}><Text>SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, alcohol==='no' && styles.btnActive]} onPress={()=>setAlcohol('no')}><Text>NO</Text></TouchableOpacity></View>
-            {alcohol==='si' && <View style={styles.rowWrap}>{["Diario", "Semanal", "Mensual", "Social"].map(f => <TouchableOpacity key={f} style={[styles.chip, alcoholFreq === f && styles.chipActive]} onPress={()=>setAlcoholFreq(f)}><Text>{f}</Text></TouchableOpacity>)}</View>}
-            <TextInput style={styles.input} placeholder="Objetivo Principal" value={objetivo} onChangeText={setObjetivo} />
-            <TouchableOpacity style={styles.btnNext} onPress={() => setSeccionActiva(8)}><Text style={styles.txtW}>Siguiente Paso</Text></TouchableOpacity>
+            <Text style={styles.labelSub}>Comidas actuales/Deseadas:</Text>
+            <View style={styles.rowWrap}>{["3", "4", "5", "6"].map(n => <TouchableOpacity key={n} style={[styles.chip, comidasDes === n && styles.chipActive]} onPress={()=>setComidasDes(n)}><Text>{n}</Text></TouchableOpacity>)}</View>
+            <TextInput style={[styles.input, {height:60}]} multiline placeholder="¿Qué comes normalmente?" value={descAct} onChangeText={setDescAct} />
+            <Text style={styles.labelSub}>¿Alcohol/Fumas?</Text>
+            <View style={styles.row}><TouchableOpacity style={[styles.btnG, alcohol==='si'&&styles.btnActive]} onPress={()=>setAlcohol('si')}><Text>ALC SÍ</Text></TouchableOpacity><TouchableOpacity style={[styles.btnG, sust==='si'&&styles.btnActive]} onPress={()=>setSust('si')}><Text>FUM SÍ</Text></TouchableOpacity></View>
+            <Text style={styles.labelSub}>Días entrenamiento:</Text>
+            <View style={styles.rowWrap}>{["3", "4", "5", "6"].map(d => <TouchableOpacity key={d} style={[styles.chip, entrenos === d && styles.chipActive]} onPress={()=>setEntrenos(d)}><Text>{d}</Text></TouchableOpacity>)}</View>
+            <TextInput style={styles.input} placeholder="Objetivos principales" value={objetivo} onChangeText={setObjetivo} />
+            <TouchableOpacity style={styles.btnNext} onPress={()=>setSeccionActiva(8)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
           </Section>
 
-          {/* SECCIÓN 8: FRECUENCIA */}
-          <Section num={8} title="Frecuencia Alimentos" color="#10b981" icon="apple-alt" activa={seccionActiva} setActiva={setSeccionActiva}>
+          <Section num={8} title="Frecuencia" color="#10b981" icon="apple-alt" activa={seccionActiva} setActiva={setSeccionActiva}>
             {LISTA_ALIMENTOS_FRECUENCIA.map(ali => (
-              <View key={ali} style={{marginBottom:15}}>
-                <Text style={{fontSize:13, fontWeight:'bold'}}>{ali}:</Text>
+              <View key={ali} style={{marginBottom:10}}>
+                <Text style={{fontSize:11, fontWeight:'bold'}}>{ali}:</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   {OPCIONES_FRECUENCIA.map(op => (
-                    <TouchableOpacity key={op} style={[styles.chip, frecuenciaAlimentos[ali] === op && styles.chipActive]} onPress={()=>setFrecuenciaAlimentos({...frecuenciaAlimentos, [ali]:op})}><Text style={{fontSize:11}}>{op}</Text></TouchableOpacity>
+                    <TouchableOpacity key={op} style={[styles.chip, frecuenciaAlimentos[ali] === op && styles.chipActive]} onPress={()=>setFrecuenciaAlimentos({...frecuenciaAlimentos, [ali]:op})}><Text style={{fontSize:10}}>{op}</Text></TouchableOpacity>
                   ))}
                 </ScrollView>
               </View>
             ))}
-            <TouchableOpacity style={styles.btnNext} onPress={() => setSeccionActiva(9)}><Text style={styles.txtW}>Siguiente Paso</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btnNext} onPress={()=>setSeccionActiva(9)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
           </Section>
 
-          {/* SECCIÓN 9: FIRMA */}
-          <Section num={9} title="Firma" color="#1e293b" icon="file-signature" activa={seccionActiva} setActiva={setSeccionActiva}>
-            <TouchableOpacity style={styles.btnFirma} onPress={() => setModalFirma(true)}><Text style={styles.btnFirmaText}>{firma ? "✓ Firmado" : "Click para Firmar"}</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.rowCheck} onPress={()=>setAceptarTerminos(!aceptarTerminos)}><MaterialCommunityIcons name={aceptarTerminos?"checkbox-marked":"checkbox-blank-outline"} size={24} color="#10b981"/><Text style={styles.miniTxt}>Acepto términos y condiciones.</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.btnNext} onPress={() => setSeccionActiva(10)}><Text style={styles.txtW}>Último Paso</Text></TouchableOpacity>
+          <Section num={9} title="Consentimiento" color="#1e293b" icon="file-signature" activa={seccionActiva} setActiva={setSeccionActiva}>
+            <View style={styles.consentBox}>
+              <ScrollView style={{height: 150}}><Text style={styles.consentTxt}>
+                1. Propósito: Participación voluntaria... 2. Evaluación física... 3. Contacto físico profesional... 4. Riesgos y seguridad... 5. Beneficios esperados... 6. Declaraciones del cliente... 7. Protección de datos... 8. Consentimiento expreso.
+              </Text></ScrollView>
+            </View>
+            <TouchableOpacity style={styles.rowCheck} onPress={()=>setAceptarTerminos(!aceptarTerminos)}><MaterialCommunityIcons name={aceptarTerminos?"checkbox-marked":"checkbox-blank-outline"} size={22}/><Text style={{fontSize:11}}>Acepto términos</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btnFirma} onPress={()=>setModalFirma(true)}><Text>{firma?"✓ Firmado":"Click para Firmar"}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btnNext} onPress={()=>setSeccionActiva(10)}><Text style={styles.txtW}>Siguiente</Text></TouchableOpacity>
           </Section>
 
-          {/* SECCIÓN 10: ENVIAR */}
-          <Section num={10} title="Finalizar" color="#64748b" icon="shield-alt" activa={seccionActiva} setActiva={setSeccionActiva}>
-            <TouchableOpacity style={styles.rowCheck} onPress={()=>setAceptarPrivacidad(!aceptarPrivacidad)}><MaterialCommunityIcons name={aceptarPrivacidad?"checkbox-marked":"checkbox-blank-outline"} size={24} color="#10b981"/><Text style={styles.miniTxt}>Acepto aviso de privacidad.</Text></TouchableOpacity>
-            <TouchableOpacity style={[styles.btnEnviar, (!aceptarTerminos || !aceptarPrivacidad || !firma) && {backgroundColor: '#94a3b8'}]} onPress={enviarAlCoach} disabled={!firma}><Text style={styles.txtW}>ENVIAR CHECK-IN</Text></TouchableOpacity>
+          <Section num={10} title="Enviar" color="#64748b" icon="shield-alt" activa={seccionActiva} setActiva={setSeccionActiva}>
+            <TouchableOpacity style={styles.rowCheck} onPress={()=>setAceptarPrivacidad(!aceptarPrivacidad)}><MaterialCommunityIcons name={aceptarPrivacidad?"checkbox-marked":"checkbox-blank-outline"} size={22}/><Text style={{fontSize:11}}>Acepto privacidad</Text></TouchableOpacity>
+            <TouchableOpacity style={[styles.btnEnviar, (!firma||!aceptarTerminos||!aceptarPrivacidad)&&{backgroundColor:'#94a3b8'}]} onPress={enviarAlCoach} disabled={!firma}><Text style={styles.txtW}>FINALIZAR Y ENVIAR</Text></TouchableOpacity>
           </Section>
         </View>
       </ScrollView>
 
-      {/* MODAL FIRMA */}
-      <Modal visible={modalFirma} transparent animationType="fade">
-        <View style={styles.webModalOverlay}>
-          <View style={styles.webModalCard}>
-            <Text style={styles.webModalTitle}>Firma Digital</Text>
-            <TextInput style={[styles.input, {fontStyle:'italic', textAlign:'center'}]} placeholder="Escribe tu nombre completo" onChangeText={setFirma} value={firma||''} />
-            <TouchableOpacity style={styles.btnEnviar} onPress={() => setModalFirma(false)}><Text style={styles.txtW}>CONFIRMAR FIRMA</Text></TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <Modal visible={modalFirma} transparent><View style={styles.webModalOverlay}><View style={styles.webModalCard}><Text style={{fontWeight:'bold',marginBottom:10}}>Firma con tu nombre:</Text><TextInput style={styles.input} onChangeText={setFirma} value={firma||''} /><TouchableOpacity style={styles.btnNext} onPress={()=>setModalFirma(false)}><Text style={styles.txtW}>Confirmar</Text></TouchableOpacity></View></View></Modal>
     </SafeAreaView>
   );
 }
@@ -354,55 +310,44 @@ const Section = ({ num, title, color, icon, activa, setActiva, children }: any) 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   headerBar: { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-  headerInner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, maxWidth: 800, alignSelf: 'center', width: '100%' },
+  headerInner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, maxWidth: 600, alignSelf: 'center', width: '100%' },
   headerTitle: { fontSize: 20, fontWeight: 'bold' },
-  logoutBtn: { padding: 8, backgroundColor: '#fee2e2', borderRadius: 10 },
+  logoutBtn: { padding: 8, backgroundColor: '#fee2e2', borderRadius: 8 },
   scroll: { paddingBottom: 60 },
   webWrapper: { width: '100%', maxWidth: 600, alignSelf: 'center', padding: 15 },
   progressContainer: { marginBottom: 20 },
   progressText: { fontSize: 12, fontWeight: 'bold', color: '#64748b' },
-  progressBarBg: { height: 8, backgroundColor: '#e2e8f0', borderRadius: 4, overflow: 'hidden' },
+  progressBarBg: { height: 6, backgroundColor: '#e2e8f0', borderRadius: 3, overflow: 'hidden' },
   progressBarFill: { height: '100%', backgroundColor: '#3b82f6' },
-  card: { backgroundColor: '#fff', borderRadius: 16, marginBottom: 12, elevation: 3, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10 },
-  headerToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 18 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  numCircle: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  numText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
-  sectionTitle: { fontSize: 15, fontWeight: 'bold', color: '#334155' },
-  content: { padding: 18, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
-  input: { backgroundColor: '#f8fafc', padding: 14, borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 14 },
+  card: { backgroundColor: '#fff', borderRadius: 15, marginBottom: 10, elevation: 2 },
+  headerToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 15 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  numCircle: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  numText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
+  sectionTitle: { fontSize: 14, fontWeight: 'bold' },
+  content: { padding: 15, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
+  input: { backgroundColor: '#f8fafc', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 10 },
   row: { flexDirection: 'row', gap: 10 },
-  rowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginVertical: 10 },
-  chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#3b82f6' },
+  rowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginVertical: 5 },
+  chip: { padding: 8, borderRadius: 15, borderWidth: 1, borderColor: '#3b82f6' },
   chipActive: { backgroundColor: '#3b82f6' },
-  btnG: { flex: 1, padding: 14, borderRadius: 10, borderWidth: 1, borderColor: '#3b82f6', alignItems: 'center' },
+  btnG: { flex: 1, padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#3b82f6', alignItems: 'center' },
   btnActive: { backgroundColor: '#3b82f6' },
   txtB: { color: '#3b82f6', fontWeight: 'bold' },
   txtW: { color: '#fff', fontWeight: 'bold' },
-  labelSub: { fontSize: 14, fontWeight: 'bold', marginTop: 10 },
-  labelIpaq: { fontSize: 12, color: '#64748b', marginBottom: 4 },
-  btnFirma: { padding: 18, borderRadius: 12, borderWidth: 2, borderColor: '#3b82f6', borderStyle: 'dashed', alignItems: 'center', marginVertical: 15 },
-  btnFirmaText: { color: '#3b82f6', fontWeight: 'bold' },
-  rowCheck: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 },
-  miniTxt: { fontSize: 12, flex: 1 },
-  btnEnviar: { backgroundColor: '#10b981', padding: 18, borderRadius: 12, alignItems: 'center', marginTop: 30 },
-  btnNext: { padding: 14, borderRadius: 10, backgroundColor: '#3b82f6', alignItems: 'center', marginTop: 15 },
+  labelSub: { fontSize: 13, fontWeight: 'bold', marginTop: 10 },
+  labelIpaq: { fontSize: 11, color: '#64748b', marginBottom: 4 },
+  btnFirma: { padding: 15, borderRadius: 10, borderWidth: 1, borderStyle: 'dashed', borderColor: '#3b82f6', alignItems: 'center', marginVertical: 10 },
+  rowCheck: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 },
+  btnEnviar: { backgroundColor: '#10b981', padding: 15, borderRadius: 10, alignItems: 'center', marginTop: 20 },
+  btnNext: { padding: 12, backgroundColor: '#3b82f6', borderRadius: 8, alignItems: 'center', marginTop: 10 },
   esperaContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#f8fafc' },
-  esperaCard: { backgroundColor:'#fff', padding: 40, borderRadius: 20, width: '100%', maxWidth: 450, elevation: 4 },
+  esperaCard: { backgroundColor:'#fff', padding: 30, borderRadius: 20, width: '100%', maxWidth: 450, elevation: 4 },
   esperaTitle: { fontSize: 24, fontWeight: 'bold', textAlign: 'center' },
   esperaSub: { fontSize: 14, color: '#64748b', textAlign: 'center', marginTop: 10 },
-  logoutBtnLarge: { marginTop: 30, backgroundColor: '#ef4444', padding: 15, borderRadius: 12, width: '100%', alignItems: 'center' },
+  logoutBtnLarge: { marginTop: 25, backgroundColor: '#ef4444', padding: 12, borderRadius: 10, width: '100%', alignItems: 'center' },
   webModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   webModalCard: { backgroundColor: '#fff', width: '90%', maxWidth: 400, padding: 20, borderRadius: 15 },
-  webModalTitle: { fontSize: 18, fontWeight: 'bold', textAlign: 'center', marginBottom: 15 },
-  headerDashboard: { flexDirection: 'row', justifyContent: 'space-between', padding: 20 },
-  welcomeText: { fontSize: 20, fontWeight: 'bold' },
-  dateText: { color: '#10b981', fontWeight: 'bold' },
-  macroGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 15 },
-  macroCard: { flex: 1, minWidth: '45%', padding: 15, borderRadius: 15, alignItems: 'center' },
-  macroVal: { fontSize: 20, fontWeight: 'bold' },
-  macroLabel: { fontSize: 10, color: '#64748b' },
-  actionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 18, borderRadius: 15, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' },
-  actionTitle: { flex: 1, marginLeft: 15, fontWeight: 'bold' },
-  iconBox: { width: 40, height: 40, borderRadius: 10, justifyContent: 'center', alignItems: 'center' }
+  consentBox: { backgroundColor: '#f1f5f9', padding: 10, borderRadius: 10 },
+  consentTxt: { fontSize: 10, color: '#64748b' }
 });
