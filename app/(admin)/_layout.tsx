@@ -7,14 +7,10 @@ export default function AdminLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: '#3b82f6',
-        tabBarInactiveTintColor: '#94a3b8',
-        tabBarStyle: {
-          height: 70,
-          paddingBottom: 10,
-          backgroundColor: '#ffffff',
-        },
+        tabBarStyle: { height: 70, paddingBottom: 10 },
       }}
     >
+      {/* 1. PENDIENTES - Esta es tu pantalla principal de gestión */}
       <Tabs.Screen
         name="pendientes"
         options={{
@@ -23,23 +19,16 @@ export default function AdminLayout() {
         }}
       />
 
+      {/* 2. MIS ALUMNOS */}
       <Tabs.Screen
         name="alumnos"
         options={{
-          title: 'Alumnos',
+          title: 'Mis Alumnos',
           tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={18} color={color} />,
         }}
       />
 
-      {/* Editor Plan: Ponemos href: undefined para asegurar que cargue */}
-      <Tabs.Screen
-        name="editorPlan"
-        options={{
-          title: 'Editor',
-          tabBarButton: () => null, // Esto lo oculta visualmente pero deja la ruta activa
-        }}
-      />
-
+      {/* 3. ADMIN ALIMENTOS */}
       <Tabs.Screen
         name="AdminAlimentos"
         options={{
@@ -48,6 +37,7 @@ export default function AdminLayout() {
         }}
       />
 
+      {/* 4. ADMIN EJERCICIOS */}
       <Tabs.Screen
         name="AdminEjercicios"
         options={{
@@ -56,12 +46,26 @@ export default function AdminLayout() {
         }}
       />
 
+      {/* RUTAS OCULTAS (Existen pero no tienen botón en el menú de abajo) */}
+      
+      <Tabs.Screen
+        name="editorPlan"
+        options={{ href: null }} 
+      />
+
       <Tabs.Screen
         name="historial"
-        options={{
-          title: 'Historial',
-          tabBarIcon: ({ color }) => <FontAwesome5 name="history" size={18} color={color} />,
-        }}
+        options={{ href: null }}
+      />
+
+      <Tabs.Screen
+        name="coach"
+        options={{ href: null }}
+      />
+
+      <Tabs.Screen
+        name="expedienteDetalle"
+        options={{ href: null }}
       />
     </Tabs>
   );
