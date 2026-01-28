@@ -2,32 +2,28 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 
-export default function AdminLayout() {
+export default function ClientLayout() {
   return (
     <Tabs screenOptions={{ 
-      tabBarActiveTintColor: '#3b82f6', 
+      tabBarActiveTintColor: '#10b981', // Verde para el cliente, diferenciándolo del azul del admin
       headerShown: false,
       tabBarStyle: { height: 65, paddingBottom: 10, paddingTop: 5 } 
     }}>
+      {/* Pestaña 1: Tu index.tsx actual (El cuestionario) */}
       <Tabs.Screen
-        name="coach" // Debe ser igual a app/(admin)/coach.tsx
+        name="index"
         options={{
-          title: 'Pendientes',
-          tabBarIcon: ({ color }) => <FontAwesome5 name="user-clock" size={20} color={color} />,
+          title: 'Mi Registro',
+          tabBarIcon: ({ color }) => <FontAwesome5 name="file-alt" size={20} color={color} />,
         }}
       />
+      
+      {/* Pestaña 2: El nuevo archivo plan.tsx (Dieta y Rutina) */}
       <Tabs.Screen
-        name="alumnos" // Debe ser igual a app/(admin)/alumnos.tsx
+        name="plan"
         options={{
-          title: 'Mis Alumnos',
-          tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={20} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="AdminAlimnetos" // Debe ser igual a app/(admin)/AdminAlimnetos.tsx
-        options={{
-          title: 'Biblioteca',
-          tabBarIcon: ({ color }) => <Ionicons name="nutrition" size={22} color={color} />,
+          title: 'Mi Plan',
+          tabBarIcon: ({ color }) => <Ionicons name="fitness" size={22} color={color} />,
         }}
       />
     </Tabs>
