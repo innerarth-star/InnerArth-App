@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, TextInput, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TextInput, Pressable, ActivityIndicator, SafeAreaView, Platform } from 'react-native';
 import { db } from '../../firebaseConfig';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { FontAwesome5 } from '@expo/vector-icons';
@@ -18,16 +18,10 @@ export default function MisAlumnos() {
       const lista: any[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
-        
-        // --- TRIPLE VALIDACIÓN DE ID ---
-        // 1. Prioridad: El UID que guardamos dentro del objeto al aceptar
-        // 2. Respaldo: El ID del documento de Firebase
-        // 3. Emergencia: Cualquier campo 'id' que exista dentro
         const idReal = data.uid || data.id || doc.id;
-
         lista.push({ 
           ...data,
-          id: idReal, // Sobreescribimos el id con el valor real para el router
+          id: idReal,
         });
       });
       setAlumnos(lista);
@@ -47,8 +41,9 @@ export default function MisAlumnos() {
   if (cargando) return <View style={styles.center}><ActivityIndicator size="large" color="#3b82f6" /></View>;
 
   return (
-    <View style={styles.outerContainer}>
+    <SafeAreaView style={styles.outerContainer}>
       <View style={styles.mainContainer}>
+        {/* HEADER CENTRADO */}
         <View style={styles.header}>
           <View>
             <Text style={styles.title}>Mis Alumnos</Text>
@@ -57,6 +52,7 @@ export default function MisAlumnos() {
           <View style={styles.badge}><Text style={styles.badgeText}>{alumnos.length}</Text></View>
         </View>
 
+        {/* BARRA DE BÚSQUEDA */}
         <View style={styles.searchSection}>
           <View style={styles.searchBar}>
             <FontAwesome5 name="search" size={14} color="#94a3b8" />
@@ -70,6 +66,7 @@ export default function MisAlumnos() {
           </View>
         </View>
 
+        {/* LISTADO */}
         <FlatList
           data={alumnosFiltrados}
           keyExtractor={(item, index) => item.id || index.toString()}
@@ -77,7 +74,6 @@ export default function MisAlumnos() {
             <Pressable 
               style={styles.card}
               onPress={() => {
-                // LOG DE SEGURIDAD: Revisa tu consola al presionar
                 console.log("Navegando con ID:", item.id);
                 router.push({ 
                   pathname: '/(admin)/historial' as any, 
@@ -85,8 +81,11 @@ export default function MisAlumnos() {
                 });
               }}
             >
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{item.nombre?.charAt(0).toUpperCase()}</Text>
+              </View>
               <View style={styles.cardInfo}>
-                <Text style={styles.alumnoNombre}>{item.nombre}</Text>
+                <Text style={styles.alumnoNombre}>{item.nombre?.toUpperCase()}</Text>
                 <Text style={styles.alumnoObjetivo}>
                   {item.nutricion?.objetivo || 'Sin objetivo definido'}
                 </Text>
@@ -98,26 +97,83 @@ export default function MisAlumnos() {
           ListEmptyComponent={<Text style={styles.emptyText}>No se encontraron alumnos.</Text>}
         />
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  outerContainer: { flex: 1, backgroundColor: '#f1f5f9', alignItems: 'center' },
-  mainContainer: { flex: 1, width: '100%', maxWidth: 800, backgroundColor: '#f1f5f9' },
+  outerContainer: { 
+    flex: 1, 
+    backgroundColor: '#f1f5f9', // Color de fondo para los laterales en web
+    alignItems: 'center', 
+  },
+  mainContainer: { 
+    flex: 1, 
+    width: '100%', 
+    maxWidth: 600, // <--- AJUSTE CLAVE: Se ve como móvil en la Web
+    backgroundColor: '#f8fafc',
+    // Sombra para que parezca una ventana flotante en web
+    ...Platform.select({
+      web: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 5,
+      }
+    })
+  },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 15, backgroundColor: '#fff' },
-  title: { fontSize: 26, fontWeight: '800', color: '#0f172a' },
-  subTitle: { fontSize: 13, color: '#64748b' },
-  badge: { backgroundColor: '#3b82f6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 20, 
+    paddingTop: 40, 
+    paddingBottom: 20, 
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9'
+  },
+  title: { fontSize: 28, fontWeight: '900', color: '#0f172a' },
+  subTitle: { fontSize: 13, color: '#64748b', fontWeight: '500' },
+  badge: { backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
   badgeText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
-  searchSection: { backgroundColor: '#fff', paddingHorizontal: 20, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 12, paddingHorizontal: 15, height: 48, borderWidth: 1, borderColor: '#e2e8f0' },
+  searchSection: { backgroundColor: '#fff', paddingHorizontal: 20, paddingBottom: 15 },
+  searchBar: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#f1f5f9', 
+    borderRadius: 15, 
+    paddingHorizontal: 15, 
+    height: 50, 
+    borderWidth: 1, 
+    borderColor: '#e2e8f0' 
+  },
   input: { flex: 1, marginLeft: 10, fontSize: 16, color: '#1e293b' },
   listPadding: { padding: 20, paddingBottom: 100 },
-  card: { backgroundColor: '#fff', borderRadius: 16, padding: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' },
+  card: { 
+    backgroundColor: '#fff', 
+    borderRadius: 20, 
+    padding: 15, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 12, 
+    borderWidth: 1, 
+    borderColor: '#e2e8f0',
+  },
+  avatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 15,
+    backgroundColor: '#1e293b',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15
+  },
+  avatarText: { color: '#fff', fontWeight: 'bold', fontSize: 20 },
   cardInfo: { flex: 1 },
-  alumnoNombre: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
-  alumnoObjetivo: { fontSize: 13, color: '#64748b', marginTop: 4 },
+  alumnoNombre: { fontSize: 16, fontWeight: 'bold', color: '#1e293b' },
+  alumnoObjetivo: { fontSize: 12, color: '#3b82f6', fontWeight: 'bold', marginTop: 2, textTransform: 'uppercase' },
   emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 50 }
 });
