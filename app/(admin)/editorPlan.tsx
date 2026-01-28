@@ -93,6 +93,8 @@ export default function EditorPlan() {
       return;
     }
 
+    console.log("Iniciando publicación para:", nombreAlumno, "ID:", alumnoId);
+
     Alert.alert(
       "Publicar Plan Completo",
       "Esto enviará la dieta y rutina al alumno.",
@@ -100,32 +102,43 @@ export default function EditorPlan() {
         { text: "Cancelar", style: "cancel" },
         { text: "Enviar", onPress: async () => {
           try {
-            const metaData = {
+            const planSellado = {
               estatus: "Publicado",
               fechaPublicacion: serverTimestamp(),
               totalesFinales: consumoActual,
               dieta: planData.comidasReal,
               rutina: planData.rutinaReal,
-              nombreAlumno,
-              alumnoId
+              nombreAlumno: nombreAlumno || "Sin Nombre",
+              alumnoId: alumnoId
             };
 
-            // 1. Guardar en la subcolección del alumno para que lo vea en "Plan 1, 2, etc"
-            await addDoc(collection(db, "alumnos_activos", alumnoId as string, "planes_publicados"), metaData);
+// PASO A: Guardar en el historial general (Colección raíz)
+              const historialRef = collection(db, "historial_planes");
+              await addDoc(historialRef, planSellado);
 
-            // 2. Guardar en Historial General
-            await addDoc(collection(db, "historial_planes"), metaData);
+              // PASO B: Guardar en el expediente del alumno (Subcolección)
+              // Cambiamos la ruta a una más directa para evitar errores de referencia
+              const alumnoPlanesRef = collection(db, "alumnos_activos", String(alumnoId), "planes_publicados");
+              await addDoc(alumnoPlanesRef, planSellado);
 
-            // 3. Actualizar el estado del plan actual como cerrado
-            const planRef = doc(db, "alumnos_activos", alumnoId as string, "planes", planId as string);
-            await updateDoc(planRef, { estatus: "Archivado" });
+              // PASO C: Actualizar el estado del plan de edición actual
+              const edicionRef = doc(db, "alumnos_activos", String(alumnoId), "planes", String(planId));
+              await updateDoc(edicionRef, { 
+                estatus: "Archivado",
+                ultimaActualizacion: serverTimestamp() 
+              });
 
-            Alert.alert("Éxito", "Plan publicado correctamente.");
-            router.push('/(admin)/alumnos' as any);
-          } catch (e) {
-            Alert.alert("Error", "No se pudo publicar.");
-          }
-        }}
+              Alert.alert("¡Éxito!", "El plan ha sido publicado correctamente.");
+              
+              // Regresamos a la lista de alumnos
+              router.replace('/(admin)/alumnos' as any);
+
+            } catch (e: any) {
+              console.error("ERROR CRÍTICO AL PUBLICAR:", e);
+              Alert.alert("Error de Firebase", "No se pudo guardar: " + e.message);
+            }
+          } 
+        }
       ]
     );
   };
