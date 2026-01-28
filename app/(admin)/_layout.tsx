@@ -7,10 +7,15 @@ export default function AdminLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: '#3b82f6',
-        tabBarStyle: { height: 70, paddingBottom: 10 },
+        tabBarInactiveTintColor: '#94a3b8',
+        tabBarStyle: { 
+          height: 70, 
+          paddingBottom: 10,
+          backgroundColor: '#ffffff' 
+        },
       }}
     >
-      {/* 1. PENDIENTES - Esta es tu pantalla principal de gestión */}
+      {/* 1. PENDIENTES - DEBE SER LA PRIMERA */}
       <Tabs.Screen
         name="pendientes"
         options={{
@@ -19,7 +24,7 @@ export default function AdminLayout() {
         }}
       />
 
-      {/* 2. MIS ALUMNOS */}
+      {/* 2. ALUMNOS */}
       <Tabs.Screen
         name="alumnos"
         options={{
@@ -28,7 +33,7 @@ export default function AdminLayout() {
         }}
       />
 
-      {/* 3. ADMIN ALIMENTOS */}
+      {/* 3. ALIMENTOS */}
       <Tabs.Screen
         name="AdminAlimentos"
         options={{
@@ -37,7 +42,7 @@ export default function AdminLayout() {
         }}
       />
 
-      {/* 4. ADMIN EJERCICIOS */}
+      {/* 4. EJERCICIOS */}
       <Tabs.Screen
         name="AdminEjercicios"
         options={{
@@ -46,26 +51,26 @@ export default function AdminLayout() {
         }}
       />
 
-      {/* RUTAS OCULTAS (Existen pero no tienen botón en el menú de abajo) */}
-      
+      {/* --- ESTAS RUTAS EXISTEN PERO NO TENDRÁN BOTÓN ABAJO --- */}
+
       <Tabs.Screen
         name="editorPlan"
-        options={{ href: null }} 
+        options={{ href: null, tabBarButton: () => null }}
       />
 
       <Tabs.Screen
         name="historial"
-        options={{ href: null }}
+        options={{ href: null, tabBarButton: () => null }}
       />
 
       <Tabs.Screen
         name="coach"
-        options={{ href: null }}
+        options={{ href: null, tabBarButton: () => null }}
       />
 
       <Tabs.Screen
         name="expedienteDetalle"
-        options={{ href: null }}
+        options={{ href: null, tabBarButton: () => null }}
       />
     </Tabs>
   );
