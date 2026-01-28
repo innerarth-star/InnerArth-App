@@ -118,7 +118,7 @@ useEffect(() => {
 
     // 1. PRIMERO BUSCAMOS PLANES (Para el alumno que ya es antiguo)
     const qPlan = query(
-      collection(db, "alumnos_activos", user.uid, "planes_publicados"), 
+      collection(db, "alumnos_activos", user.uid, "historial_planes"), orderBy("timestamp", "desc"), 
       limit(1)
     );
 
