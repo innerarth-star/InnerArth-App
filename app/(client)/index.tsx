@@ -116,29 +116,27 @@ const [nombre, setNombre] = useState('');
 useEffect(() => {
     if (!user) return;
 
-    // 1. PRIMERO BUSCAMOS PLANES (Para el alumno que ya es antiguo)
+    // 1. CAMBIAMOS "planes_publicados" por "historial_planes"
     const qPlan = query(
-      collection(db, "alumnos_activos", user.uid, "planes_publicados"), 
+      collection(db, "alumnos_activos", user.uid, "historial_planes"), 
       limit(1)
     );
 
     const unsub = onSnapshot(qPlan, (snap) => {
       if (!snap.empty) {
-        console.log("Estado: Alumno con Plan");
+        console.log("¡Plan encontrado en historial_planes!");
+        // Aquí es donde realmente se guardan los datos para mostrar
         setPlanActivo({ id: snap.docs[0].id, ...snap.docs[0].data() });
         setPaso('dashboard');
         setCargandoStatus(false);
       } else {
-        // 2. SI NO HAY PLAN: BUSCAMOS SI YA ENVIÓ EL CUESTIONARIO
-        // ESTA ES LA PARTE QUE ESTÁ FALLANDO EN TU APP
+        // 2. SI NO HAY PLAN, buscamos el cuestionario
         const qRev = query(collection(db, "revisiones_pendientes"), where("uid", "==", user.uid));
         
         onSnapshot(qRev, (snapRev) => {
           if (!snapRev.empty) {
-            console.log("Estado: Esperando revisión (Ocultando cuestionario)");
-            setPaso('espera'); // <--- Esto es lo que quita el cuestionario de la pantalla
+            setPaso('espera'); 
           } else {
-            console.log("Estado: Alumno Nuevo (Mostrando cuestionario)");
             setPaso('formulario');
           }
           setCargandoStatus(false);
