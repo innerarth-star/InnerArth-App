@@ -116,7 +116,8 @@ const [nombre, setNombre] = useState('');
 useEffect(() => {
     if (!user) return;
 
-    // 1. Buscamos en la carpeta que confirmaste que existe: planes_publicados
+    // RUTA QUE CONFIRMASTE: planes_publicados
+    // Quitamos orderBy para que no pida índices y no falle
     const qPlan = query(
       collection(db, "alumnos_activos", user.uid, "planes_publicados"), 
       limit(1)
@@ -124,25 +125,24 @@ useEffect(() => {
 
     const unsub = onSnapshot(qPlan, (snap) => {
       if (!snap.empty) {
-        console.log("¡PLAN DETECTADO EN planes_publicados!");
+        console.log("PLAN ENCONTRADO EN planes_publicados");
         setPlanActivo({ id: snap.docs[0].id, ...snap.docs[0].data() });
-        setPaso('dashboard'); // Esto ELIMINA el cuestionario de la vista
+        setPaso('dashboard');
         setCargandoStatus(false);
       } else {
-        // 2. Si no hay plan en esa carpeta, buscamos si hay cuestionario pendiente
+        // Si no hay plan, buscamos el cuestionario enviado
         const qRev = query(collection(db, "revisiones_pendientes"), where("uid", "==", user.uid));
-        
         onSnapshot(qRev, (snapRev) => {
           if (!snapRev.empty) {
-            setPaso('espera'); // Muestra "En revisión"
+            setPaso('espera'); 
           } else {
-            setPaso('formulario'); // Muestra el cuestionario
+            setPaso('formulario');
           }
           setCargandoStatus(false);
         });
       }
     }, (error) => {
-      console.error("Error en el semáforo:", error);
+      console.log("Error en el semáforo:", error.message);
       setCargandoStatus(false);
     });
 
