@@ -116,40 +116,34 @@ const [nombre, setNombre] = useState('');
 useEffect(() => {
     if (!user) return;
 
-    // 1. Buscamos en la ruta correcta: historial_planes
-    // Quitamos el orderBy por ahora para evitar errores de índice
+    // 1. PRIMERO BUSCAMOS PLANES (Para el alumno que ya es antiguo)
     const qPlan = query(
-      collection(db, "alumnos_activos", user.uid, "historial_planes"), 
-      limit(1) 
+      collection(db, "alumnos_activos", user.uid, "planes_publicados"), 
+      limit(1)
     );
 
     const unsub = onSnapshot(qPlan, (snap) => {
       if (!snap.empty) {
-        console.log("¡Plan detectado en historial_planes!");
+        console.log("Estado: Alumno con Plan");
         setPlanActivo({ id: snap.docs[0].id, ...snap.docs[0].data() });
         setPaso('dashboard');
         setCargandoStatus(false);
       } else {
-        // 2. Si no hay plan, verificamos si hay cuestionario pendiente
-        const qRev = query(
-          collection(db, "revisiones_pendientes"), 
-          where("uid", "==", user.uid)
-        );
+        // 2. SI NO HAY PLAN: BUSCAMOS SI YA ENVIÓ EL CUESTIONARIO
+        // ESTA ES LA PARTE QUE ESTÁ FALLANDO EN TU APP
+        const qRev = query(collection(db, "revisiones_pendientes"), where("uid", "==", user.uid));
         
         onSnapshot(qRev, (snapRev) => {
           if (!snapRev.empty) {
-            setPaso('espera'); // Muestra "En revisión"
+            console.log("Estado: Esperando revisión (Ocultando cuestionario)");
+            setPaso('espera'); // <--- Esto es lo que quita el cuestionario de la pantalla
           } else {
-            setPaso('formulario'); // Muestra cuestionario
+            console.log("Estado: Alumno Nuevo (Mostrando cuestionario)");
+            setPaso('formulario');
           }
           setCargandoStatus(false);
         });
       }
-    }, (error) => {
-      console.error("Error en el semáforo:", error);
-      // Si hay error en la ruta, por seguridad mostramos formulario
-      setPaso('formulario');
-      setCargandoStatus(false);
     });
 
     return () => unsub();
