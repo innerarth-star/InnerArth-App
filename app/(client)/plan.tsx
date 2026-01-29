@@ -47,22 +47,28 @@ export default function MiPlanScreen() {
         {/* BLOQUE DE MACROS (Asegúrate que el Coach use estos nombres) */}
         <Text style={styles.seccionTitle}>Resumen Nutricional</Text>
         <View style={styles.macroCard}>
-          <View style={styles.macroItem}>
-            <Text style={styles.macroVal}>{plan.proteina || 0}g</Text>
+            <View style={styles.macroItem}>
+            {/* Busca si se llama proteina, proteinas o prot */}
+            <Text style={styles.macroVal}>{plan.proteina || plan.proteinas || plan.prot || 0}g</Text>
             <Text style={styles.macroLab}>Prot</Text>
-          </View>
-          <View style={styles.macroItem}>
-            <Text style={styles.macroVal}>{plan.carbohidratos || 0}g</Text>
+        </View>
+        <View style={styles.macroItem}>
+            {/* Busca si se llama carbohidratos, carbs o carbo */}
+            <Text style={styles.macroVal}>{plan.carbohidratos || plan.carbs || plan.carbo || 0}g</Text>
             <Text style={styles.macroLab}>Carbs</Text>
-          </View>
-          <View style={styles.macroItem}>
-            <Text style={styles.macroVal}>{plan.grasas || 0}g</Text>
+        </View>
+        <View style={styles.macroItem}>
+            {/* Busca si se llama grasas, grasa o fats */}
+            <Text style={styles.macroVal}>{plan.grasas || plan.grasa || plan.fats || 0}g</Text>
             <Text style={styles.macroLab}>Grasas</Text>
-          </View>
-          <View style={styles.macroItem}>
-            <Text style={[styles.macroVal, {color:'#3b82f6'}]}>{plan.calorias || 0}</Text>
-            <Text style={styles.macroLab}>Kcal</Text>
-          </View>
+        </View>
+        <View style={styles.macroItem}>
+            {/* Corregido: Usamos [style, {color}] con corchetes */}
+            <Text style={[styles.macroVal, { color: '#3b82f6' }]}>
+            {plan.calorias || plan.kcal || plan.cal || 0}
+            </Text>
+        <Text style={styles.macroLab}>Kcal</Text>
+        </View>
         </View>
 
         {/* LISTA DE COMIDAS */}
