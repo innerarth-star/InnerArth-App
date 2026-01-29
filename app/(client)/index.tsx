@@ -114,38 +114,41 @@ const [nombre, setNombre] = useState('');
   const [frecuenciaAlimentos, setFrecuenciaAlimentos] = useState<any>({});
 
 useEffect(() => {
-    if (!user) return;
+  if (!user) return;
 
-    // 1. CAMBIAMOS "planes_publicados" por "historial_planes"
-    const qPlan = query(
-      collection(db, "alumnos_activos", user.uid, "historial_planes"), 
-      limit(1)
-    );
+  // 1. Buscamos en historial_planes sin orderBy para evitar errores de Firebase
+  const qPlan = query(
+    collection(db, "alumnos_activos", user.uid, "historial_planes"),
+    limit(1)
+  );
 
-    const unsub = onSnapshot(qPlan, (snap) => {
-      if (!snap.empty) {
-        console.log("¡Plan encontrado en historial_planes!");
-        // Aquí es donde realmente se guardan los datos para mostrar
-        setPlanActivo({ id: snap.docs[0].id, ...snap.docs[0].data() });
-        setPaso('dashboard');
+  const unsub = onSnapshot(qPlan, (snap) => {
+    if (!snap.empty) {
+      console.log("PLAN ENCONTRADO");
+      setPlanActivo({ id: snap.docs[0].id, ...snap.docs[0].data() });
+      setPaso('dashboard');
+      setCargandoStatus(false);
+    } else {
+      // 2. Si no hay plan, buscamos el cuestionario
+      const qRev = query(collection(db, "revisiones_pendientes"), where("uid", "==", user.uid));
+      
+      onSnapshot(qRev, (snapRev) => {
+        if (!snapRev.empty) {
+          setPaso('espera'); // Esto muestra "En revisión"
+        } else {
+          setPaso('formulario'); // Esto muestra el cuestionario
+        }
         setCargandoStatus(false);
-      } else {
-        // 2. SI NO HAY PLAN, buscamos el cuestionario
-        const qRev = query(collection(db, "revisiones_pendientes"), where("uid", "==", user.uid));
-        
-        onSnapshot(qRev, (snapRev) => {
-          if (!snapRev.empty) {
-            setPaso('espera'); 
-          } else {
-            setPaso('formulario');
-          }
-          setCargandoStatus(false);
-        });
-      }
-    });
+      });
+    }
+  }, (error) => {
+    console.error("Error en Firebase:", error);
+    // Si hay error, por lo menos que no se quede cargando
+    setCargandoStatus(false);
+  });
 
-    return () => unsub();
-  }, [user]);
+  return () => unsub();
+}, [user]);
 
   const enviarAlCoach = async () => {
     if (!nombre || !firma || !aceptarTerminos || !aceptarPrivacidad || !edad) {
