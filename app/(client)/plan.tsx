@@ -9,23 +9,26 @@ export default function MiPlanScreen() {
   const [cargando, setCargando] = useState(true);
   const [verDetalle, setVerDetalle] = useState(false); // Para colapsar/expandir si lo deseas
 
-  useEffect(() => {
+useEffect(() => {
     if (!auth.currentUser) return;
 
-    // Traemos SOLO el último plan publicado para que no se amontone la información
+    // Quitamos el orderBy para evitar que Firebase se quede "pensando"
+    // Buscamos directamente en la carpeta que ya sabemos que funciona
     const q = query(
       collection(db, "alumnos_activos", auth.currentUser.uid, "planes_publicados"),
-      orderBy("fechaPublicacion", "desc"),
       limit(1)
     );
 
     const unsub = onSnapshot(q, (snap) => {
       if (!snap.empty) {
+        console.log("Plan cargado con éxito");
         setPlan(snap.docs[0].data());
+      } else {
+        console.log("No se encontró ningún documento en planes_publicados");
       }
       setCargando(false);
     }, (error) => {
-      console.error("Error:", error);
+      console.error("Error de Firebase:", error);
       setCargando(false);
     });
 
