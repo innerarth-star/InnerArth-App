@@ -116,7 +116,7 @@ const [nombre, setNombre] = useState('');
 useEffect(() => {
   if (!user) return;
 
-  // 1. Buscamos en historial_planes sin orderBy para evitar errores de Firebase
+  // IMPORTANTE: user.uid debe ser el mismo que usaste como alumnoId al guardar
   const qPlan = query(
     collection(db, "alumnos_activos", user.uid, "historial_planes"),
     limit(1)
@@ -124,27 +124,22 @@ useEffect(() => {
 
   const unsub = onSnapshot(qPlan, (snap) => {
     if (!snap.empty) {
-      console.log("PLAN ENCONTRADO");
+      console.log("¡PLAN ENCONTRADO!");
       setPlanActivo({ id: snap.docs[0].id, ...snap.docs[0].data() });
-      setPaso('dashboard');
+      setPaso('dashboard'); // Esto quita el cuestionario
       setCargandoStatus(false);
     } else {
-      // 2. Si no hay plan, buscamos el cuestionario
+      // Si no encuentra plan, busca si hay algo pendiente
       const qRev = query(collection(db, "revisiones_pendientes"), where("uid", "==", user.uid));
-      
       onSnapshot(qRev, (snapRev) => {
         if (!snapRev.empty) {
-          setPaso('espera'); // Esto muestra "En revisión"
+          setPaso('espera');
         } else {
-          setPaso('formulario'); // Esto muestra el cuestionario
+          setPaso('formulario');
         }
         setCargandoStatus(false);
       });
     }
-  }, (error) => {
-    console.error("Error en Firebase:", error);
-    // Si hay error, por lo menos que no se quede cargando
-    setCargandoStatus(false);
   });
 
   return () => unsub();
