@@ -114,36 +114,40 @@ const [nombre, setNombre] = useState('');
   const [frecuenciaAlimentos, setFrecuenciaAlimentos] = useState<any>({});
 
 useEffect(() => {
-  if (!user) return;
+    if (!user) return;
 
-  // IMPORTANTE: user.uid debe ser el mismo que usaste como alumnoId al guardar
-  const qPlan = query(
-    collection(db, "alumnos_activos", user.uid, "historial_planes"),
-    limit(1)
-  );
+    // 1. Buscamos en la carpeta que confirmaste que existe: planes_publicados
+    const qPlan = query(
+      collection(db, "alumnos_activos", user.uid, "planes_publicados"), 
+      limit(1)
+    );
 
-  const unsub = onSnapshot(qPlan, (snap) => {
-    if (!snap.empty) {
-      console.log("¡PLAN ENCONTRADO!");
-      setPlanActivo({ id: snap.docs[0].id, ...snap.docs[0].data() });
-      setPaso('dashboard'); // Esto quita el cuestionario
-      setCargandoStatus(false);
-    } else {
-      // Si no encuentra plan, busca si hay algo pendiente
-      const qRev = query(collection(db, "revisiones_pendientes"), where("uid", "==", user.uid));
-      onSnapshot(qRev, (snapRev) => {
-        if (!snapRev.empty) {
-          setPaso('espera');
-        } else {
-          setPaso('formulario');
-        }
+    const unsub = onSnapshot(qPlan, (snap) => {
+      if (!snap.empty) {
+        console.log("¡PLAN DETECTADO EN planes_publicados!");
+        setPlanActivo({ id: snap.docs[0].id, ...snap.docs[0].data() });
+        setPaso('dashboard'); // Esto ELIMINA el cuestionario de la vista
         setCargandoStatus(false);
-      });
-    }
-  });
+      } else {
+        // 2. Si no hay plan en esa carpeta, buscamos si hay cuestionario pendiente
+        const qRev = query(collection(db, "revisiones_pendientes"), where("uid", "==", user.uid));
+        
+        onSnapshot(qRev, (snapRev) => {
+          if (!snapRev.empty) {
+            setPaso('espera'); // Muestra "En revisión"
+          } else {
+            setPaso('formulario'); // Muestra el cuestionario
+          }
+          setCargandoStatus(false);
+        });
+      }
+    }, (error) => {
+      console.error("Error en el semáforo:", error);
+      setCargandoStatus(false);
+    });
 
-  return () => unsub();
-}, [user]);
+    return () => unsub();
+  }, [user]);
 
   const enviarAlCoach = async () => {
     if (!nombre || !firma || !aceptarTerminos || !aceptarPrivacidad || !edad) {
